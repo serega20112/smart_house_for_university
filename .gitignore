@@ -216,3 +216,40 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Smart Home project specifics
+# SQLite databases
+*.sqlite3
+*.db
+smart_home.db
+smart_home.db-journal
+
+# PlatformIO (firmware)
+.firmware/
+firmware/.pio/
+firmware/.pioenvs/
+firmware/.piolibdeps/
+firmware/.vscode/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Backups & temp
+*.bak
+*.tmp
+backups/
+_s.log
+_s.err
+_server.log
+_server.err
+
+# IDE
+.idea/
+.vscode/
+*.swp

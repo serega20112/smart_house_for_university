@@ -1,0 +1,32 @@
+name: smart-home
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+      - "8765:8765"
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////data/smart_home.db
+      APP_HOST: 0.0.0.0
+      ESP_SERVER_HOST: 0.0.0.0
+      ESP_SERVER_PORT: 8765
+      LOG_LEVEL: INFO
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - backend-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  backend-data:

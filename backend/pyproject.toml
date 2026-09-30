@@ -1,0 +1,78 @@
+[project]
+name = "smart-home-backend"
+version = "1.0.0"
+description = "Smart Home control system backend (Clean Architecture): devices, automation, scenarios, NLP commands, Telegram, ESP8266 bridge"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.8",
+    "python-dotenv>=1.0",
+    "sqlalchemy[asyncio]>=2.0",
+    "aiosqlite>=0.20",
+    "websockets>=12.0",
+    "python-telegram-bot>=21.4",
+]
+
+[project.optional-dependencies]
+embeddings = [
+    "sentence-transformers>=3.0",
+    "numpy>=1.26",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "import-linter>=2.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+# ВАЖНО: pytest добавляет в sys.path только rootdir и test-каталоги.
+# Пакет лежит в src/, поэтому pythonpath = ["src"].
+# НЕ добавляйте в pythonpath "backend" или "backend/src/infrastructure":
+# подкаталоги database/ и telegram/ затенят стандартные/внешние модули.
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.importlinter]
+# Границы слоёв закреплены контрактом. Проверка: lint-imports
+root_packages = ["smart_home_backend"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layer Boundaries"
+type = "layers"
+layers = [
+    "smart_home_backend.presentation",
+    "smart_home_backend.infrastructure",
+    "smart_home_backend.application",
+    "smart_home_backend.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain is independent"
+type = "forbidden"
+source_modules = ["smart_home_backend.domain"]
+forbidden_modules = [
+    "fastapi",
+    "sqlalchemy",
+    "pydantic",
+    "telegram",
+    "websockets",
+    "smart_home_backend.application",
+    "smart_home_backend.infrastructure",
+    "smart_home_backend.presentation",
+]
