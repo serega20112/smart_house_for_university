@@ -3,7 +3,8 @@ name: smart-home
 services:
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     ports:
       - "8000:8000"
       - "8765:8765"
@@ -13,6 +14,8 @@ services:
       ESP_SERVER_HOST: 0.0.0.0
       ESP_SERVER_PORT: 8765
       LOG_LEVEL: INFO
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:-}
+      AUTH_SESSION_LIFETIME_MINUTES: ${AUTH_SESSION_LIFETIME_MINUTES:-43200}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
     env_file:
