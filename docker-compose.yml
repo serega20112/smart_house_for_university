@@ -1,35 +1,97 @@
 name: smart-home
 
+# One stack: the relational store with pgvector, the volatile state store, a
+# one-shot migration, the API and the background worker. The API and the worker
+# share one image with different commands, so a deployment cannot run an old
+# worker next to a new API. The warning threshold of every healthcheck keeps a
+# cold start of Postgres from killing the container that waits for it.
+
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: smart_home
+      POSTGRES_PASSWORD: smart_home
+      POSTGRES_DB: smart_home
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smart_home -d smart_home"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://smart_home:smart_home@postgres:5432/smart_home
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
-      - "8765:8765"
+      - "8001:8001"
     environment:
-      DATABASE_URL: sqlite+aiosqlite:////data/smart_home.db
       APP_HOST: 0.0.0.0
-      ESP_SERVER_HOST: 0.0.0.0
-      ESP_SERVER_PORT: 8765
-      LOG_LEVEL: INFO
-      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:-}
-      AUTH_SESSION_LIFETIME_MINUTES: ${AUTH_SESSION_LIFETIME_MINUTES:-43200}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-    env_file:
-      - path: .env
-        required: false
-    volumes:
-      - backend-data:/data
-    restart: unless-stopped
+      APP_PORT: 8000
+      BOARD_SOCKET_PORT: 8001
+      DATABASE_URL: postgresql+asyncpg://smart_home:smart_home@postgres:5432/smart_home
+      REDIS_URL: redis://redis:6379/0
+      # The secret is required, not generated at startup: a deployment that
+      # invents one signs every session out on every restart and leaves none to
+      # verify. Pass it through .env or the environment of the host shell.
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?set AUTH_TOKEN_SECRET in .env (at least 32 characters)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "-m", "smart_home.infrastructure.worker"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://smart_home:smart_home@postgres:5432/smart_home
+      REDIS_URL: redis://redis:6379/0
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?set AUTH_TOKEN_SECRET in .env (at least 32 characters)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
 
 volumes:
-  backend-data:
+  postgres-data:

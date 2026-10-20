@@ -1,0 +1,121 @@
+[project]
+name = "smart-home-backend"
+version = "1.0.0"
+description = "Multi-user smart home backend (Clean Architecture): accounts, devices, automation, scenarios, natural language commands, Telegram, ESP8266 bridge"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30",
+    "alembic>=1.14",
+    "pgvector>=0.3.6",
+    "redis>=5.2",
+    "arq>=0.26",
+    "dishka>=1.4",
+    "pyjwt>=2.9",
+    "structlog>=24.4",
+    "httpx>=0.27",
+    "python-telegram-bot>=21.4",
+    "websockets>=13.1",
+]
+
+[project.optional-dependencies]
+embeddings = [
+    "sentence-transformers>=3.3",
+    "numpy>=1.26",
+]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.7",
+    "import-linter>=2.1",
+    "mypy>=1.13",
+    "fakeredis[lua]>=2.26",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["smart_home*"]
+
+[tool.setuptools.package-data]
+"smart_home.migrations" = ["script.py.mako", "versions/*.py"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "PYI", "N", "RUF"]
+ignore = [
+    "B008",
+    "SIM108",
+    "N818",
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "N802", "N806"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["smart_home"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.importlinter]
+root_packages = ["smart_home"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layer boundaries"
+type = "layers"
+layers = [
+    "smart_home.presentation",
+    "smart_home.infrastructure",
+    "smart_home.application",
+    "smart_home.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain stays free of frameworks and inner layers"
+type = "forbidden"
+source_modules = ["smart_home.domain"]
+forbidden_modules = [
+    "fastapi",
+    "starlette",
+    "sqlalchemy",
+    "pydantic",
+    "pydantic_settings",
+    "telegram",
+    "websockets",
+    "redis",
+    "jwt",
+    "httpx",
+    "smart_home.application",
+    "smart_home.infrastructure",
+    "smart_home.presentation",
+]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Application does not reach into infrastructure"
+type = "forbidden"
+source_modules = ["smart_home.application"]
+forbidden_modules = ["smart_home.infrastructure", "smart_home.presentation"]
