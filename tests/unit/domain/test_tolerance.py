@@ -1,7 +1,7 @@
 import pytest
 
-from smart_home.domain.climate.tolerance import MAX_TOLERANCE, Tolerance
-from smart_home.domain.exceptions import InvalidToleranceError
+from backend.domain.exceptions import InvalidToleranceError
+from backend.domain.value_objects.climate.tolerance import MAX_TOLERANCE, Tolerance
 
 
 @pytest.mark.parametrize("value", [0.0, MAX_TOLERANCE, 1.0, 4.5])

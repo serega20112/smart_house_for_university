@@ -1,10 +1,10 @@
 from datetime import UTC, datetime
 
-from smart_home.domain.climate.climate_reading import ClimateReading
-from smart_home.domain.climate.home_state import HomeState
-from smart_home.domain.devices.device_status import DeviceStatus
-from smart_home.domain.devices.relay_state import RelayState
-from smart_home.domain.identifiers import UserId
+from backend.domain.aggregates.home_state.home_state import HomeState
+from backend.domain.identifiers import UserId
+from backend.domain.value_objects.climate.climate_reading import ClimateReading
+from backend.domain.value_objects.devices.device_status import DeviceStatus
+from backend.domain.value_objects.devices.relay_state import RelayState
 from tests.conftest import OWNER_UUID, make_device
 
 REPORTED_AT = datetime(2026, 5, 1, 12, 0, tzinfo=UTC)

@@ -1,11 +1,11 @@
 import pytest
 
-from smart_home.domain.devices.relay_channel import (
+from backend.domain.exceptions import InvalidRelayChannelError
+from backend.domain.value_objects.devices.relay_channel import (
     FIRST_CHANNEL,
     PHYSICAL_RELAY_LIMIT,
     RelayChannel,
 )
-from smart_home.domain.exceptions import InvalidRelayChannelError
 
 
 @pytest.mark.parametrize("number", [FIRST_CHANNEL, PHYSICAL_RELAY_LIMIT, 6, 15])

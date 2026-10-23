@@ -7,20 +7,20 @@ from typing import Never, Self
 import pytest
 from tests.conftest import OWNER_UUID, make_device
 
-from smart_home.application.errors import BoardUnreachableError, DeviceNotFoundError
-from smart_home.application.ports.boards import BoardCommandResult, BoardGateway
-from smart_home.application.ports.events import DomainEventDispatcher, RealtimePublisher
-from smart_home.application.ports.services import Clock, HomeStateStore
-from smart_home.application.ports.unit_of_work.home import HomeUnitOfWorkFactory
-from smart_home.application.services.device_control import DeviceControlService
-from smart_home.domain.boards.network_profile import NetworkProfile
-from smart_home.domain.climate.climate_reading import ClimateReading
-from smart_home.domain.climate.home_state import HomeState
-from smart_home.domain.devices.capability import Capability
-from smart_home.domain.devices.device import Device
-from smart_home.domain.devices.device_status import DeviceStatus
-from smart_home.domain.identifiers import DeviceId, UserId
-from smart_home.domain.services.device_selector import DeviceSelector
+from backend.application.errors import BoardUnreachableError, DeviceNotFoundError
+from backend.application.ports.boards import BoardCommandResult, BoardGateway
+from backend.application.ports.events import DomainEventDispatcher, RealtimePublisher
+from backend.application.ports.services import Clock, HomeStateStore
+from backend.application.ports.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.services.device_control import DeviceControlService
+from backend.domain.aggregates.device.device import Device
+from backend.domain.aggregates.home_state.home_state import HomeState
+from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
+from backend.domain.policies.device_selector import DeviceSelector
+from backend.domain.value_objects.boards.network_profile import NetworkProfile
+from backend.domain.value_objects.climate.climate_reading import ClimateReading
+from backend.domain.value_objects.devices.capability import Capability
+from backend.domain.value_objects.devices.device_status import DeviceStatus
 
 NOW = datetime(2026, 5, 1, 12, 0, tzinfo=UTC)
 
@@ -35,6 +35,11 @@ class FakeBoardGateway(BoardGateway):
         self._journal = journal
         self._accepts = accepts
         self.commands: list[tuple[int, bool]] = []
+        self.board_id = EspDeviceId.generate()
+
+    def board_for(self, user_id: UserId) -> EspDeviceId | None:
+        del user_id
+        return self.board_id
 
     async def set_relay(
         self, user_id: UserId, board_id: DeviceId, channel: int, energized: bool
@@ -114,10 +119,9 @@ class RecordingHomeUnitOfWork:
         self._journal.append("uow_open")
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> bool:
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         self.is_open = False
         self._journal.append("uow_commit" if exc_type is None else "uow_rollback")
-        return False
 
     async def commit(self) -> None:
         self._journal.append("uow_commit")

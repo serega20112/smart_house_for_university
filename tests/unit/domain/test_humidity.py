@@ -1,7 +1,7 @@
 import pytest
 
-from smart_home.domain.climate.humidity import MAX_PERCENT, MIN_PERCENT, Humidity
-from smart_home.domain.exceptions import InvalidHumidityError
+from backend.domain.exceptions import InvalidHumidityError
+from backend.domain.value_objects.climate.humidity import MAX_PERCENT, MIN_PERCENT, Humidity
 
 
 @pytest.mark.parametrize("percent", [MIN_PERCENT, MAX_PERCENT, 45.0, 63.5])

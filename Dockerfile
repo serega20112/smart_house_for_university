@@ -7,10 +7,10 @@ FROM node:20-alpine AS interface
 
 WORKDIR /build
 
-COPY frontend/package.json frontend/package-lock.json ./
+COPY src/frontend/package.json src/frontend/package-lock.json ./
 RUN npm ci
 
-COPY frontend/ ./
+COPY src/frontend/ ./
 RUN npm run build
 
 
@@ -23,11 +23,11 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY src ./src
-COPY alembic.ini ./
-COPY --from=interface /build/dist ./frontend/dist
+COPY build/alembic ./build/alembic
+COPY --from=interface /build/dist ./src/frontend/dist
 
 RUN pip install --no-cache-dir .
 
 EXPOSE 8000 8001
 
-CMD ["python", "-m", "smart_home.main"]
+CMD ["python", "-m", "backend.main"]

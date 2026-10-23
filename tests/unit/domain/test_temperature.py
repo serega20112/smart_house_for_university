@@ -1,7 +1,7 @@
 import pytest
 
-from smart_home.domain.climate.temperature import MAX_CELSIUS, MIN_CELSIUS, Temperature
-from smart_home.domain.exceptions import InvalidTemperatureError
+from backend.domain.exceptions import InvalidTemperatureError
+from backend.domain.value_objects.climate.temperature import MAX_CELSIUS, MIN_CELSIUS, Temperature
 
 
 @pytest.mark.parametrize("celsius", [MIN_CELSIUS, MAX_CELSIUS, 0.0, 21.5, -19.7])

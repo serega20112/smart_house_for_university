@@ -5,9 +5,9 @@ from importlib.metadata import version
 import httpx
 import pytest
 
-from smart_home.bootstrap.version import DISTRIBUTION_NAME
-from smart_home.config.settings import Settings
-from smart_home.presentation.app_factory import create_app
+from backend.bootstrap.version import DISTRIBUTION_NAME
+from backend.config.settings import Settings
+from backend.presentation.app_factory import create_app
 
 
 @pytest.mark.asyncio

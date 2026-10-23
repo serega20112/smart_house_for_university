@@ -1,16 +1,16 @@
 import pytest
 
-from smart_home.domain.devices.capability import Capability
-from smart_home.domain.devices.device import MAX_NAME_LENGTH, Device
-from smart_home.domain.devices.device_kind import DeviceKind
-from smart_home.domain.devices.device_status import DeviceStatus
-from smart_home.domain.devices.relay_channel import RelayChannel
-from smart_home.domain.events import DeviceCapabilityApplied, DeviceConfigured
-from smart_home.domain.exceptions import (
+from backend.domain.aggregates.device.device import MAX_NAME_LENGTH, Device
+from backend.domain.events import DeviceCapabilityApplied, DeviceConfigured
+from backend.domain.exceptions import (
     InvalidDeviceNameError,
     UnsupportedCapabilityError,
 )
-from smart_home.domain.identifiers import DeviceId, UserId
+from backend.domain.identifiers import DeviceId, UserId
+from backend.domain.value_objects.devices.capability import Capability
+from backend.domain.value_objects.devices.device_kind import DeviceKind
+from backend.domain.value_objects.devices.device_status import DeviceStatus
+from backend.domain.value_objects.devices.relay_channel import RelayChannel
 from tests.conftest import OWNER_UUID, make_device
 
 ALL_CAPABILITIES = frozenset(Capability)

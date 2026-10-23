@@ -11,29 +11,29 @@ from datetime import UTC, datetime
 
 from tests.conftest import OWNER_UUID, make_device
 
-from smart_home.application.ports.boards import BoardCommandResult, BoardGateway
-from smart_home.application.ports.events import (
+from backend.application.ports.boards import BoardCommandResult, BoardGateway
+from backend.application.ports.events import (
     DomainEventDispatcher,
     Notification,
     NotificationFactory,
     RealtimePublisher,
     UserNotifier,
 )
-from smart_home.application.ports.services import Clock, HomeStateStore
-from smart_home.application.ports.unit_of_work.home import HomeUnitOfWork
-from smart_home.application.services.device_control import DeviceControlService
-from smart_home.application.services.scenario_service import ScenarioService
-from smart_home.domain.climate.climate_reading import ClimateReading
-from smart_home.domain.climate.home_state import HomeState
-from smart_home.domain.devices.capability import Capability
-from smart_home.domain.devices.device import Device
-from smart_home.domain.devices.device_status import DeviceStatus
-from smart_home.domain.identifiers import DeviceId, UserId
-from smart_home.domain.scenarios.completion_behavior import CompletionBehavior
-from smart_home.domain.scenarios.scenario import Scenario
-from smart_home.domain.scenarios.scenario_action import ScenarioAction
-from smart_home.domain.scenarios.scenario_status import ScenarioStatus
-from smart_home.domain.services.device_selector import DeviceSelector
+from backend.application.ports.services import Clock, HomeStateStore
+from backend.application.ports.unit_of_work.home import HomeUnitOfWork
+from backend.application.services.device_control import DeviceControlService
+from backend.application.services.scenario_service import ScenarioService
+from backend.domain.aggregates.device.device import Device
+from backend.domain.aggregates.home_state.home_state import HomeState
+from backend.domain.aggregates.scenario.scenario import Scenario
+from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
+from backend.domain.policies.device_selector import DeviceSelector
+from backend.domain.value_objects.climate.climate_reading import ClimateReading
+from backend.domain.value_objects.devices.capability import Capability
+from backend.domain.value_objects.devices.device_status import DeviceStatus
+from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
+from backend.domain.value_objects.scenario.scenario_action import ScenarioAction
+from backend.domain.value_objects.scenario.scenario_status import ScenarioStatus
 
 NOW = datetime(2027, 6, 1, 12, 0, tzinfo=UTC)
 
@@ -51,40 +51,42 @@ class FixedClock(Clock):
 
 
 class SelectiveBoardGateway(BoardGateway):
-    """Accepts every command but the ones of the boards it refuses.
+    """Accepts every command except the ones on the refused channels.
 
     Args:
-        refused: Boards that pull the plug.
-
-    Returns:
-        None.
+        refused: Relay channels the board turns down.
     """
 
-    def __init__(self, refused: set[DeviceId]) -> None:
+    def __init__(self, refused: set[int]) -> None:
         self._refused = refused
-        self.driven: list[DeviceId] = []
+        self.driven: list[int] = []
+        self.board_id = EspDeviceId.generate()
+
+    def board_for(self, user_id: UserId) -> EspDeviceId | None:
+        del user_id
+        return self.board_id
 
     async def set_relay(
-        self, user_id: UserId, board_id: DeviceId, channel: int, energized: bool
+        self, user_id: UserId, board_id: EspDeviceId, channel: int, energized: bool
     ) -> BoardCommandResult:
-        """Drive a relay, refusing the ones on the unreachable boards.
+        """Drive a relay, refusing the ones on the unreachable channels.
 
         Args:
             user_id: Owner of the board.
-            board_id: Board the device is wired to.
+            board_id: Board asked to drive the channel.
             channel: Channel the relay holds.
             energized: Direction the contact is asked to take.
 
         Returns:
-            BoardCommandResult: What the board answered.
+            What the board answered.
         """
-        del user_id, channel, energized
-        if board_id in self._refused:
+        del user_id, board_id, energized
+        if channel in self._refused:
             return BoardCommandResult(accepted=False, reason="offline")
-        self.driven.append(board_id)
+        self.driven.append(channel)
         return BoardCommandResult(accepted=True)
 
-    async def request_state(self, user_id: UserId, board_id: DeviceId) -> None:
+    async def request_state(self, user_id: UserId, board_id: EspDeviceId) -> None:
         """Do nothing.
 
         Args:
@@ -799,7 +801,7 @@ async def test_advance_marks_a_failing_scenario_failed_and_carries_on():
 async def test_advance_records_running_only_after_the_commands_worked():
     lamp = make_device()
     scenario_on_lamp = due_scenario(Capability.ON, delay_minutes=0)
-    board = SelectiveBoardGateway(refused={lamp.id})
+    board = SelectiveBoardGateway(refused={int(lamp.channel)})
     service, _devices, scenarios, _realtime, notifier = make_service(
         [lamp], [scenario_on_lamp], board
     )

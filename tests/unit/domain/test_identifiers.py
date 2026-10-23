@@ -2,8 +2,8 @@ from uuid import UUID
 
 import pytest
 
-from smart_home.domain.exceptions import MalformedIdentifierError
-from smart_home.domain.identifiers import DeviceId, EspDeviceId, UserId
+from backend.domain.exceptions import MalformedIdentifierError
+from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
 
 
 def test_identifiers_parse_accepted_uuid_text() -> None:

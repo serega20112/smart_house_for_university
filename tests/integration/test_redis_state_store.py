@@ -11,12 +11,12 @@ from datetime import UTC, datetime, timedelta
 
 from fakeredis import aioredis
 
-from smart_home.domain.climate.climate_reading import ClimateReading
-from smart_home.domain.devices.device_status import DeviceStatus
-from smart_home.domain.devices.relay_channel import RelayChannel
-from smart_home.domain.devices.relay_state import RelayState
-from smart_home.domain.identifiers import UserId
-from smart_home.infrastructure.redis.state_store import RedisHomeStateStore
+from backend.domain.identifiers import UserId
+from backend.domain.value_objects.climate.climate_reading import ClimateReading
+from backend.domain.value_objects.devices.device_status import DeviceStatus
+from backend.domain.value_objects.devices.relay_channel import RelayChannel
+from backend.domain.value_objects.devices.relay_state import RelayState
+from backend.infrastructure.redis.state_store import RedisHomeStateStore
 from tests.conftest import OWNER_UUID, make_device
 
 NOW = datetime(2027, 5, 1, 12, 0, tzinfo=UTC)

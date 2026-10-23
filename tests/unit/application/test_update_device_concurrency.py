@@ -6,14 +6,22 @@ store: the first attempts lose a race the way the store would settle it, and
 the use case is expected to read the newest snapshot and win.
 """
 
+from datetime import datetime
+
 import pytest
 from tests.conftest import make_device
 
-from smart_home.application.dto.device import UpdateDeviceCommand
-from smart_home.application.errors import ConcurrentModificationError
-from smart_home.application.ports.unit_of_work.home import HomeUnitOfWork
-from smart_home.application.use_cases.devices.update_device import UpdateDeviceUseCase
-from smart_home.domain.devices.device import Device
+from backend.application.dto.devices.update_device_command import UpdateDeviceCommand
+from backend.application.errors import ConcurrentModificationError
+from backend.application.ports.services import HomeStateStore
+from backend.application.ports.unit_of_work.home import HomeUnitOfWork
+from backend.application.use_cases.devices.update_device import UpdateDeviceUseCase
+from backend.domain.aggregates.device.device import Device
+from backend.domain.aggregates.home_state.home_state import HomeState
+from backend.domain.identifiers import DeviceId, UserId
+from backend.domain.value_objects.climate.climate_reading import ClimateReading
+from backend.domain.value_objects.devices.device_status import DeviceStatus
+from backend.domain.value_objects.devices.relay_state import RelayState
 
 
 class RaceRepository:
@@ -159,18 +167,80 @@ class RecordingDispatcher:
         self.dispatched.extend(events)
 
 
+class LiveStateStore(HomeStateStore):
+    """State store that always answers with one prepared state.
+
+    Args:
+        state: Home state every read returns.
+
+    Returns:
+        None.
+    """
+
+    def __init__(self, state: HomeState) -> None:
+        self._state = state
+
+    async def read(self, user_id: UserId) -> HomeState:
+        del user_id
+        return self._state
+
+    async def record_background_reading(
+        self, user_id: UserId, reading: ClimateReading, changed_at: datetime
+    ) -> ClimateReading:
+        del user_id, reading, changed_at
+        return ClimateReading()
+
+    async def record_relay_report(
+        self, user_id: UserId, states: list[bool], changed_at: datetime
+    ) -> tuple[int, ...]:
+        del user_id, states, changed_at
+        return ()
+
+    async def record_board_online(
+        self, user_id: UserId, online: bool, changed_at: datetime
+    ) -> bool:
+        del user_id, changed_at
+        return online
+
+    async def record_command_result(
+        self,
+        user_id: UserId,
+        device: Device,
+        status: DeviceStatus,
+        changed_at: datetime,
+    ) -> None:
+        del user_id, device, status, changed_at
+
+    async def forget_device_status(self, user_id: UserId, device_id: DeviceId) -> None:
+        del user_id, device_id
+
+    async def set_override_until(self, user_id: UserId, until: datetime | None) -> None:
+        del user_id, until
+
+    async def claim_summary_slot(self, user_id: UserId, key: str, window_sec: int) -> bool:
+        del user_id, key, window_sec
+        return True
+
+
 async def test_update_device_retries_on_a_lost_race_and_publishes_once():
     device = make_device()
     repository = RaceRepository(device, races_lost=1)
     factory = SequenceFactory(repository)
     realtime = RecordingRealtime()
-    use_case = UpdateDeviceUseCase(factory, realtime, RecordingDispatcher())
+    state = HomeState(
+        user_id=device.user_id,
+        board_online=True,
+        relay_states={int(device.channel): RelayState.ON},
+        device_modes={device.id: DeviceStatus.ACTIVE},
+    )
+    use_case = UpdateDeviceUseCase(factory, realtime, RecordingDispatcher(), LiveStateStore(state))
 
     view = await use_case.execute(
         device.user_id, device.id, UpdateDeviceCommand(name="Reading lamp")
     )
 
     assert view.name == "Reading lamp"
+    assert view.status is DeviceStatus.ACTIVE
     assert repository.races_lost == 0
     assert factory.opened == 2
     assert realtime.published == ["devices.updated"]
@@ -181,7 +251,12 @@ async def test_update_device_gives_up_after_repeated_lost_races():
     repository = RaceRepository(device, races_lost=99)
     factory = SequenceFactory(repository)
     realtime = RecordingRealtime()
-    use_case = UpdateDeviceUseCase(factory, realtime, RecordingDispatcher())
+    use_case = UpdateDeviceUseCase(
+        factory,
+        realtime,
+        RecordingDispatcher(),
+        LiveStateStore(HomeState(user_id=device.user_id)),
+    )
 
     with pytest.raises(ConcurrentModificationError):
         await use_case.execute(device.user_id, device.id, UpdateDeviceCommand(name="Reading lamp"))

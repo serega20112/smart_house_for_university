@@ -10,11 +10,11 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_USER: smart_home
-      POSTGRES_PASSWORD: smart_home
-      POSTGRES_DB: smart_home
+      POSTGRES_USER: backend
+      POSTGRES_PASSWORD: backend
+      POSTGRES_DB: backend
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U smart_home -d smart_home"]
+      test: ["CMD-SHELL", "pg_isready -U backend -d backend"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -35,9 +35,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["alembic", "upgrade", "head"]
+    command: ["alembic", "-c", "build/alembic/alembic.ini", "upgrade", "head"]
     environment:
-      DATABASE_URL: postgresql+asyncpg://smart_home:smart_home@postgres:5432/smart_home
+      DATABASE_URL: postgresql+asyncpg://backend:backend@postgres:5432/backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,7 +54,7 @@ services:
       APP_HOST: 0.0.0.0
       APP_PORT: 8000
       BOARD_SOCKET_PORT: 8001
-      DATABASE_URL: postgresql+asyncpg://smart_home:smart_home@postgres:5432/smart_home
+      DATABASE_URL: postgresql+asyncpg://backend:backend@postgres:5432/backend
       REDIS_URL: redis://redis:6379/0
       # The secret is required, not generated at startup: a deployment that
       # invents one signs every session out on every restart and leaves none to
@@ -79,9 +79,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["python", "-m", "smart_home.infrastructure.worker"]
+    command: ["python", "-m", "backend.infrastructure.worker"]
     environment:
-      DATABASE_URL: postgresql+asyncpg://smart_home:smart_home@postgres:5432/smart_home
+      DATABASE_URL: postgresql+asyncpg://backend:backend@postgres:5432/backend
       REDIS_URL: redis://redis:6379/0
       AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?set AUTH_TOKEN_SECRET in .env (at least 32 characters)}
     depends_on:

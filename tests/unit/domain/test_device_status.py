@@ -1,7 +1,7 @@
 import pytest
 
-from smart_home.domain.devices.capability import Capability
-from smart_home.domain.devices.device_status import DeviceStatus
+from backend.domain.value_objects.devices.capability import Capability
+from backend.domain.value_objects.devices.device_status import DeviceStatus
 
 
 @pytest.mark.parametrize("capability", list(Capability))

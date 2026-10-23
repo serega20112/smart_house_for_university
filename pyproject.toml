@@ -41,12 +41,9 @@ dev = [
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["smart_home*"]
-
-[tool.setuptools.package-data]
-"smart_home.migrations" = ["script.py.mako", "versions/*.py"]
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["backend"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
@@ -74,29 +71,29 @@ ignore = [
 "tests/*" = ["S101", "N802", "N806"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["smart_home"]
+known-first-party = ["backend"]
 
 [tool.ruff.format]
 quote-style = "double"
 
 [tool.importlinter]
-root_packages = ["smart_home"]
+root_packages = ["backend"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Layer boundaries"
 type = "layers"
 layers = [
-    "smart_home.presentation",
-    "smart_home.infrastructure",
-    "smart_home.application",
-    "smart_home.domain",
+    "backend.presentation",
+    "backend.infrastructure",
+    "backend.application",
+    "backend.domain",
 ]
 
 [[tool.importlinter.contracts]]
 name = "Domain stays free of frameworks and inner layers"
 type = "forbidden"
-source_modules = ["smart_home.domain"]
+source_modules = ["backend.domain"]
 forbidden_modules = [
     "fastapi",
     "starlette",
@@ -108,14 +105,14 @@ forbidden_modules = [
     "redis",
     "jwt",
     "httpx",
-    "smart_home.application",
-    "smart_home.infrastructure",
-    "smart_home.presentation",
+    "backend.application",
+    "backend.infrastructure",
+    "backend.presentation",
 ]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Application does not reach into infrastructure"
 type = "forbidden"
-source_modules = ["smart_home.application"]
-forbidden_modules = ["smart_home.infrastructure", "smart_home.presentation"]
+source_modules = ["backend.application"]
+forbidden_modules = ["backend.infrastructure", "backend.presentation"]

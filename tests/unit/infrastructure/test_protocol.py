@@ -1,6 +1,6 @@
 import pytest
 
-from smart_home.infrastructure.esp import protocol
+from backend.infrastructure.esp import protocol
 
 
 def test_protocol_version_is_the_firmware_and_docs_version() -> None:

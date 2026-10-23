@@ -2,17 +2,17 @@ from datetime import UTC, datetime
 
 import pytest
 
-from smart_home.domain.climate.automation_settings import (
+from backend.domain.aggregates.automation.automation_settings import (
     DEFAULT_HUMIDITY_TOLERANCE_PERCENT,
     DEFAULT_TARGET_HUMIDITY_PERCENT,
     DEFAULT_TARGET_TEMPERATURE_C,
     DEFAULT_TEMPERATURE_TOLERANCE_C,
     AutomationSettings,
 )
-from smart_home.domain.climate.humidity import Humidity
-from smart_home.domain.climate.temperature import Temperature
-from smart_home.domain.exceptions import InvalidToleranceError
-from smart_home.domain.identifiers import DeviceId, UserId
+from backend.domain.exceptions import InvalidToleranceError
+from backend.domain.identifiers import DeviceId, UserId
+from backend.domain.value_objects.climate.humidity import Humidity
+from backend.domain.value_objects.climate.temperature import Temperature
 
 OWNER_UUID = "550e8400-e29b-41d4-a716-446655440000"
 CHANGED_AT = datetime(2026, 5, 1, 12, 0, tzinfo=UTC)

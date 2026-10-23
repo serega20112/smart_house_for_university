@@ -8,7 +8,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -205,6 +204,9 @@ tempCodeRunnerFile.py
 
 # Ruff stuff:
 .ruff_cache/
+
+# Import-linter cache
+.import_linter_cache/
 
 # PyPI configuration file
 .pypirc

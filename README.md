@@ -69,7 +69,7 @@ ESP8266 ничего не решает: он исполняет команды �
 ```bash
 cd backend
 pip install -e ".[dev]"
-python -m smart_home_backend.main
+python -m backend_backend.main
 ```
 
 Интерфейс откроется на <http://127.0.0.1:8000>, документация API — на `/docs`.
@@ -77,7 +77,7 @@ python -m smart_home_backend.main
 набор устройств, настроек и главный экран.
 
 Схема базы стала user-scoped, поэтому базу, созданную версией до
-многопользовательской, нужно удалить: `rm backend/src/smart_home_backend/smart_home.db`
+многопользовательской, нужно удалить: `rm backend/src/backend_backend/backend.db`
 (в контейнере — том `backend-data`).
 
 Задайте `AUTH_TOKEN_SECRET` в окружении, иначе секрет подписи генерируется

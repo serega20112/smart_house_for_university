@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from smart_home.domain.devices.capability import Capability
-from smart_home.domain.devices.device import Device
-from smart_home.domain.devices.device_kind import DeviceKind
-from smart_home.domain.devices.relay_channel import RelayChannel
-from smart_home.domain.identifiers import DeviceId, UserId
+from backend.domain.aggregates.device.device import Device
+from backend.domain.identifiers import DeviceId, UserId
+from backend.domain.value_objects.devices.capability import Capability
+from backend.domain.value_objects.devices.device_kind import DeviceKind
+from backend.domain.value_objects.devices.relay_channel import RelayChannel
 
 OWNER_UUID = "550e8400-e29b-41d4-a716-446655440000"
 OTHER_UUID = "11111111-2222-3333-4444-555555555555"
