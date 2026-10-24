@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from backend.domain.aggregates.device.device import Device
-from backend.domain.identifiers import UserId
+from backend.domain.identifiers import EspDeviceId, UserId
 
 
 class HomeDeviceDirectory(Protocol):
@@ -20,5 +20,9 @@ class HomeDeviceDirectory(Protocol):
     async def all_of(self, user_id: UserId) -> list[Device]:
         """Все устройства дома."""
 
-    async def by_channel(self, user_id: UserId) -> dict[int, Device]:
-        """Устройства дома, проиндексированные по каналу реле."""
+    async def by_channel(self, user_id: UserId, board_id: EspDeviceId) -> dict[int, Device]:
+        """Устройства одной платы, проиндексированные по каналу реле.
+
+        Каналы двух плат совпадают по номерам, но означают разные контакты,
+        поэтому индекс строится только по устройствам этой платы.
+        """

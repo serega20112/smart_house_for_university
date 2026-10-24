@@ -36,5 +36,6 @@ class ListDevicesUseCase:
         devices = await self._queries.list_all(user_id)
         state = await self._state_store.read(user_id)
         return [
-            device.with_status(state.status_for(device.id, device.channel)) for device in devices
+            device.with_status(state.status_for(device.id, device.channel, device.board_id))
+            for device in devices
         ]

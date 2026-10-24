@@ -1,9 +1,10 @@
 """Маршруты сопряжённых плат.
 
-Сопряжение, взятие уже объявленной платы и её удаление — три разные операции, и
-каждая живёт в своём сценарии прикладного слоя. Маршрут только переводит тело
-запроса в команду: даже признак «подключена сейчас» считает сценарий, потому что
-строка таблицы об этом не знает.
+Объявление, взятие, сопряжение и отзыв — одна жизнь платы, поэтому живёт она в одном
+сервисе прикладного слоя, а маршрут только переводит тело запроса в команду: отдельные
+сценарии-делегаты ничего бы не решали, зато заставляли бы читателя искать правила в двух
+местах. Перечисление плат остаётся своим сценарием: это чтение, и признак «подключена
+сейчас» считает именно оно, потому что строка таблицы об этом не знает.
 """
 
 from __future__ import annotations
@@ -12,11 +13,10 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, status
 
-from backend.application.use_cases.boards.claim_board import ClaimBoardUseCase
+from backend.application.dto.boards.detach_policy import DetachPolicy
+from backend.application.services.board_onboarding import BoardOnboardingService
 from backend.application.use_cases.boards.list_boards import ListBoardsUseCase
 from backend.application.use_cases.boards.list_claims import ListBoardClaimsUseCase
-from backend.application.use_cases.boards.pair_board import PairBoardUseCase
-from backend.application.use_cases.boards.revoke_board import RevokeBoardUseCase
 from backend.domain.identifiers import EspDeviceId
 from backend.presentation.api.requests.boards import (
     ClaimBoardBody,
@@ -54,7 +54,7 @@ async def list_claims(use_case: FromDishka[ListBoardClaimsUseCase]) -> list[Boar
 async def claim_board(
     body: ClaimBoardBody,
     user_id: CurrentUserId,
-    use_case: FromDishka[ClaimBoardUseCase],
+    onboarding: FromDishka[BoardOnboardingService],
 ) -> BoardResponse:
     """Забирает объявленную плату за текущим аккаунтом.
 
@@ -64,12 +64,12 @@ async def claim_board(
     Args:
         body: Токен предложения и выбранное имя платы.
         user_id: Владелец, разрешённый из bearer-токена.
-        use_case: Взятие платы.
+        onboarding: Жизнь плат в прикладном слое.
 
     Returns:
         BoardResponse: Плата, которая теперь сопряжена.
     """
-    board = await use_case.execute(user_id, claim_command(body))
+    board = await onboarding.claim(user_id, claim_command(body))
     return board_of(board)
 
 
@@ -94,7 +94,7 @@ async def list_boards(
 async def pair_board(
     body: PairBoardBody,
     user_id: CurrentUserId,
-    use_case: FromDishka[PairBoardUseCase],
+    onboarding: FromDishka[BoardOnboardingService],
 ) -> BoardPairedResponse:
     """Сопрягает плату с текущим аккаунтом.
 
@@ -104,25 +104,33 @@ async def pair_board(
     Args:
         body: Имя платы и, возможно, выбранный человеком ключ.
         user_id: Владелец, разрешённый из bearer-токена.
-        use_case: Сопряжение платы.
+        onboarding: Жизнь плат в прикладном слое.
 
     Returns:
         BoardPairedResponse: Сопряжённая плата вместе с её ключом.
     """
-    return paired_of(await use_case.execute(user_id, pair_command(body)))
+    return paired_of(await onboarding.pair(user_id, pair_command(body)))
 
 
 @router.delete("/{device_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def unpair_board(
     device_id: str,
     user_id: CurrentUserId,
-    use_case: FromDishka[RevokeBoardUseCase],
+    onboarding: FromDishka[BoardOnboardingService],
+    devices: DetachPolicy | None = None,
 ) -> None:
     """Убирает плату из текущего аккаунта.
+
+    Плата, на каналах которой стоят устройства, не уходит молча: без решения
+    человека сервер отвечает отказом и перечисляет эти устройства.
 
     Args:
         device_id: Идентификатор платы.
         user_id: Владелец, разрешённый из bearer-токена.
-        use_case: Отзыв платы.
+        onboarding: Жизнь плат в прикладном слое.
+        devices: Что сделать с устройствами платы — оставить их в доме без
+            платы или удалить вместе с настройкой. None — не решать и получить
+            перечень устройств в отказе.
     """
-    await use_case.execute(user_id, EspDeviceId.parse(device_id))
+    policy = DetachPolicy.REFUSE if devices is None else devices
+    await onboarding.revoke(user_id, EspDeviceId.parse(device_id), policy)

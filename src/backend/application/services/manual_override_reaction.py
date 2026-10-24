@@ -12,7 +12,7 @@ from datetime import timedelta
 
 from backend.application.interfaces.services.state.home_state_store import HomeStateStore
 from backend.application.interfaces.services.system.clock import Clock
-from backend.domain.events import DeviceCapabilityApplied
+from backend.domain.events import DeviceCapabilityApplied, DomainEvent
 from backend.domain.identifiers import UserId
 
 
@@ -31,7 +31,7 @@ class ManualOverrideReaction:
         self._clock = clock
         self._override_minutes = override_minutes
 
-    async def __call__(self, events: tuple[object, ...]) -> None:
+    async def __call__(self, events: tuple[DomainEvent, ...]) -> None:
         """Реагирует на записанные факты.
 
         Args:

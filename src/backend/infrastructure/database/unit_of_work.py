@@ -200,6 +200,11 @@ class SqlHomeUnitOfWork(SqlUnitOfWork, HomeUnitOfWork):
         return self.repository(SqlDeviceRepository)
 
     @property
+    def boards(self) -> BoardRepository:
+        """Хранилище плат нынешней транзакции."""
+        return self.repository(SqlBoardRepository)
+
+    @property
     def automation(self) -> AutomationRepository:
         """Хранилище настройки автоматизации нынешней транзакции."""
         return self.repository(SqlAutomationRepository)
@@ -231,6 +236,15 @@ class SqlBoardOnboardingUnitOfWork(SqlUnitOfWork, BoardOnboardingUnitOfWork):
     def boards(self) -> BoardRepository:
         """Хранилище сопряжённых плат нынешней транзакции."""
         return self.repository(SqlBoardRepository)
+
+    @property
+    def devices(self) -> DeviceRepository:
+        """Хранилище устройств нынешней транзакции.
+
+        Судьба устройств решается вместе с судьбой платы, поэтому транзакция
+        плат отдаёт и хранилище устройств.
+        """
+        return self.repository(SqlDeviceRepository)
 
     @property
     def claims(self) -> ClaimRepository:

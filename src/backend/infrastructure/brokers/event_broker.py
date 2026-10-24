@@ -3,8 +3,8 @@
 Событие доходит до одного аккаунта через его собственный канал, а факт, который ни к
 кому конкретно не обращён, — через общий канал. Подписчик читает оба потока
 асинхронным клиентом `redis.asyncio`: каждое сообщение приходит в цикл событий без
-единого потока и без блокирующего `pubsub.listen`, поэтому одно соединение не утаскивает
-за собой другое и не занимает общий пул потоков.
+единого потока и без блокирующего чтения — подписка сама отдаёт сообщения по мере
+прихода, поэтому событие не ждёт конца периода опроса.
 
 Здесь никто не знает про сокеты. Асинхронный итерируемый поток потребляет концентратор
 вебсокетов презентационного слоя и раздаёт события куда ему угодно.
@@ -21,6 +21,7 @@ from typing import Any
 from redis.asyncio import Redis as AsyncRedis
 
 from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
+from backend.domain.exceptions import MalformedIdentifierError
 from backend.domain.identifiers import UserId
 from backend.infrastructure.brokers import keys
 from backend.infrastructure.system.logging import get_logger
@@ -130,10 +131,7 @@ class RedisSubscriber:
         pubsub = self._redis.pubsub(ignore_subscribe_messages=True)
         await pubsub.subscribe(*channels)
         try:
-            while True:
-                message = await pubsub.get_message(timeout=1.0)
-                if message is None:
-                    continue
+            async for message in pubsub.listen():
                 received = _decode(message)
                 if received is not None:
                     yield received
@@ -163,6 +161,18 @@ def _encode(user_id: UserId | None, event: str, payload: dict[str, Any]) -> str:
 
 
 def _decode(message: dict[str, Any]) -> PublishedEvent | None:
+    """Разбирает одно сообщение канала, пропуская всё, что не является событием.
+
+    Один испорченный кадр не имеет права уронить подписку: клиент остался бы с
+    открытым сокетом и без событий, и снаружи это неотличимо от тишины в доме.
+    Поэтому непонятное сообщение записывается в журнал и пропускается.
+
+    Args:
+        message: Сырое сообщение, пришедшее из подписки.
+
+    Returns:
+        PublishedEvent | None: Событие либо None, когда сообщение не годится.
+    """
     raw = message.get("data")
     if not isinstance(raw, (str, bytes, bytearray)):
         return None
@@ -172,11 +182,17 @@ def _decode(message: dict[str, Any]) -> PublishedEvent | None:
         log.warning("redis.event_not_json", payload=str(raw)[:120])
         return None
     if not isinstance(decoded, dict):
+        log.warning("redis.event_not_object", payload=str(raw)[:120])
         return None
     owner = decoded.get("user_id")
+    try:
+        owner_id = None if owner is None else UserId.parse(owner)
+    except (TypeError, MalformedIdentifierError):
+        log.warning("redis.event_bad_owner", payload=str(raw)[:120])
+        return None
     payload = decoded.get("payload")
     return PublishedEvent(
-        user_id=None if owner is None else UserId.parse(owner),
+        user_id=owner_id,
         event=str(decoded.get("event", "")),
         payload=payload if isinstance(payload, dict) else {},
     )

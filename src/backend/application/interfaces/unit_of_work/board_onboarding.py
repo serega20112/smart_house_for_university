@@ -15,6 +15,7 @@ from backend.application.interfaces.repositories.board_repository import (
     BoardRepository,
     ClaimRepository,
 )
+from backend.application.interfaces.repositories.device_repository import DeviceRepository
 from backend.application.interfaces.unit_of_work.transaction import TransactionalUnitOfWork
 
 
@@ -25,6 +26,15 @@ class BoardOnboardingUnitOfWork(TransactionalUnitOfWork):
     @abstractmethod
     def boards(self) -> BoardRepository:
         """Репозиторий сопряжённых плат текущей транзакции."""
+
+    @property
+    @abstractmethod
+    def devices(self) -> DeviceRepository:
+        """Репозиторий устройств текущей транзакции.
+
+        Устройства нужны именно здесь, потому что судьба платы и судьба её
+        каналов решается одной транзакцией.
+        """
 
     @property
     @abstractmethod

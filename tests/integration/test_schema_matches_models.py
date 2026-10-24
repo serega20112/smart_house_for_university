@@ -38,9 +38,7 @@ def _drift(connection: Connection) -> list[str]:
         if actual != expected:
             missing = sorted(expected - actual)
             extra = sorted(actual - expected)
-            problems.append(
-                f"table {table.name!r} columns differ: missing={missing} extra={extra}"
-            )
+            problems.append(f"table {table.name!r} columns differ: missing={missing} extra={extra}")
     return problems
 
 

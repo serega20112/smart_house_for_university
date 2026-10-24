@@ -14,7 +14,7 @@ from backend.application.dto.views.automation_view import AutomationView
 from backend.application.dto.views.board_claim_view import BoardClaimView
 from backend.application.dto.views.board_network_view import BoardNetworkView
 from backend.application.dto.views.board_view import BoardView
-from backend.application.dto.views.capability_report import CapabilityReport
+from backend.application.dto.views.capability_report import CapabilityFailure, CapabilityReport
 from backend.application.dto.views.dashboard_view import DashboardView
 from backend.application.dto.views.device_view import DeviceView
 from backend.application.dto.views.home_snapshot_view import HomeSnapshotView
@@ -29,6 +29,7 @@ __all__ = [
     "BoardClaimView",
     "BoardNetworkView",
     "BoardView",
+    "CapabilityFailure",
     "CapabilityReport",
     "DashboardView",
     "DeviceView",

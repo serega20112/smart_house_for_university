@@ -12,24 +12,28 @@ from backend.domain.identifiers import DeviceId
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.scenario.finish_reason import FinishReason
 
-EXPECTED_REFUSALS: tuple[type[Exception], ...] = (
+ScenarioRefusal = BoardUnreachableError | NoDeviceForCapabilityError
+
+EXPECTED_REFUSALS: tuple[type[ScenarioRefusal], ...] = (
     NoDeviceForCapabilityError,
     BoardUnreachableError,
 )
 
 
-def reason_of(refusal: Exception) -> FinishReason:
-    """Какая запись словаря причин соответствует ожидаемому отказу.
+def reason_of(refusal: ScenarioRefusal) -> FinishReason:
+    """Возвращает причину остановки, которую назвал сам отказ.
+
+    Причина — поле отказа, а не вывод из его класса: сценарию нужно имя того, что
+    случилось, а не дерево наследования, поэтому новый отказ с уже известной причиной
+    не требует правки этого места.
 
     Args:
-        refusal: Отказ, из-за которого сценарий умер.
+        refusal: Ожидаемый отказ, из-за которого сценарий умер.
 
     Returns:
         FinishReason: Причина, которая попадёт на сценарий.
     """
-    if isinstance(refusal, BoardUnreachableError):
-        return FinishReason.BOARD_UNREACHABLE
-    return FinishReason.NO_DEVICE_FOR_CAPABILITY
+    return refusal.finish_reason
 
 
 def restorable_states(captured: dict[DeviceId, DeviceStatus]) -> dict[DeviceId, DeviceStatus]:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
+from backend.domain.exceptions.scenarios import InvalidCompletionBehaviorError
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 
 
@@ -42,10 +43,13 @@ class CompletionBehavior(StrEnum):
             CompletionBehavior: Прочитанное поведение.
 
         Raises:
-            ValueError: Когда значение не называет поведение.
+            InvalidCompletionBehaviorError: Когда значение не называет поведение.
         """
         if isinstance(raw, cls):
             return raw
         if raw is None:
-            raise ValueError("completion behavior is missing")
-        return cls(str(raw).strip().upper())
+            raise InvalidCompletionBehaviorError(raw)
+        try:
+            return cls(str(raw).strip().upper())
+        except ValueError as error:
+            raise InvalidCompletionBehaviorError(raw) from error

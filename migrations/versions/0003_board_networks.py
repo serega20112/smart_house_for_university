@@ -1,16 +1,16 @@
-"""Network of every board.
+"""Сеть каждой платы.
 
-A board keeps the network of its own in its flash, and this table is the copy the
-server works with: the interface shows it, and the board is asked for it again
-when it comes back after a change it could not apply.
+Свою сеть плата хранит у себя во флеш-памяти, а эта таблица — копия, с которой
+работает сервер: её показывает интерфейс и её же отдают плате заново, когда она
+возвращается после изменения, которое сама применить не смогла.
 
-The password of the network is stored here because it has to reach the board one
-more time in that case, and it never leaves the server in an answer. A row
-belongs to one board and disappears with it.
+Пароль сети хранится здесь, потому что в этом случае его нужно выдать плате ещё
+раз, и при этом он никогда не уходит с сервера в ответе. Строка принадлежит одной
+плате и исчезает вместе с ней.
 
-The network a board reports being on is kept next to the board itself: it is
-what the board said about itself the last time it was seen, exactly like the
-moment of that handshake.
+Сеть, о которой плата сообщает, лежит рядом с самой платой: это то, что она
+рассказала о себе в последний раз, когда её было видно, — ровно как и момент того
+handshake.
 
 Revision ID: 0003_board_networks
 Revises: 0002_reference_phrases
@@ -50,7 +50,7 @@ TABLE_BOARDS = "esp_devices"
 
 
 def upgrade() -> None:
-    """Create the table of the network of every board.
+    """Создаёт таблицу сетей плат.
 
     Returns:
         None.
@@ -88,7 +88,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Remove the table of the network of every board.
+    """Удаляет таблицу сетей плат.
 
     Returns:
         None.

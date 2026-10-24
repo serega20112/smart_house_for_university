@@ -54,3 +54,23 @@ class InvalidToleranceError(DomainError):
         """
         super().__init__(f"tolerance must not be negative: {tolerance}")
         self.tolerance = tolerance
+
+
+class InvalidMeasurementError(DomainError):
+    """Значение не является измерением климата, которое умеет читать коридор.
+
+    Такой отказ означает дефект вызывающего кода, а не ошибку ввода: настоящий
+    датчик не может отдать логическое значение или произвольный объект.
+
+    Attributes:
+        raw_type: Имя типа отвергнутого значения.
+    """
+
+    def __init__(self, raw_type: str) -> None:
+        """Запоминает тип отвергнутого значения.
+
+        Args:
+            raw_type: Имя типа отвергнутого значения.
+        """
+        super().__init__(f"{raw_type} is not a climate measurement")
+        self.raw_type = raw_type

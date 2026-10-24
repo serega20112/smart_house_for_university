@@ -24,11 +24,14 @@ from backend.domain.exceptions.boards import (
 )
 from backend.domain.exceptions.climate import (
     InvalidHumidityError,
+    InvalidMeasurementError,
     InvalidTemperatureError,
     InvalidToleranceError,
 )
 from backend.domain.exceptions.devices import (
     ChannelConflictError,
+    InvalidCapabilityError,
+    InvalidDeviceKindError,
     InvalidDeviceNameError,
     InvalidRelayChannelError,
     UnsupportedCapabilityError,
@@ -37,9 +40,12 @@ from backend.domain.exceptions.identity import MalformedIdentifierError
 from backend.domain.exceptions.personalization import (
     DashboardAccessDeniedError,
     InvalidDashboardLayoutError,
+    InvalidWidgetKindError,
 )
 from backend.domain.exceptions.scenarios import (
     IllegalScenarioTransitionError,
+    InvalidCompletionBehaviorError,
+    InvalidScenarioTargetError,
     ScenarioAlreadyFinishedError,
 )
 
@@ -51,16 +57,22 @@ __all__ = [
     "DomainError",
     "IllegalScenarioTransitionError",
     "InvalidBoardNameError",
+    "InvalidCapabilityError",
+    "InvalidCompletionBehaviorError",
     "InvalidDashboardLayoutError",
+    "InvalidDeviceKindError",
     "InvalidDeviceNameError",
     "InvalidDisplayNameError",
     "InvalidEmailError",
     "InvalidHumidityError",
+    "InvalidMeasurementError",
     "InvalidNetworkProfileError",
     "InvalidPairingKeyError",
     "InvalidRelayChannelError",
+    "InvalidScenarioTargetError",
     "InvalidTemperatureError",
     "InvalidToleranceError",
+    "InvalidWidgetKindError",
     "MalformedIdentifierError",
     "ScenarioAlreadyFinishedError",
     "UnsupportedCapabilityError",

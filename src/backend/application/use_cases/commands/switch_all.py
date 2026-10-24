@@ -43,7 +43,8 @@ class SwitchAllDevicesCommandUseCase:
             parsed: Что конвейер понял из фразы.
 
         Returns:
-            CommandReply: Устройства, которых коснулось переключение.
+            CommandReply: Устройства, которых коснулось переключение, и те, которые
+            не ответили.
 
         Raises:
             CommandNotUnderstoodError: Когда фраза не называет направление.
@@ -57,5 +58,8 @@ class SwitchAllDevicesCommandUseCase:
         return CommandReply(
             intent=self.intent,
             answer="",
-            details={"devices": [view.name for view in report.devices]},
+            details={
+                "devices": [view.name for view in report.devices],
+                "failed": [failure.name for failure in report.failed],
+            },
         )

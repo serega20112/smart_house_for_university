@@ -16,6 +16,7 @@ from contextlib import suppress
 from fakeredis import FakeServer, aioredis
 
 from backend.domain.identifiers import UserId
+from backend.infrastructure.brokers import keys
 from backend.infrastructure.brokers.event_broker import RedisEventBroker, RedisSubscriber
 from tests.conftest import OWNER_UUID
 
@@ -53,6 +54,32 @@ async def test_stream_delivers_published_event():
     assert event.event == "device.state_changed"
     assert event.payload == {"channel": 3}
     assert event.user_id == user
+
+
+async def test_broken_frame_does_not_kill_the_subscription():
+    """Испорченный кадр пропускается, а подписка продолжает отдавать события.
+
+    Returns:
+        None: Только проверка того, что битый кадр не закрывает поток.
+    """
+    redis = make_redis()
+    user = UserId.parse(OWNER_UUID)
+    broker = RedisEventBroker(redis, PREFIX)
+    subscriber = RedisSubscriber(redis, PREFIX)
+
+    stream = subscriber.stream(user)
+    reader = asyncio.create_task(stream.__anext__())
+    await asyncio.sleep(0.1)
+    channel = keys.user_channel(PREFIX, user)
+    await redis.publish(channel, "not a frame at all")
+    await redis.publish(channel, '{"user_id":"not-a-uuid","event":"stale","payload":{}}')
+    await broker.publish(user, "device.state_changed", {"channel": 4})
+
+    event = await asyncio.wait_for(reader, timeout=2.0)
+    await stream.aclose()
+
+    assert event.event == "device.state_changed"
+    assert event.payload == {"channel": 4}
 
 
 async def test_repeated_subscription_leaves_no_threads_behind():

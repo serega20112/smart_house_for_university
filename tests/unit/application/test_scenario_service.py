@@ -4,9 +4,11 @@ The service advances every scenario of a home in one tick. The rules under test
 are the ones the ТЗ asks for: an expected refusal throws only its scenario into
 FAILED, the tick carries on with the rest, and the commands are performed before
 the aggregate is recorded as running, so a refusal never leaves a scenario
-claiming to act.
+claiming to act. Only the devices the scenario switched are captured, so
+finishing it does not undo a decision a person made in the meantime.
 """
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from tests.conftest import OWNER_UUID, make_device
@@ -35,6 +37,7 @@ from backend.application.services.device_control import DeviceControlService
 from backend.application.services.scenarios.advancing import ScenarioAdvancer
 from backend.application.services.scenarios.settling import ScenarioSettler
 from backend.domain.aggregates.device.device import Device
+from backend.domain.aggregates.esp_device.esp_device import EspDevice
 from backend.domain.aggregates.scenario.scenario import Scenario
 from backend.domain.entities.home_state.home_state import HomeState
 from backend.domain.entities.scenario.scenario_action import ScenarioAction
@@ -43,6 +46,7 @@ from backend.domain.policies.device_selector import DeviceSelector
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_status import DeviceStatus
+from backend.domain.value_objects.devices.relay_channel import RelayChannel
 from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
 from backend.domain.value_objects.scenario.scenario_status import ScenarioStatus
 
@@ -165,65 +169,82 @@ class StubStateStore(HomeStateStore):
         return self.state
 
     async def record_background_reading(
-        self, user_id: UserId, reading: ClimateReading, changed_at: datetime
+        self,
+        user_id: UserId,
+        board_id: EspDeviceId,
+        reading: ClimateReading,
+        changed_at: datetime,
     ) -> ClimateReading:
         """Register a reading the boards reported.
 
         Args:
             user_id: Owner of the home.
+            board_id: Board whose sensor reported.
             reading: Measured values.
             changed_at: Moment of the report.
 
         Returns:
             ClimateReading: Nothing has moved behind this stub's back.
         """
-        del user_id, changed_at
+        del user_id, board_id, reading, changed_at
         return ClimateReading()
 
     async def record_relay_report(
-        self, user_id: UserId, states: list[bool], changed_at: datetime
+        self,
+        user_id: UserId,
+        board_id: EspDeviceId,
+        states: Sequence[bool],
+        changed_at: datetime,
     ) -> tuple[int, ...]:
         """Register the positions a board reported.
 
         Args:
             user_id: Owner of the board.
+            board_id: Board whose contacts were reported.
             states: Contact positions.
             changed_at: Moment of the report.
 
         Returns:
             tuple[int, ...]: Nothing has moved behind this stub's back.
         """
-        del user_id, states, changed_at
+        del user_id, board_id, states, changed_at
         return ()
 
     async def record_board_online(
-        self, user_id: UserId, online: bool, changed_at: datetime
+        self, user_id: UserId, board_id: EspDeviceId, online: bool, changed_at: datetime
     ) -> bool:
         """Record reachability of the board.
 
         Args:
             user_id: Owner of the board.
+            board_id: Board that answered or fell silent.
             online: Whether the board answers.
             changed_at: Moment of the transition.
 
         Returns:
-            bool: The flag the state carried before.
+            bool: Whether this board answered before.
         """
-        del changed_at
-        was = self.state.board_online
-        if not online:
-            self.state.board_online = False
-            self.state.device_modes.clear()
+        del user_id
+        was = self.state.is_board_online(board_id)
+        self.state.set_board_available(board_id, online, changed_at)
         return was
 
     async def record_command_result(
-        self, user_id: UserId, device: Device, status: DeviceStatus, changed_at: datetime
+        self,
+        user_id: UserId,
+        board_id: EspDeviceId,
+        device_id: DeviceId,
+        channel: int,
+        status: DeviceStatus,
+        changed_at: datetime,
     ) -> None:
         """Record what the board confirmed.
 
         Args:
             user_id: Owner of the device.
-            device: Device that was driven.
+            board_id: Board that performed the command.
+            device_id: Device that was driven.
+            channel: Relay channel of that board.
             status: State the device reached.
             changed_at: Moment of the confirmation.
 
@@ -231,7 +252,7 @@ class StubStateStore(HomeStateStore):
             None.
         """
         del user_id
-        self.state.apply_command(device, status, changed_at)
+        self.state.apply_command(board_id, device_id, channel, status, changed_at)
 
     async def forget_device_status(self, user_id: UserId, device_id: DeviceId) -> None:
         """Drop one device from the memory.
@@ -409,6 +430,26 @@ class DeviceRepository:
         return False
 
 
+class EmptyBoards:
+    """Registry of paired boards for the single-board path these tests take.
+
+    A device without a board falls back to the one board the gateway reports, so the
+    repository consulted on the way is empty here.
+    """
+
+    async def list_all(self, user_id: UserId) -> list[EspDevice]:
+        """Report a home with no paired boards.
+
+        Args:
+            user_id: Owner of the boards.
+
+        Returns:
+            list[EspDevice]: Always empty.
+        """
+        del user_id
+        return []
+
+
 class FakeUow(HomeUnitOfWork):
     """A transaction whose only job is to hand out the repositories.
 
@@ -433,6 +474,15 @@ class FakeUow(HomeUnitOfWork):
             DeviceRepository: The in memory stall.
         """
         return self._devices
+
+    @property
+    def boards(self) -> EmptyBoards:
+        """Return the registry of paired boards.
+
+        Returns:
+            EmptyBoards: Repository that reports no boards.
+        """
+        return EmptyBoards()
 
     @property
     def automation(self) -> object:
@@ -738,7 +788,7 @@ def make_service(
     Returns:
         tuple: Service and the fakes the assertions look into.
     """
-    state = HomeState(user_id=UserId.parse(OWNER_UUID), board_online=True)
+    state = HomeState(user_id=UserId.parse(OWNER_UUID), online_boards=frozenset({board.board_id}))
     device_repo = DeviceRepository(devices)
     scenario_repo = ScenarioRepository(scenarios)
     uow = FakeUow(device_repo, scenario_repo)
@@ -779,7 +829,12 @@ def make_service(
 
 
 def due_scenario(
-    capability: Capability, user_id: UserId | None = None, *, delay_minutes: int = 0
+    capability: Capability,
+    user_id: UserId | None = None,
+    *,
+    delay_minutes: int = 0,
+    completion_behavior: CompletionBehavior = CompletionBehavior.LEAVE_TO_AUTOMATION,
+    duration_minutes: int | None = None,
 ) -> Scenario:
     """Schedule the scenario the tests move forward.
 
@@ -787,6 +842,8 @@ def due_scenario(
         capability: Action the scenario performs against the home.
         user_id: Owner of the scenario, defaults to the shared owner.
         delay_minutes: How long to wait before the start, in minutes.
+        completion_behavior: What the scenario does with the devices after.
+        duration_minutes: How long the scenario may run, or None without a limit.
 
     Returns:
         Scenario: Pending scenario at the start moment.
@@ -796,7 +853,8 @@ def due_scenario(
         created_at=NOW,
         delay_minutes=delay_minutes,
         actions=(ScenarioAction(capability=capability),),
-        completion_behavior=CompletionBehavior.LEAVE_TO_AUTOMATION,
+        completion_behavior=completion_behavior,
+        duration_minutes=duration_minutes,
     )
 
 
@@ -832,3 +890,40 @@ async def test_advance_records_running_only_after_the_commands_worked():
     assert [update.status for update in scenarios.updates] == [ScenarioStatus.FAILED]
     assert any("board_unreachable" in w for w in notifier.wording)
     assert not any(w.startswith("info:started:") for w in notifier.wording)
+
+
+async def test_scenario_captures_only_the_devices_it_switched():
+    first = make_device()
+    second = make_device(channel=RelayChannel(2), name="Bedroom light")
+    scenario = due_scenario(
+        Capability.ON, completion_behavior=CompletionBehavior.RESTORE_CAPTURED_STATE
+    )
+    board = SelectiveBoardGateway(refused=set())
+    service, _devices, _scenarios, _realtime, _notifier = make_service(
+        [first, second], [scenario], board
+    )
+
+    await service.advance(scenario.user_id)
+
+    assert scenario.status is ScenarioStatus.RUNNING
+    assert scenario.captured_statuses == {first.id: DeviceStatus.OFF}
+
+
+async def test_finishing_restores_only_the_devices_the_scenario_switched():
+    first = make_device()
+    second = make_device(channel=RelayChannel(2), name="Bedroom light")
+    scenario = due_scenario(
+        Capability.ON,
+        completion_behavior=CompletionBehavior.RESTORE_CAPTURED_STATE,
+        duration_minutes=0,
+    )
+    board = SelectiveBoardGateway(refused=set())
+    service, _devices, _scenarios, _realtime, _notifier = make_service(
+        [first, second], [scenario], board
+    )
+
+    await service.advance(scenario.user_id)
+    await service.advance(scenario.user_id)
+
+    assert scenario.status is ScenarioStatus.COMPLETED
+    assert board.driven == [int(first.channel), int(first.channel)]

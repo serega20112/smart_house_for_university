@@ -13,6 +13,7 @@ from backend.domain.value_objects.personalization.temperature_unit import Temper
 from backend.domain.value_objects.personalization.theme import Theme
 from backend.domain.value_objects.personalization.widget_kind import WidgetKind
 from backend.presentation.api.base import StrictModel
+from backend.presentation.api.requests.validation import known_to_domain
 
 TITLE_MAX_LENGTH = 60
 
@@ -60,8 +61,7 @@ class DashboardWidgetBody(StrictModel):
         Returns:
             str: То же значение, если оно читается перечислением.
         """
-        WidgetKind.parse(value)
-        return value
+        return known_to_domain(WidgetKind.parse, value)
 
 
 class DashboardBody(StrictModel):

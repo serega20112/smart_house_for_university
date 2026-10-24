@@ -68,7 +68,9 @@ class HomeStateService(BoardReport):
             user_id: Владелец платы.
             board_id: Идентификатор платы.
         """
-        was_online = await self._state_store.record_board_online(user_id, True, self._clock.now())
+        was_online = await self._state_store.record_board_online(
+            user_id, board_id, True, self._clock.now()
+        )
         await self._realtime.publish(user_id, EventName.BOARD_ONLINE, {"board_id": str(board_id)})
         if not was_online:
             await self._notifier.notify(user_id, self._notifications.board_online())
@@ -85,7 +87,9 @@ class HomeStateService(BoardReport):
             board_id: Идентификатор платы.
         """
         still_online = await self._availability.is_any_online(user_id)
-        await self._state_store.record_board_online(user_id, still_online, self._clock.now())
+        await self._state_store.record_board_online(
+            user_id, board_id, still_online, self._clock.now()
+        )
         if still_online:
             return
         await self._realtime.publish(user_id, EventName.BOARD_OFFLINE, {"board_id": str(board_id)})
@@ -102,12 +106,12 @@ class HomeStateService(BoardReport):
             states: Положения контактов по порядку каналов.
         """
         changed_channels = await self._state_store.record_relay_report(
-            user_id, states, self._clock.now()
+            user_id, board_id, states, self._clock.now()
         )
         if not changed_channels:
             return
         state = await self._state_store.read(user_id)
-        by_channel = await self._devices.by_channel(user_id)
+        by_channel = await self._devices.by_channel(user_id, board_id)
         for channel in changed_channels:
             device = by_channel.get(channel)
             if device is None:
@@ -129,24 +133,28 @@ class HomeStateService(BoardReport):
     ) -> None:
         """Принимает сообщение датчиков и объявляет изменившееся.
 
+        Показания принадлежат плате, которая их прислала: датчик каждой платы
+        меряет свою комнату, и вторая плата не должна перетирать первую.
+
         Args:
             user_id: Владелец платы.
             board_id: Идентификатор платы.
             reading: Измеренные значения.
         """
-        del board_id
         changed = await self._state_store.record_background_reading(
-            user_id, reading, self._clock.now()
+            user_id, board_id, reading, self._clock.now()
         )
         if changed.temperature is not None:
             await self._realtime.publish(
                 user_id,
                 EventName.SENSOR_TEMPERATURE_CHANGED,
-                {"temperature": changed.temperature.celsius},
+                {"board_id": str(board_id), "temperature": changed.temperature.celsius},
             )
         if changed.humidity is not None:
             await self._realtime.publish(
-                user_id, EventName.SENSOR_HUMIDITY_CHANGED, {"humidity": changed.humidity.percent}
+                user_id,
+                EventName.SENSOR_HUMIDITY_CHANGED,
+                {"board_id": str(board_id), "humidity": changed.humidity.percent},
             )
 
     async def on_error(

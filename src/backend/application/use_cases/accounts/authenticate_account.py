@@ -40,7 +40,8 @@ class AuthenticateAccountUseCase:
         """Авторизует аккаунт и открывает для него сессию.
 
         Неизвестный логин и неверный пароль дают ровно один и тот же отказ, чтобы
-        ответ никогда не выдавал, существует ли аккаунт.
+        ответ никогда не выдавал, существует ли аккаунт. Сверка пароля выполняется
+        и тогда, когда записи нет: иначе быстрый ответ сам стал бы ответом.
 
         Args:
             command: Учётные данные, предъявленные при входе.
@@ -56,7 +57,9 @@ class AuthenticateAccountUseCase:
         except InvalidEmailError as error:
             raise InvalidCredentialsError() from error
         record = await self._queries.get_auth_record(email.value)
-        if record is None or not self._hasher.verify(command.password, record.password_hash):
+        stored = None if record is None else record.password_hash
+        verified = await self._hasher.verify(command.password, stored)
+        if record is None or not verified:
             raise InvalidCredentialsError()
         session = self._tokens.issue(record.user_id)
         return AuthenticatedSession(

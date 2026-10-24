@@ -77,3 +77,37 @@ class UnsupportedCapabilityError(DomainError):
         super().__init__(f"device {device_name!r} does not support {capability}")
         self.device_name = device_name
         self.capability = capability
+
+
+class InvalidDeviceKindError(DomainError):
+    """Значение не называет тип устройства из словаря домена.
+
+    Attributes:
+        raw: Отвергнутое значение.
+    """
+
+    def __init__(self, raw: object) -> None:
+        """Запоминает отвергнутое значение.
+
+        Args:
+            raw: Отвергнутое значение.
+        """
+        super().__init__(f"unknown device kind: {raw!r}")
+        self.raw = raw
+
+
+class InvalidCapabilityError(DomainError):
+    """Значение не называет способность из словаря домена.
+
+    Attributes:
+        raw: Отвергнутое значение.
+    """
+
+    def __init__(self, raw: object) -> None:
+        """Запоминает отвергнутое значение.
+
+        Args:
+            raw: Отвергнутое значение.
+        """
+        super().__init__(f"unknown capability: {raw!r}")
+        self.raw = raw

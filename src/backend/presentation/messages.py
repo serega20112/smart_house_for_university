@@ -19,10 +19,20 @@ INVALID_NAME = "Некорректное имя."
 WEAK_PASSWORD = "Пароль слишком короткий."
 CHANNEL_CONFLICT = "Этот канал реле уже занят другим устройством."
 DEVICE_MISSING = "Устройство не найдено."
+BOARD_MISSING = "Плата не найдена."
+BOARD_HAS_DEVICES = (
+    "Плата ещё управляет устройствами: {devices}. "
+    "Оставьте их в доме без платы или удалите вместе с настройкой."
+)
 UNSUPPORTED_CAPABILITY = "Устройство не умеет выполнять эту команду."
+CAPABILITY_UNSUPPORTED = "Ни одно устройство дома не умеет выполнять эту команду."
 BOARD_UNREACHABLE = "Плата не подтвердила команду."
+BOARD_NOT_CHOSEN = "Плат в доме несколько: выберите, к какой привязано устройство."
 SCENARIO_MISSING = "Сценарий не найден."
 SCENARIO_ALREADY_FINISHED = "Сценарий уже завершён."
+ILLEGAL_SCENARIO_TRANSITION = "Сценарий нельзя перевести в это состояние."
+STATE_CHANGED = "Состояние изменилось, обновите страницу и повторите."
+SESSION_OWNER_MISSING = "Аккаунт этой сессии больше не существует."
 CLAIM_MISSING = "Предложение сопряжения не найдено."
 CLAIM_EXPIRED = "Срок действия предложения сопряжения истёк."
 CLAIM_TAKEN = "Плату уже сопрягли с другим аккаунтом."
@@ -33,17 +43,27 @@ LANGUAGE_MODEL_UNAVAILABLE = (
 LOGGED_OUT = "Вы вышли из аккаунта."
 UNAUTHORIZED = "Требуется авторизация."
 INVALID_DEVICE_NAME = "Некорректное имя устройства."
+INVALID_DEVICE_KIND = "Некорректный тип устройства."
+INVALID_CAPABILITY = "Некорректная способность устройства."
+INVALID_BOARD_NAME = "Некорректное имя платы."
 INVALID_RELAY_CHANNEL = "Некорректный канал реле."
 INVALID_TEMPERATURE = "Некорректная температура."
+INVALID_HUMIDITY = "Некорректная влажность."
+INVALID_TOLERANCE = "Некорректный допуск температуры."
+INVALID_COMPLETION_BEHAVIOR = "Некорректное поведение завершения сценария."
+INVALID_SCENARIO_TARGET = "Слишком длинное название места или предмета сценария."
+INVALID_WIDGET_KIND = "Некорректный вид виджета."
 INVALID_PAIRING_KEY = "Некорректный ключ сопряжения."
 INVALID_NETWORK_PROFILE = "Некорректные параметры сети."
 INVALID_DASHBOARD_LAYOUT = "Некорректная раскладка панели."
+DASHBOARD_ACCESS_DENIED = "Виджет ссылается на чужое устройство."
 MALFORMED_IDENTIFIER = "Некорректный идентификатор."
 COMMAND_NO_DATA = "Пока нет показаний датчиков."
 COMMAND_CLIMATE = "Сейчас {temperature:.1f} °C и влажность {humidity:.0f} %."
 COMMAND_DONE = "Готово."
 COMMAND_NOTHING_TO_SWITCH = "Нечего переключать: подходящих устройств нет."
 COMMAND_SWITCHED = "Переключил: "
+COMMAND_SWITCHED_PARTIAL = "Переключил: {devices}. Не ответили: {failed}."
 COMMAND_TARGET_TEMPERATURE = "Целевая температура теперь {value} °C."
 COMMAND_TARGET_HUMIDITY = "Целевая влажность теперь {value} %."
 COMMAND_CAPABILITY_DONE = "{device}: команда выполнена."
@@ -205,7 +225,13 @@ class CommandReplyComposer:
                 devices = details.get("devices")
                 if not isinstance(devices, (list, tuple)) or not devices:
                     return COMMAND_NOTHING_TO_SWITCH
-                return COMMAND_SWITCHED + ", ".join(str(name) for name in devices) + "."
+                names = ", ".join(str(name) for name in devices)
+                failed = details.get("failed")
+                if isinstance(failed, (list, tuple)) and failed:
+                    return COMMAND_SWITCHED_PARTIAL.format(
+                        devices=names, failed=", ".join(str(name) for name in failed)
+                    )
+                return COMMAND_SWITCHED + names + "."
             case Intent.SET_TEMPERATURE:
                 return COMMAND_TARGET_TEMPERATURE.format(
                     value=self._number(details.get("temperature"))

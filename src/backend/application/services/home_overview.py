@@ -106,4 +106,4 @@ def _with_live_status(device: DeviceView, state: HomeState) -> DeviceView:
     Returns:
         DeviceView: Устройство с состоянием, в котором оно находится сейчас.
     """
-    return device.with_status(state.status_for(device.id, device.channel))
+    return device.with_status(state.status_for(device.id, device.channel, device.board_id))

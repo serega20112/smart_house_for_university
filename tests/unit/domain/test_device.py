@@ -1,6 +1,6 @@
 import pytest
 
-from backend.domain.aggregates.device.device import MAX_NAME_LENGTH, Device
+from backend.domain.aggregates.device.device import Device
 from backend.domain.events import DeviceCapabilityApplied, DeviceConfigured
 from backend.domain.exceptions import (
     InvalidDeviceNameError,
@@ -9,6 +9,7 @@ from backend.domain.exceptions import (
 from backend.domain.identifiers import DeviceId, UserId
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_kind import DeviceKind
+from backend.domain.value_objects.devices.device_name import DeviceName
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.devices.relay_channel import RelayChannel
 from tests.conftest import OWNER_UUID, make_device
@@ -16,7 +17,7 @@ from tests.conftest import OWNER_UUID, make_device
 ALL_CAPABILITIES = frozenset(Capability)
 
 
-@pytest.mark.parametrize("name", ["", "   ", "x" * (MAX_NAME_LENGTH + 1)])
+@pytest.mark.parametrize("name", ["", "   ", "x" * (DeviceName.MAX_LENGTH + 1)])
 def test_device_with_an_unusable_name_is_refused(name: str) -> None:
     with pytest.raises(InvalidDeviceNameError):
         Device(

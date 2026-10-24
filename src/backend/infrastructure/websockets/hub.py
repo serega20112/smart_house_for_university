@@ -19,6 +19,7 @@ from fastapi import WebSocket
 
 from backend.domain.identifiers import UserId
 from backend.infrastructure.brokers.event_broker import RedisSubscriber
+from backend.infrastructure.system import metrics
 from backend.infrastructure.system.logging import get_logger
 
 log = get_logger("websocket.hub")
@@ -90,8 +91,8 @@ class WebSocketHub:
         """Пересылает каждое событие аккаунта в его сокеты.
 
         Сокет, которому не удалось принять сообщение, отбрасывается; отказ всей
-        подписки записывается в журнал и повторяется после паузы: сбой Redis не
-        должен надолго глушить интерфейс.
+        подписки записывается в журнал и в метрику, а чтение начинается заново
+        после паузы: сбой Redis не должен надолго глушить интерфейс.
 
         Args:
             user_id: Аккаунт, чей канал читается.
@@ -103,6 +104,7 @@ class WebSocketHub:
             except asyncio.CancelledError:
                 raise
             except Exception as error:
+                metrics.count_stream_failure("events")
                 log.warning("websocket.reader_failed", user=str(user_id), error=str(error))
                 await asyncio.sleep(1.0)
 

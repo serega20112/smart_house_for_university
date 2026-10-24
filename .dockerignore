@@ -8,10 +8,12 @@
 .vscode/
 .qoder/
 
-# Python: кэши и окружения не попадают в образ (зависимости ставит pip из pyproject)
+# Python: кэши, окружения и артефакты сборки не попадают в образ
 __pycache__/
 **/__pycache__/
 *.py[cod]
+*.egg-info/
+**/*.egg-info/
 .pytest_cache/
 **/.pytest_cache/
 .ruff_cache/
@@ -25,7 +27,7 @@ htmlcov/
 .venv/
 venv/
 
-# Секретов в образ не кладём: they come from the environment at runtime
+# Секреты в образ не кладём: они приходят из окружения при запуске
 .env
 
 # Фронтенд: node_modules и собранный dist пересоздаёт stage интерфейса

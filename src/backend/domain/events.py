@@ -8,6 +8,10 @@
 Событие — простое незменяемое утверждение о том, что уже случилось. Ни отметки времени,
 ни данных доставки в нём нет: момент ставит издатель, потому что только он знает, когда
 факт стал виден вне транзакции.
+
+Подписчик получает набор фактов одного прерывания транзакции, и типы в нём разные,
+поэтому союз `DomainEvent` называет всё, что вообще может лежать в таком наборе: раздатчик
+и подписчики говорят о фактах домена, а не о произвольных объектах.
 """
 
 from __future__ import annotations
@@ -166,3 +170,16 @@ class BoardAnnouncementPublished:
     """
 
     label: str = field(compare=False)
+
+
+DomainEvent = (
+    UserRegistered
+    | DeviceConfigured
+    | DeviceCapabilityApplied
+    | AutomationSettingsChanged
+    | ScenarioScheduled
+    | ScenarioStarted
+    | ScenarioFinished
+    | BoardPaired
+    | BoardAnnouncementPublished
+)

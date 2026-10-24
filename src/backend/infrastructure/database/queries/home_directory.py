@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.application.interfaces.services.state.home_device_directory import HomeDeviceDirectory
 from backend.domain.aggregates.device.device import Device
-from backend.domain.identifiers import UserId
+from backend.domain.identifiers import EspDeviceId, UserId
 from backend.infrastructure.database.mappers.device import device_from_row
 from backend.infrastructure.database.models import DeviceModel
 from backend.infrastructure.database.repositories.base import every_row
@@ -49,15 +49,16 @@ class SqlHomeDeviceDirectory(HomeDeviceDirectory):
             stored = await capabilities_of(session, [row.id for row in rows])
         return [device_from_row(row, stored.get(row.id, frozenset())) for row in rows]
 
-    async def by_channel(self, user_id: UserId) -> dict[int, Device]:
-        """Возвращает устройства дома, выставленные по каналу реле.
+    async def by_channel(self, user_id: UserId, board_id: EspDeviceId) -> dict[int, Device]:
+        """Возвращает устройства одной платы, выставленные по каналу реле.
 
         Args:
             user_id: Владелец дома.
+            board_id: Плата, чьи каналы только что сообщили положения.
 
         Returns:
-            dict[int, Device]: Устройства по их каналу. Канал без устройства за
-            собой просто отсутствует.
+            dict[int, Device]: Устройства этой платы по их каналу. Канал без
+            устройства за собой просто отсутствует.
         """
         devices = await self.all_of(user_id)
-        return {int(device.channel): device for device in devices}
+        return {int(device.channel): device for device in devices if device.board_id == board_id}

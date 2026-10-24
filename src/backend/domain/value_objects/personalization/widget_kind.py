@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from enum import StrEnum
 
+from backend.domain.exceptions.personalization import InvalidWidgetKindError
+
 
 class WidgetKind(StrEnum):
     """Готовый компонент, который интерфейс умеет нарисовать сам."""
@@ -24,10 +26,13 @@ class WidgetKind(StrEnum):
             WidgetKind: Прочитанный вид.
 
         Raises:
-            ValueError: Когда значение не называет вид компонента.
+            InvalidWidgetKindError: Когда значение не называет вид компонента.
         """
         if isinstance(raw, cls):
             return raw
         if raw is None:
-            raise ValueError("widget kind is missing")
-        return cls(str(raw).strip().lower())
+            raise InvalidWidgetKindError(raw)
+        try:
+            return cls(str(raw).strip().lower())
+        except ValueError as error:
+            raise InvalidWidgetKindError(raw) from error

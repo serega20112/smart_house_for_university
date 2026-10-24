@@ -19,7 +19,7 @@ ESP8266, шестиканального релейного модуля и да�
 | `src/backend` | Вся логика на Python: FastAPI, SQLAlchemy, понимание фраз |
 | `src/frontend` | Веб-интерфейс на React: карточки устройств, климат, чат |
 | `src/firmware` | Прошивка ESP8266: реле, датчик, дозвон до сервера |
-| `build/migrations` | Ревизии схемы базы |
+| `migrations` | Ревизии схемы базы |
 | `docs` | Архитектура, протокол платы, железо, API |
 
 ## Как это работает
@@ -36,11 +36,11 @@ ESP8266, шестиканального релейного модуля и да�
 
 Главный принцип: **одно приложение → много пользователей → индивидуальное
 состояние каждого**. Хранится состояние, а не копия интерфейса. Сервисов тут два:
-веб-процесс (`python -m backend.main`) отвечает на запросы и держит сокеты плат, а
-рабочий (`python -m backend.worker_entry`) ведёт фоновые циклы — климат, сценарии и
-очистку объявлений плат, которые никто не забрал. У обоих одна конфигурация и одна
-база, поэтому рабочих можно запускать несколько: перед каждым периодом аккаунт
-берёт в Redis аренду, и обслуживает его ровно один инстанс. Frontend —
+веб-процесс (`python -m backend.composition.main`) отвечает на запросы и держит
+сокеты плат, а рабочий (`python -m backend.composition.worker_entry`) ведёт фоновые
+циклы — климат, сценарии и очистку объявлений плат, которые никто не забрал. У обоих
+одна конфигурация и одна база, поэтому рабочих можно запускать несколько: перед каждым
+периодом аккаунт берёт в Redis аренду, и обслуживает его ровно один инстанс. Frontend —
 универсальный рендерер: сервер отдаёт список виджетов (`тип`, `устройство`,
 `заголовок`), и компоненты `TemperatureCard`, `DeviceCard`, `ClimateCard`,
 `CommandChat` для всех одни и те же. Различаются данные, порядок и личные
@@ -75,17 +75,17 @@ ESP8266, шестиканального релейного модуля и да�
 python -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 cp .env.example .env                  # и задать AUTH_TOKEN_SECRET
-PYTHONPATH=src python -m backend.main
+PYTHONPATH=src python -m backend.composition.main
 ```
 
 Интерфейс откроется на <http://127.0.0.1:8000>, описание API — на `/docs`.
 Первый пользователь регистрируется через `/api/auth/register` и сразу получает
 свой набор устройств, настроек и главный экран.
 
-Схема на PostgreSQL и ведётся ревизиями из `build/migrations`:
+Схема на PostgreSQL и ведётся ревизиями из `migrations`:
 
 ```bash
-PYTHONPATH=src .venv/bin/alembic -c build/migrations/alembic.ini upgrade head
+PYTHONPATH=src .venv/bin/alembic -c migrations/alembic.ini upgrade head
 ```
 
 Фразы человек читает русские, поэтому `AUTH_TOKEN_SECRET` задают обязательно:
@@ -96,8 +96,16 @@ PYTHONPATH=src .venv/bin/alembic -c build/migrations/alembic.ini upgrade head
 продукт работает из одного образа и одного origin):
 
 ```bash
-AUTH_TOKEN_SECRET=$(openssl rand -hex 32) docker compose up --build
+AUTH_TOKEN_SECRET=$(openssl rand -hex 32) \
+POSTGRES_PASSWORD=$(openssl rand -hex 16) \
+  docker compose up --build
 ```
+
+Пароль базы и секрет подписи обязательны и не лежат в репозитории: без них
+`docker compose` останавливается до сборки и говорит, чего не хватает. Схему до
+текущей ревизии доводит одноразовая служба `migrate`; API и воркер стартуют
+только после того, как она завершилась успешно, поэтому первый же запрос не
+попадает в отсутствующие таблицы. Процессы в образе работают не от `root`.
 
 ### Frontend
 
@@ -167,8 +175,8 @@ ArduinoJson — документом на стеке, без аллокаций 
 ## Разработка
 
 ```bash
-.venv/bin/ruff check src tests scripts      # стиль
-.venv/bin/ruff format src tests scripts     # формат
+.venv/bin/ruff check src tests scripts migrations   # стиль
+.venv/bin/ruff format src tests scripts migrations  # формат
 .venv/bin/lint-imports                      # границы слоёв
 .venv/bin/pytest                            # тесты
 PYTHONPATH=src .venv/bin/python scripts/check_app_wires.py

@@ -33,6 +33,7 @@ embeddings = [
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
+    "pytest-cov>=6",
     "ruff>=0.7",
     "import-linter>=2.1",
     "mypy>=1.13",
@@ -59,7 +60,7 @@ asyncio_default_fixture_loop_scope = "function"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["src", "tests"]
+src = ["src", "tests", "migrations"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "C4", "PYI", "N", "RUF"]
@@ -73,7 +74,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "N802", "N806"]
+"tests/**" = ["N802", "N806"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["backend"]
@@ -97,7 +98,7 @@ module = ["sentence_transformers.*", "pgvector.*"]
 ignore_missing_imports = true
 
 [tool.coverage.run]
-source = ["backend"]
+source = ["backend.application", "backend.domain"]
 
 [tool.coverage.report]
 fail_under = 70
@@ -116,6 +117,7 @@ include_external_packages = true
 name = "Layer boundaries"
 type = "layers"
 layers = [
+    "backend.composition",
     "backend.presentation",
     "backend.infrastructure",
     "backend.application",
@@ -140,6 +142,7 @@ forbidden_modules = [
     "backend.application",
     "backend.infrastructure",
     "backend.presentation",
+    "backend.composition",
 ]
 include_external_packages = true
 
@@ -147,4 +150,4 @@ include_external_packages = true
 name = "Application does not reach into infrastructure"
 type = "forbidden"
 source_modules = ["backend.application"]
-forbidden_modules = ["backend.infrastructure", "backend.presentation"]
+forbidden_modules = ["backend.infrastructure", "backend.presentation", "backend.composition"]

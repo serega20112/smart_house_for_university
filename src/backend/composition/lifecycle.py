@@ -1,9 +1,11 @@
-"""Жизненный цикл процесса: старт подсистем и их остановка.
+"""Жизненный цикл процесса интерфейса: старт подсистем и их остановка.
 
-Долгоживущие адаптеры (соединение с платами, концентратор событий) описаны провайдерами
+Контейнер приходит сюда аргументом, а не достаётся из состояния приложения:
+жизненный цикл знает, что поднимать, но не ищет это в чужом объекте. Долгоживущие
+адаптеры — соединение с платами, концентратор событий — описаны провайдерами
 области приложения и умеют запускаться и гаситься сами, поэтому отсюда их только
-просят. Что осталось на этом месте — то, чего контейнер собрать не может без знаний из
-презентационного слоя: разговор бота и посев индекса опорных фраз.
+просят. Что осталось на этом месте — то, чего контейнер собрать не может без
+знаний из слоя интерфейса: разговор бота и посев индекса опорных фраз.
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ from backend.infrastructure.security.link_tokens import TelegramLinkTokenIssuer
 from backend.infrastructure.system.logging import get_logger
 from backend.infrastructure.telegram.client import TelegramBotClient
 from backend.infrastructure.websockets.hub import WebSocketHub
+from backend.presentation.app_factory import AppLifespan
 from backend.presentation.messages import CommandReplyComposer
 from backend.presentation.telegram.conversation import TelegramConversation
 from backend.presentation.telegram.updates import TelegramUpdates
@@ -32,39 +35,52 @@ from backend.presentation.telegram.updates import TelegramUpdates
 log = get_logger("lifecycle")
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Поднимает подсистемы процесса и отпускает их при остановке.
+def lifespan_of(container: AsyncContainer) -> AppLifespan:
+    """Возвращает жизненный цикл приложения над готовым графом зависимостей.
 
     Args:
-        app: Запускаемое приложение.
+        container: Граф зависимостей, который этот процесс поднимает и гасит.
 
-    Yields:
-        None, пока приложение работает.
+    Returns:
+        AppLifespan: Контекст, который приложение откроет на старте и закроет на
+        остановке.
     """
-    container: AsyncContainer = app.state.container
-    settings: Settings = await container.get(Settings)
-    await container.get(EspConnection)
-    await container.get(BoardCommandListener)
-    await container.get(WebSocketHub)
-    await _seed_reference_phrases(container)
-    bot = await _start_telegram(container, settings)
-    try:
-        yield
-    finally:
-        if bot is not None:
-            await bot.stop()
-        await container.close()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        """Поднимает подсистемы процесса и отпускает их при остановке.
+
+        Args:
+            app: Запускаемое приложение.
+
+        Yields:
+            None, пока приложение работает.
+        """
+        del app
+        settings: Settings = await container.get(Settings)
+        await container.get(EspConnection)
+        await container.get(BoardCommandListener)
+        await container.get(WebSocketHub)
+        await _seed_reference_phrases(container)
+        bot = await _start_telegram(container, settings)
+        try:
+            yield
+        finally:
+            if bot is not None:
+                await bot.stop()
+            await container.close()
+
+    return lifespan
 
 
 async def _seed_reference_phrases(container: AsyncContainer) -> None:
     """Дописывает в индекс недостающие опорные фразы.
 
-    Дом работает и без смыслового разбора: реле, автоматика и сценарии ничего у модели
-    не просят, а знакомые фразы узнаёт словарь. Поэтому без кодировщика шаг просто не
-    делает ничего, а его отказ записывается в журнал и не мешает запуску. Сам посев
-    происходит явно на старте: индекс, который наполняется первым же вопросом, превращает
-    первый запрос в ожидание.
+    Дом работает и без смыслового разбора: реле, автоматика и сценарии ничего у
+    модели не просят, а знакомые фразы узнаёт словарь. Поэтому без кодировщика шаг
+    просто не делает ничего, а его отказ записывается в журнал и не мешает запуску.
+    Сам посев происходит явно на старте: индекс, который наполняется первым же
+    вопросом, превращает первый запрос в ожидание.
 
     Args:
         container: Граф зависимостей запущенного процесса.
@@ -82,8 +98,9 @@ async def _start_telegram(
     """Поднимает опрос бота, если развёртывание его включило.
 
     Бот — второй способ сказать то же самое, что и в интерфейсе, поэтому ему отдают
-    ровно ту же шину команд и те же фразы. Недоступный мессендер не имеет права
-    выключать дом: сбой записывается в журнал, а приложение продолжает работать без бота.
+    ровно ту же шину команд и те же фразы. Недоступный мессенджер не имеет права
+    выключать дом: сбой записывается в журнал, а приложение продолжает работать без
+    бота.
 
     Args:
         container: Граф зависимостей запущенного процесса.

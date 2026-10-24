@@ -14,6 +14,7 @@ from contextlib import suppress
 import pytest
 from redis.asyncio import Redis
 
+from backend.application.dto.boards.board_command_result import BoardCommandResult
 from backend.config.settings import Settings
 from backend.domain.identifiers import EspDeviceId, UserId
 from backend.infrastructure.brokers.command_bus import (
@@ -69,12 +70,12 @@ async def test_relay_command_round_trips_through_real_redis() -> None:
     async def serve() -> None:
         """Исполняет команды как сервер плат, отвечая подтверждением."""
         async for received in api_bus.commands():
-            await api_bus.publish_result(received.command_id, True, None)
+            await api_bus.publish_result(received.command_id, BoardCommandResult(accepted=True))
 
     task = asyncio.create_task(serve())
     await asyncio.sleep(0.2)
     try:
-        accepted, reason = await worker_bus.execute(command)
+        result = await worker_bus.execute(command)
     finally:
         task.cancel()
         with suppress(asyncio.CancelledError):
@@ -82,5 +83,5 @@ async def test_relay_command_round_trips_through_real_redis() -> None:
         await api_redis.aclose()
         await worker_redis.aclose()
 
-    assert accepted is True
-    assert reason is None
+    assert result.accepted is True
+    assert result.reason is None

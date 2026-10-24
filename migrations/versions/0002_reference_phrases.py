@@ -1,14 +1,14 @@
-"""Reference phrases of the intent classifier.
+"""Опорные фразы классификатора намерений.
 
-The classifier used to hold its reference phrases in a list inside the process,
-which meant every worker indexed the same data separately and a new phrasing
-needed a deployment. The phrases become rows instead, embedded once and searched
-by cosine distance through an HNSW graph, so the index lives in the store where
-the vector search actually happens.
+Классификатор держал опорные фразы списком внутри процесса: каждый рабочий
+индексировал одни и те же данные отдельно, а новая формулировка требовала
+развёртывания. Фразы становятся строками: вектор считается один раз, а поиск идёт
+по косинусному расстоянию через граф HNSW, то есть индекс живёт там, где
+происходит поиск по векторам.
 
-The extension is created here rather than in a deployment note because the column
-type does not exist without it, and a revision that cannot run on a fresh
-database is not a revision.
+Расширение создаётся здесь, а не в заметке о развёртывании, потому что без него
+нет самого типа колонки, а ревизия, которая не может пройти на чистой базе, — не
+ревизия.
 
 Revision ID: 0002_reference_phrases
 Revises: 0001_initial
@@ -44,7 +44,7 @@ PRIMARY_KEY = "pk_reference_phrases"
 
 
 def upgrade() -> None:
-    """Create the reference phrase table and its vector index.
+    """Создаёт таблицу опорных фраз и индекс по векторам.
 
     Returns:
         None.
@@ -67,7 +67,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Remove the reference phrase table and its vector index.
+    """Удаляет таблицу опорных фраз и индекс по векторам.
 
     Returns:
         None.

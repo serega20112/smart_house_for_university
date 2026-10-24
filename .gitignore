@@ -21,6 +21,7 @@ var/
 wheels/
 share/python-wheels/
 *.egg-info/
+build/
 .installed.cfg
 *.egg
 MANIFEST
@@ -228,15 +229,15 @@ smart_home.db-journal
 
 # PlatformIO (firmware)
 .firmware/
-firmware/.pio/
-firmware/.pioenvs/
-firmware/.piolibdeps/
-firmware/.vscode/
+src/firmware/.pio/
+src/firmware/.pioenvs/
+src/firmware/.piolibdeps/
+src/firmware/.vscode/
 
 # Node / frontend
 node_modules/
-frontend/dist/
-frontend/.vite/
+src/frontend/dist/
+src/frontend/.vite/
 *.tsbuildinfo
 npm-debug.log*
 yarn-debug.log*

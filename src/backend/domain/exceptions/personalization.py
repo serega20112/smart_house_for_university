@@ -37,3 +37,20 @@ class DashboardAccessDeniedError(DomainError):
         """
         super().__init__(f"device {device_id} does not belong to this account")
         self.device_id = device_id
+
+
+class InvalidWidgetKindError(DomainError):
+    """Значение не называет вид компонента панели.
+
+    Attributes:
+        raw: Отвергнутое значение.
+    """
+
+    def __init__(self, raw: object) -> None:
+        """Запоминает отвергнутое значение.
+
+        Args:
+            raw: Отвергнутое значение.
+        """
+        super().__init__(f"unknown widget kind: {raw!r}")
+        self.raw = raw

@@ -4,11 +4,16 @@
 в мессенджере, автоматика и сценарии — все. Поэтому правило живёт в одном месте, а не в
 четырёх копиях.
 
-Порядок шагов постоянен. Агрегат загружают и транзакцию закрывают до того, как
-попросят железо; плате приказывают, не держая соединение с базой; затем свежая короткая
-транзакция сохраняет подтверждённое состояние; и только после её коммита факт уходит
-интерфейсу и реакциям. Отклонённая команда поэтому оставляет базу, события и изменчивое
-состояние нетронутыми.
+Порядок шагов постоянен. Короткая транзакция читает конфигурацию и закрывается до того,
+как попросят железо; плате приказывают, не держа транзакцию и не занимая соединение с
+базой; подтверждение команды записывает дом изменчивого состояния; и только после этого
+факт уходит интерфейсу и реакциям. Отклонённая команда поэтому оставляет события и
+изменчивое состояние нетронутыми.
+
+Текущее состояние устройства не живёт в строке конфигурации: его источник — сама плата,
+поэтому оно хранится в доме изменчивого состояния. Второй записи строки после команды
+нет, и версия конфигурации не растёт от щелчка реле: конфликт версий с чужой правкой
+настроек уже не может отменить команду, которая выполнена физически.
 
 Сервис не решает, что ручное действие значит для остальной системы. Ставить автоматику
 на паузу — реакция, на которую подписываются другие компоненты; именно поэтому она
@@ -19,9 +24,11 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from backend.application.dto.views.capability_report import CapabilityReport
+from backend.application.dto.boards.board_command_reason import BoardCommandReason
+from backend.application.dto.views.capability_report import CapabilityFailure, CapabilityReport
 from backend.application.dto.views.device_view import DeviceView
 from backend.application.errors import (
+    BoardNotChosenError,
     BoardUnreachableError,
     DeviceNotFoundError,
     NoDeviceForCapabilityError,
@@ -36,7 +43,7 @@ from backend.application.interfaces.services.system.clock import Clock
 from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.domain.aggregates.device.device import Device
 from backend.domain.events import EventName
-from backend.domain.identifiers import DeviceId, UserId
+from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
 from backend.domain.policies.device_selector import DeviceSelector
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_status import DeviceStatus
@@ -96,15 +103,40 @@ class DeviceControlService:
         Raises:
             DeviceNotFoundError: Когда такого устройства у аккаунта нет.
             NoDeviceForCapabilityError: Когда устройство этого не умеет.
+            BoardNotChosenError: Когда устройство не привязано к плате, а плат несколько.
             BoardUnreachableError: Когда плата не подтвердила выполнение.
         """
-        async with self._home_uow() as uow:
-            device = await uow.devices.get(user_id, device_id)
-            if device is None:
-                raise DeviceNotFoundError(device_id)
+        device = await self._load(user_id, device_id)
+        return await self.apply_to_loaded(user_id, device, capability, manual=manual)
 
+    async def apply_to_loaded(
+        self,
+        user_id: UserId,
+        device: Device,
+        capability: Capability,
+        *,
+        manual: bool = True,
+    ) -> DeviceView:
+        """Применяет способность к устройству, которое вызывающий уже прочитал.
+
+        Так работают те, кто получил дом одним чтением: автоматика и сценарии не
+        перечитывают выбранное устройство только ради того, чтобы сервис его увидел.
+
+        Args:
+            user_id: Владелец устройства и платы.
+            device: Устройство, которое уже есть у вызывающего.
+            capability: Способность, которую нужно выполнить.
+            manual: Просил ли человек сам.
+
+        Returns:
+            DeviceView: Устройство с состоянием, которого оно достигло.
+
+        Raises:
+            NoDeviceForCapabilityError: Когда устройство этого не умеет.
+            BoardNotChosenError: Когда устройство не привязано к плате, а плат несколько.
+            BoardUnreachableError: Когда плата не подтвердила выполнение.
+        """
         status = await self._perform(user_id, device, capability, manual)
-        await self._persist(user_id, device)
         await self._announce(user_id, device, status)
         return DeviceView.of(device, status)
 
@@ -129,14 +161,12 @@ class DeviceControlService:
 
         Raises:
             NoDeviceForCapabilityError: Когда в доме этого не умеет никто.
+            BoardNotChosenError: Когда устройство не привязано к плате, а плат несколько.
         """
         target = self._selector.first_supporting(devices, capability)
         if target is None:
             raise NoDeviceForCapabilityError(capability.value)
-        status = await self._perform(user_id, target, capability, manual)
-        await self._persist(user_id, target)
-        await self._announce(user_id, target, status)
-        return DeviceView.of(target, status)
+        return await self.apply_to_loaded(user_id, target, capability, manual=manual)
 
     async def apply_to_all(
         self,
@@ -148,9 +178,11 @@ class DeviceControlService:
     ) -> CapabilityReport:
         """Применяет способность к каждому устройству, которое её умеет.
 
-        Плата, отказавшая в одной команде, не останавливает остальные: вызывающий
-        получает отчёт о том, что было приведено в действие, — это полезнее исключения
-        посреди обхода.
+        Плата, отказавшая в одной команде, не останавливает обход: отказ становится
+        строкой отчёта, а не исключением посреди работы. Поэтому устройства,
+        которые ответили, всё равно объявляются, а вызывающий получает и
+        удавшиеся, и отказавшие с причинами. Устройство без платы в доме
+        с несколькими платами попадает в отказ так же, как неответившее.
 
         Args:
             user_id: Владелец устройств и платы.
@@ -159,38 +191,54 @@ class DeviceControlService:
             manual: Просил ли человек сам.
 
         Returns:
-            CapabilityReport: Устройства, приведённые в действие.
+            CapabilityReport: Приведённые в действие устройства и отказы плат.
         """
         driven: list[tuple[Device, DeviceStatus]] = []
+        failed: list[CapabilityFailure] = []
         for device in self._selector.all_supporting(devices, capability):
-            status = await self._perform(user_id, device, capability, manual)
+            try:
+                status = await self._perform(user_id, device, capability, manual)
+            except BoardUnreachableError as error:
+                failed.append(
+                    CapabilityFailure(device_id=device.id, name=device.name, reason=error.reason)
+                )
+                continue
+            except BoardNotChosenError:
+                failed.append(
+                    CapabilityFailure(
+                        device_id=device.id,
+                        name=device.name,
+                        reason=BoardCommandReason.BOARD_NOT_CHOSEN,
+                    )
+                )
+                continue
             driven.append((device, status))
-        await self._persist(user_id, *(device for device, _status in driven))
         for device, status in driven:
             await self._announce(user_id, device, status)
         return CapabilityReport(
             capability=capability,
             devices=tuple(DeviceView.of(device, status) for device, status in driven),
+            failed=tuple(failed),
         )
 
     async def restore_statuses(
-        self, user_id: UserId, devices: Sequence[Device], wanted: dict[DeviceId, DeviceStatus]
+        self, user_id: UserId, targets: Sequence[tuple[Device, DeviceStatus]]
     ) -> None:
         """Возвращает устройства в состояния, в которых они были раньше.
 
+        Список приходит готовым: вызывающий уже знает, какие устройства он переключил
+        и какими они были, поэтому сервис не перебирает дом и не ищет нужные строки
+        заново.
+
         Args:
             user_id: Владелец устройств и платы.
-            devices: Устройства, к которым обращаются.
-            wanted: Желаемое состояние для каждого устройства.
+            targets: Устройства с состояниями, которые надо вернуть.
         """
-        by_id = {device.id: device for device in devices}
-        for device_id, status in wanted.items():
-            device = by_id.get(device_id)
+        for device, status in targets:
             capability = DeviceStatus.restored_by(status)
-            if device is None or capability is None:
+            if capability is None:
                 continue
             restored = await self._perform(user_id, device, capability, manual=False)
-            await self._persist(user_id, device)
             await self._announce(user_id, device, restored)
 
     async def views_with_live_status(
@@ -228,14 +276,11 @@ class DeviceControlService:
 
         Raises:
             UnsupportedCapabilityError: Когда устройство этого не умеет.
+            BoardNotChosenError: Когда устройство не привязано к плате, а плат несколько.
             BoardUnreachableError: Когда плата не подтвердила выполнение.
         """
         device.require_capability(capability)
-        board_id = device.board_id
-        if board_id is None:
-            board_id = await self._boards.board_for(user_id)
-        if board_id is None:
-            raise BoardUnreachableError("esp_offline")
+        board_id = await self._board_of(user_id, device)
         status = device.drive(capability, source_is_manual=manual)
         result = await self._boards.set_relay(
             user_id, board_id, int(device.channel), capability.energizes_relay
@@ -244,23 +289,66 @@ class DeviceControlService:
             device.pull_events()
             raise BoardUnreachableError(result.reason or "unknown")
 
-        await self._state_store.record_command_result(user_id, device, status, self._clock.now())
+        await self._state_store.record_command_result(
+            user_id,
+            board_id,
+            device.id,
+            int(device.channel),
+            status,
+            self._clock.now(),
+        )
         return status
 
-    async def _persist(self, user_id: UserId, *devices: Device) -> None:
-        """Сохраняет агрегаты в одной короткой транзакции.
+    async def _board_of(self, user_id: UserId, device: Device) -> EspDeviceId:
+        """Возвращает плату, которой адресована команда этого устройства.
+
+        Привязанное устройство знает свою плату само. Непривязанному остаётся
+        запасной путь только в доме с одной платой: при двух и более номер канала
+        уже не говорит, на какой стороне дома он живёт, и угадывать нельзя.
 
         Args:
-            user_id: Владелец устройств.
-            devices: Агрегаты для сохранения; каждый уже подтверждён платой.
+            user_id: Владелец устройства.
+            device: Устройство, которому нужна плата.
+
+        Returns:
+            EspDeviceId: Плата, которой можно отдать команду.
+
+        Raises:
+            BoardNotChosenError: Когда плат в доме больше одной.
+            BoardUnreachableError: Когда единственная плата не на связи.
+        """
+        if device.board_id is not None:
+            return device.board_id
+        async with self._home_uow() as uow:
+            boards = await uow.boards.list_all(user_id)
+        if len(boards) > 1:
+            raise BoardNotChosenError()
+        board_id = await self._boards.board_for(user_id)
+        if board_id is None:
+            raise BoardUnreachableError(BoardCommandReason.OFFLINE)
+        return board_id
+
+    async def _load(self, user_id: UserId, device_id: DeviceId) -> Device:
+        """Читает устройство в короткой транзакции и сразу её закрывает.
+
+        Args:
+            user_id: Владелец устройства.
+            device_id: Идентификатор устройства.
+
+        Returns:
+            Device: Снимок конфигурации, проверенный на существование.
+
+        Raises:
+            DeviceNotFoundError: Когда такого устройства у аккаунта нет.
         """
         async with self._home_uow() as uow:
-            for device in devices:
-                await uow.devices.update(device)
-            await uow.commit()
+            device = await uow.devices.get(user_id, device_id)
+        if device is None:
+            raise DeviceNotFoundError(device_id)
+        return device
 
     async def _announce(self, user_id: UserId, device: Device, status: DeviceStatus) -> None:
-        """Публикует факт, когда он закоммичен.
+        """Публикует факт после того, как подтверждение записано.
 
         Args:
             user_id: Владелец устройства.

@@ -1,9 +1,8 @@
-"""Device routes.
+"""Маршруты устройств.
 
-Routes translate interface bodies into application commands. What is allowed
-to switch and what the board responds to is decided by application layer
-scenarios, and device state is not guessed here: it is returned by the list
-scenario.
+Маршрут переводит тело запроса в команду приложения. Что можно включить и на что
+ответит плата, решают сценарии прикладного слоя, и состояние устройства здесь не
+угадывается: его возвращает тот же сценарий, который его получил.
 """
 
 from __future__ import annotations
@@ -36,14 +35,14 @@ async def list_devices(
     user_id: CurrentUserId,
     use_case: FromDishka[ListDevicesUseCase],
 ) -> list[DeviceResponse]:
-    """Return all configured devices with their current state.
+    """Возвращает все настроенные устройства с их текущим состоянием.
 
     Args:
-        user_id: Owner authorised from bearer token.
-        use_case: List devices with live state.
+        user_id: Владелец, разрешённый из bearer-токена.
+        use_case: Список устройств вместе с живым состоянием.
 
     Returns:
-        list[DeviceResponse]: Configured devices.
+        list[DeviceResponse]: Настроенные устройства.
     """
     return [device_of(device) for device in await use_case.execute(user_id)]
 
@@ -54,15 +53,15 @@ async def create_device(
     user_id: CurrentUserId,
     use_case: FromDishka[CreateDeviceUseCase],
 ) -> DeviceResponse:
-    """Registers a new logical device.
+    """Заводит новое логическое устройство.
 
     Args:
-        body: Device description.
-        user_id: Owner authorised from bearer token.
-        use_case: Device creation.
+        body: Описание устройства.
+        user_id: Владелец, разрешённый из bearer-токена.
+        use_case: Создание устройства.
 
     Returns:
-        DeviceResponse: Created device.
+        DeviceResponse: Созданное устройство.
     """
     device = await use_case.execute(user_id, create_command(body))
     return device_of(device)
@@ -75,16 +74,16 @@ async def update_device(
     user_id: CurrentUserId,
     use_case: FromDishka[UpdateDeviceUseCase],
 ) -> DeviceResponse:
-    """Applies a partial device change.
+    """Применяет частичное изменение устройства.
 
     Args:
-        device_id: Device identifier.
-        body: Fields to change.
-        user_id: Owner authorised from bearer token.
-        use_case: Device update.
+        device_id: Идентификатор устройства.
+        body: Поля, которые нужно изменить.
+        user_id: Владелец, разрешённый из bearer-токена.
+        use_case: Изменение устройства.
 
     Returns:
-        DeviceResponse: Updated device.
+        DeviceResponse: Изменённое устройство.
     """
     device = await use_case.execute(user_id, DeviceId.parse(device_id), update_command(body))
     return device_of(device)
@@ -96,12 +95,12 @@ async def delete_device(
     user_id: CurrentUserId,
     use_case: FromDishka[DeleteDeviceUseCase],
 ) -> None:
-    """Deletes a device.
+    """Удаляет устройство.
 
     Args:
-        device_id: Device identifier.
-        user_id: Owner authorised from bearer token.
-        use_case: Device deletion.
+        device_id: Идентификатор устройства.
+        user_id: Владелец, разрешённый из bearer-токена.
+        use_case: Удаление устройства.
     """
     await use_case.execute(user_id, DeviceId.parse(device_id))
 
@@ -113,16 +112,16 @@ async def perform_capability(
     user_id: CurrentUserId,
     use_case: FromDishka[SwitchDeviceUseCase],
 ) -> DeviceResponse:
-    """Asks a device to perform a capability.
+    """Просит устройство выполнить способность.
 
     Args:
-        device_id: Device identifier.
-        capability: Capability to perform.
-        user_id: Owner authorised from bearer token.
-        use_case: Switching a single device.
+        device_id: Идентификатор устройства.
+        capability: Способность, которую просят выполнить.
+        user_id: Владелец, разрешённый из bearer-токена.
+        use_case: Переключение одного устройства.
 
     Returns:
-        DeviceResponse: Device in the state it reached.
+        DeviceResponse: Устройство в том состоянии, которого оно достигло.
     """
     device = await use_case.execute(
         user_id, DeviceId.parse(device_id), Capability.parse(capability)

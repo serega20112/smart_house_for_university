@@ -7,7 +7,7 @@
 
 Класс плоский: имя настройки повторяет имя переменной окружения, а не превращается в
 предложение из слов. Список разрешённых CORS-источников — неизменяемый `tuple`, чтобы
-ни один потребитель не мутировал общий список. `.env` ищётся через `find_dotenv` от
+ни один потребитель не мутировал общий список. `.env` ищется через `find_dotenv` от
 текущей рабочей директории, а не по фиксированной глубине файла, поэтому перенос модуля
 или нестандартная сборка путь не ломают.
 """
@@ -48,9 +48,8 @@ class Settings:
         self.app_host: str = server.app_host()
         self.app_port: int = server.app_port()
         self.app_log_level: str = server.app_log_level()
-        self.app_cors_allowed_origins: tuple[str, ...] = tuple(
-            server.app_cors_allowed_origins()
-        )
+        self.app_cors_allowed_origins: tuple[str, ...] = tuple(server.app_cors_allowed_origins())
+        self.frontend_dist: str = server.frontend_dist()
 
         self.auth_token_secret: str = auth.auth_token_secret()
         self.auth_session_lifetime_minutes: int = auth.auth_session_lifetime_minutes()
@@ -65,6 +64,7 @@ class Settings:
         self.redis_url: str = redis_.redis_url()
         self.redis_password: str | None = redis_.redis_password()
         self.redis_key_prefix: str = redis_.redis_key_prefix()
+        self.redis_io_timeout_sec: float = redis_.redis_io_timeout_sec()
 
         self.board_socket_port: int = board.board_socket_port()
         self.board_socket_path: str = board.board_socket_path()
@@ -116,12 +116,4 @@ class Settings:
         self.worker_per_user_timeout_sec: int = worker.worker_per_user_timeout_sec()
         self.worker_lock_ttl_sec: int = worker.worker_lock_ttl_sec()
         self.worker_lock_refresh_sec: int = worker.worker_lock_refresh_sec()
-
-    @property
-    def telegram_active(self) -> bool:
-        """Может ли бот быть запущен.
-
-        Returns:
-            bool: True, когда бот включён и токен задан.
-        """
-        return self.telegram_enabled and bool(self.telegram_bot_token)
+        self.worker_loop_timeout_sec: int = worker.worker_loop_timeout_sec()

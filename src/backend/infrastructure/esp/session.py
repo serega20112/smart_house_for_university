@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from contextlib import suppress
-from typing import Final
 
 from websockets.asyncio.server import ServerConnection
 
@@ -19,10 +18,6 @@ from backend.infrastructure.esp import protocol
 from backend.infrastructure.system.logging import get_logger
 
 log = get_logger("esp.session")
-
-OFFLINE_REASON: Final = "esp_offline"
-ACK_TIMEOUT_REASON: Final = "ack_timeout"
-DELIVERY_FAILED_REASON: Final = "esp_delivery_failed"
 
 
 class BoardSession:
@@ -173,9 +168,9 @@ class BoardRegistry:
     def board_for(self, user_id: UserId) -> EspDeviceId | None:
         """Возвращает единственную подключённую плату аккаунта.
 
-        Логическое устройство не хранит идентификатор платы, поэтому команда
-        каналу адресна лишь пока у аккаунта ровно одна подключённая плата: при
-        двух угадать, какая ведёт канал, нельзя, при одной некому вести.
+        Запасной путь для устройства, не привязанного к плате: пока у аккаунта ровно
+        одно соединение, канал однозначно принадлежит ему. При двух соединениях
+        ответа нет: угадав, сервер переключил бы реле на другой стороне дома.
 
         Args:
             user_id: Владелец плат.

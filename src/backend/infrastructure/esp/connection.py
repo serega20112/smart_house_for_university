@@ -23,6 +23,8 @@ from contextlib import suppress
 from websockets.asyncio.server import Server, ServerConnection, serve
 
 from backend.application.dto.boards.board_admission import BoardOffer, BoardOwner, BoardRefusal
+from backend.application.dto.boards.board_command_reason import BoardCommandReason
+from backend.application.dto.boards.board_command_result import BoardCommandResult
 from backend.application.dto.boards.board_message import BoardAck
 from backend.application.interfaces.services.boards.board_report import BoardReport
 from backend.application.use_cases.boards.admit_board import AdmitBoardUseCase
@@ -31,12 +33,7 @@ from backend.domain.identifiers import EspDeviceId, UserId
 from backend.domain.value_objects.boards.network_profile import NetworkProfile
 from backend.infrastructure.brokers.board_presence import RedisBoardPresence
 from backend.infrastructure.esp import protocol, wire
-from backend.infrastructure.esp.session import (
-    ACK_TIMEOUT_REASON,
-    DELIVERY_FAILED_REASON,
-    OFFLINE_REASON,
-    BoardRegistry,
-)
+from backend.infrastructure.esp.session import BoardRegistry
 from backend.infrastructure.system.logging import get_logger
 
 log = get_logger("esp.connection")
@@ -125,7 +122,7 @@ class EspConnection:
 
     async def set_relay(
         self, user_id: UserId, board_id: EspDeviceId, channel: int, energized: bool
-    ) -> tuple[bool, str | None]:
+    ) -> BoardCommandResult:
         """Переключает контакт и ждёт подтверждения платы.
 
         Args:
@@ -135,7 +132,7 @@ class EspConnection:
             energized: True замкнуть контакт, False отпустить.
 
         Returns:
-            tuple[bool, str | None]: Подтвердила ли плата и почему нет, если нет.
+            BoardCommandResult: Ответ платы на команду.
         """
 
         def frame_of(command_id: str) -> protocol.SetRelayFrame:
@@ -146,7 +143,7 @@ class EspConnection:
 
     async def set_network(
         self, user_id: UserId, board_id: EspDeviceId, profile: NetworkProfile
-    ) -> tuple[bool, str | None]:
+    ) -> BoardCommandResult:
         """Сообщает плате её сеть и ждёт подтверждения.
 
         Плата сначала пишет настройки в свою флеш-память, поэтому подтверждённая
@@ -158,7 +155,7 @@ class EspConnection:
             profile: Сеть, в которую плате уходить.
 
         Returns:
-            tuple[bool, str | None]: Подтвердила ли плата и почему нет, если нет.
+            BoardCommandResult: Ответ платы на команду.
         """
 
         def frame_of(command_id: str) -> protocol.SetNetworkFrame:
@@ -193,11 +190,12 @@ class EspConnection:
         user_id: UserId,
         board_id: EspDeviceId,
         frame_of: Callable[[str], protocol.SetRelayFrame | protocol.SetNetworkFrame],
-    ) -> tuple[bool, str | None]:
+    ) -> BoardCommandResult:
         """Отправляет команду плате и дожидается её подтверждения.
 
         Плата без соединения — отказ, а не исключение: решать, что делать с
-        недоступным железом, вызывающей стороне.
+        недоступным железом, вызывающей стороне. Отказ возвращается одним типом,
+        поэтому вызывающий читает причину по имени, а не помнит порядок элементов.
 
         Args:
             user_id: Владелец платы.
@@ -205,16 +203,16 @@ class EspConnection:
             frame_of: Строит кадр команды по выданному идентификатору.
 
         Returns:
-            tuple[bool, str | None]: Подтвердила ли плата и почему нет, если нет.
+            BoardCommandResult: Ответ платы: подтверждение или причина отказа.
         """
         session = self._registry.find(user_id, board_id)
         if session is None:
-            return False, OFFLINE_REASON
+            return BoardCommandResult(accepted=False, reason=BoardCommandReason.OFFLINE)
         frame = frame_of(session.next_command_id())
         try:
             await session.ask(frame, self._command_timeout)
         except TimeoutError:
-            return False, ACK_TIMEOUT_REASON
+            return BoardCommandResult(accepted=False, reason=BoardCommandReason.ACK_TIMEOUT)
         except Exception as error:
             log.warning(
                 "esp.command_failed",
@@ -223,8 +221,8 @@ class EspConnection:
                 command=frame.type,
                 error=str(error),
             )
-            return False, DELIVERY_FAILED_REASON
-        return True, None
+            return BoardCommandResult(accepted=False, reason=BoardCommandReason.DELIVERY_FAILED)
+        return BoardCommandResult(accepted=True)
 
     async def _send(
         self, user_id: UserId, board_id: EspDeviceId, frame: protocol.OutboundFrame

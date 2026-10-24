@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from backend.domain.exceptions import InvalidToleranceError
+from backend.domain.exceptions import InvalidMeasurementError, InvalidToleranceError
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,8 +85,19 @@ class ClimateBand[MeasuredT]:
 
     @staticmethod
     def _value_of(measurement: MeasuredT) -> float:
+        """Приводит измерение к числу.
+
+        Args:
+            measurement: Значение, которое измерили датчики.
+
+        Returns:
+            float: Число в единицах величины.
+
+        Raises:
+            InvalidMeasurementError: Когда значение не является измерением климата.
+        """
         if isinstance(measurement, bool):
-            raise TypeError("a boolean is not a climate measurement")
+            raise InvalidMeasurementError(type(measurement).__name__)
         if isinstance(measurement, (int, float)):
             return float(measurement)
         celsius = getattr(measurement, "celsius", None)
@@ -95,4 +106,4 @@ class ClimateBand[MeasuredT]:
         percent = getattr(measurement, "percent", None)
         if percent is not None:
             return float(percent)
-        raise TypeError("a climate measurement must expose celsius or percent")
+        raise InvalidMeasurementError(type(measurement).__name__)

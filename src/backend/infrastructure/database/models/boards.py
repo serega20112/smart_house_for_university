@@ -14,10 +14,12 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    UniqueConstraint,
     Uuid,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from backend.domain.value_objects.boards.board_name import BoardName
 from backend.infrastructure.database.models.base import Base
 
 
@@ -36,11 +38,14 @@ class EspDeviceModel(Base):
     """
 
     __tablename__ = "esp_devices"
-    __table_args__ = (Index("ix_esp_devices_user_id", "user_id"),)
+    __table_args__ = (
+        Index("ix_esp_devices_user_id", "user_id"),
+        UniqueConstraint("id", "user_id", name="uq_esp_devices_id_user_id"),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
     user_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"))
-    name: Mapped[str] = mapped_column(String(60))
+    name: Mapped[str] = mapped_column(String(BoardName.MAX_LENGTH))
     pairing_key: Mapped[str] = mapped_column(String(64), unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -17,8 +17,8 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from backend.composition.app import build_api_app
 from backend.config.settings import Settings
-from backend.presentation.app_factory import create_app
 
 
 def _provision(client: TestClient) -> tuple[str, str]:
@@ -57,7 +57,7 @@ def test_realtime_opens_with_a_ticket_and_refuses_its_reuse() -> None:
     except Exception as error:
         pytest.skip(f"PostgreSQL not reachable for realtime handshake test: {error}")
 
-    application = create_app(settings)
+    application = build_api_app(settings)
     user_id = ""
     with TestClient(application) as client:
         token, user_id = _provision(client)

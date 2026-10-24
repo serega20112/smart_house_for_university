@@ -1,5 +1,6 @@
 import pytest
 
+from backend.domain.exceptions.devices import InvalidCapabilityError
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.control_source import ControlSource
 
@@ -25,7 +26,7 @@ def test_capability_parse_with_lower_case_text_returns_member(
 
 @pytest.mark.parametrize("raw", [None, "", "machinery", " capability "])
 def test_capability_parse_with_unknown_value_raises(raw: object) -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidCapabilityError):
         Capability.parse(raw)
 
 

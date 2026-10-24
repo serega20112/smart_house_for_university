@@ -13,6 +13,7 @@ from typing import Protocol
 from backend.application.interfaces.repositories.automation_repository import (
     AutomationRepository,
 )
+from backend.application.interfaces.repositories.board_repository import BoardRepository
 from backend.application.interfaces.repositories.dashboard_repository import DashboardRepository
 from backend.application.interfaces.repositories.device_repository import DeviceRepository
 from backend.application.interfaces.repositories.preferences_repository import (
@@ -29,6 +30,15 @@ class HomeUnitOfWork(TransactionalUnitOfWork):
     @abstractmethod
     def devices(self) -> DeviceRepository:
         """Репозиторий устройств текущей транзакции."""
+
+    @property
+    @abstractmethod
+    def boards(self) -> BoardRepository:
+        """Репозиторий плат текущей транзакции.
+
+        Устройство живёт на канале плате, поэтому создание и перенос устройства
+        проверяют владение платой в той же транзакции, что и запись.
+        """
 
     @property
     @abstractmethod

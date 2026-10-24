@@ -15,11 +15,14 @@ from typing import Any
 
 from backend.application.dto.language.clarification_reason import ClarificationReason
 from backend.domain.identifiers import DeviceId, EspDeviceId, ScenarioId, UserId
+from backend.domain.value_objects.scenario.finish_reason import FinishReason
 
 __all__ = [
     "AccountNotFoundError",
     "ApplicationError",
     "BoardAlreadyClaimedError",
+    "BoardHasDevicesError",
+    "BoardNotChosenError",
     "BoardNotFoundError",
     "BoardUnreachableError",
     "ClaimNotFoundError",
@@ -104,6 +107,22 @@ class ScenarioNotFoundError(ApplicationError):
         self.scenario_id = scenario_id
 
 
+class BoardHasDevicesError(ApplicationError):
+    """Плату нельзя убрать, пока на её каналах стоят устройства.
+
+    Плата уходит, а настроенный дом остаётся: имена, способности и участие в
+    автоматизации принадлежат устройствам, поэтому удаление платы без решения
+    человека стёрло бы работу, которую никто не просил стирать.
+
+    Args:
+        devices: Имена устройств, которые держатся за плату.
+    """
+
+    def __init__(self, devices: tuple[str, ...]) -> None:
+        super().__init__(f"board still owns devices: {', '.join(devices)}")
+        self.devices = devices
+
+
 class BoardNotFoundError(ApplicationError):
     """У аккаунта нет платы с таким идентификатором.
 
@@ -131,13 +150,29 @@ class ClaimNotFoundError(ApplicationError):
 class BoardUnreachableError(ApplicationError):
     """Плата за устройством не ответила.
 
-    Args:
+    Attributes:
         reason: Машинночитаемая причина, которую сообщил транспорт.
+        finish_reason: Причина, которую сценарий записывает на себя, когда этот отказ
+            его прерывает: отказ называет её сам, а не место, где сценарий сворачивают.
     """
+
+    finish_reason: FinishReason = FinishReason.BOARD_UNREACHABLE
 
     def __init__(self, reason: str) -> None:
         super().__init__(f"the board did not accept the command: {reason}")
         self.reason = reason
+
+
+class BoardNotChosenError(ApplicationError):
+    """Устройство не знает своей платы, а плат в доме несколько.
+
+    Канал реле сам по себе не говорит, на какой стороне дома он живёт, поэтому
+    команда, отправленная наугад, переключила бы чужое реле. От человека здесь
+    нужно решение, а не догадка сервиса.
+    """
+
+    def __init__(self) -> None:
+        super().__init__("the device is not bound to a board and the home has several")
 
 
 class ConcurrentModificationError(ApplicationError):
@@ -168,7 +203,11 @@ class NoDeviceForCapabilityError(ApplicationError):
 
     Attributes:
         capability: Запрошенная способность.
+        finish_reason: Причина, которую сценарий записывает на себя, когда этот отказ
+            его прерывает.
     """
+
+    finish_reason: FinishReason = FinishReason.NO_DEVICE_FOR_CAPABILITY
 
     def __init__(self, capability: str) -> None:
         super().__init__(f"no device in this home supports {capability}")

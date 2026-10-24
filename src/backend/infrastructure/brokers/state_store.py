@@ -19,9 +19,8 @@ from typing import Any
 from redis.asyncio import Redis
 
 from backend.application.interfaces.services.state.home_state_store import HomeStateStore
-from backend.domain.aggregates.device.device import Device
 from backend.domain.entities.home_state.home_state import HomeState
-from backend.domain.identifiers import DeviceId, UserId
+from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.devices.relay_state import RelayState
@@ -73,22 +72,24 @@ class RedisHomeStateStore(HomeStateStore):
         return home_state_of(user_id, stored, as_text(override))
 
     async def record_background_reading(
-        self, user_id: UserId, reading: ClimateReading, changed_at: datetime
+        self, user_id: UserId, board_id: EspDeviceId, reading: ClimateReading, changed_at: datetime
     ) -> ClimateReading:
-        """Применяет показания датчиков, сообщённые платой.
+        """Применяет показания датчиков, сообщённые одной платой.
 
         Args:
             user_id: Владелец дома.
+            board_id: Плата, чьи датчики сообщили.
             reading: Измеренные значения, отсутствующие там, где датчик молчал.
             changed_at: Момент, когда плата их измерила.
 
         Returns:
-            ClimateReading: Те значения, которые действительно сдвинулись.
+            ClimateReading: Те значения этой платы, которые действительно сдвинулись.
         """
         moves = json.loads(
             await self._eval(
                 APPLY_SENSOR_REPORT,
                 user_id,
+                str(board_id),
                 repr(reading.temperature.celsius) if reading.temperature is not None else "",
                 repr(reading.humidity.percent) if reading.humidity is not None else "",
                 changed_at.isoformat(),
@@ -102,22 +103,25 @@ class RedisHomeStateStore(HomeStateStore):
         )
 
     async def record_relay_report(
-        self, user_id: UserId, states: Sequence[bool], changed_at: datetime
+        self, user_id: UserId, board_id: EspDeviceId, states: Sequence[bool], changed_at: datetime
     ) -> tuple[int, ...]:
-        """Применяет положения контактов, о которых сообщила плата.
+        """Применяет положения контактов, о которых сообщила одна плата.
 
         Args:
             user_id: Владелец платы.
+            board_id: Плата, чьи положения пришли.
             states: Положения контактов по порядку каналов, начиная с первого.
             changed_at: Момент сообщения.
 
         Returns:
-            tuple[int, ...]: Каналы, положение которых действительно изменилось.
+            tuple[int, ...]: Каналы этой платы, положение которых действительно
+            изменилось.
         """
         moved: list[int] = json.loads(
             await self._eval(
                 APPLY_RELAYS,
                 user_id,
+                str(board_id),
                 json.dumps([bool(state) for state in states]),
                 changed_at.isoformat(),
             )
@@ -125,21 +129,23 @@ class RedisHomeStateStore(HomeStateStore):
         return tuple(moved)
 
     async def record_board_online(
-        self, user_id: UserId, online: bool, changed_at: datetime
+        self, user_id: UserId, board_id: EspDeviceId, online: bool, changed_at: datetime
     ) -> bool:
         """Запоминает, доступна ли плата.
 
         Args:
             user_id: Владелец платы.
+            board_id: Плата, о которой сообщили.
             online: True, когда плата ответила, False, когда пропала.
             changed_at: Момент перехода.
 
         Returns:
-            bool: Доступность такой, какой она была до перехода.
+            bool: Доступность этой платы такой, какой она была до перехода.
         """
         previous = await self._eval(
             RECORD_BOARD_REACHABILITY,
             user_id,
+            str(board_id),
             VALUE_TRUE if online else VALUE_FALSE,
             changed_at.isoformat(),
         )
@@ -148,7 +154,9 @@ class RedisHomeStateStore(HomeStateStore):
     async def record_command_result(
         self,
         user_id: UserId,
-        device: Device,
+        board_id: EspDeviceId,
+        device_id: DeviceId,
+        channel: int,
         status: DeviceStatus,
         changed_at: datetime,
     ) -> None:
@@ -156,18 +164,19 @@ class RedisHomeStateStore(HomeStateStore):
 
         Args:
             user_id: Владелец устройства.
-            device: Устройство, над которым прошла команда.
+            board_id: Плата, выполнившая команду.
+            device_id: Устройство, над которым прошла команда.
+            channel: Канал реле этой платы.
             status: Состояние, в которое устройство перевели.
             changed_at: Момент подтверждения.
         """
-        if device.channel is None:
-            return
         await self._eval(
             RECORD_COMMAND_RESULT,
             user_id,
-            str(int(device.channel)),
+            str(board_id),
+            str(channel),
             RelayState.ON.value if status.is_active else RelayState.OFF.value,
-            str(device.id),
+            str(device_id),
             status.value,
             changed_at.isoformat(),
         )

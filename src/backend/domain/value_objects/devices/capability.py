@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from enum import StrEnum
 
+from backend.domain.exceptions.devices import InvalidCapabilityError
+
 
 class Capability(StrEnum):
     """An action, которое бэкенд может попросить устройство выполнить."""
@@ -48,10 +50,13 @@ class Capability(StrEnum):
             Capability: Прочитанная способность.
 
         Raises:
-            ValueError: Когда значение не называет способность.
+            InvalidCapabilityError: Когда значение не называет способность.
         """
         if isinstance(raw, cls):
             return raw
         if raw is None:
-            raise ValueError("capability is missing")
-        return cls(str(raw).strip().upper())
+            raise InvalidCapabilityError(raw)
+        try:
+            return cls(str(raw).strip().upper())
+        except ValueError as error:
+            raise InvalidCapabilityError(raw) from error

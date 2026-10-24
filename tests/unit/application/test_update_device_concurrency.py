@@ -6,6 +6,7 @@ store: the first attempts lose a race the way the store would settle it, and
 the use case is expected to read the newest snapshot and win.
 """
 
+from collections.abc import Sequence
 from datetime import datetime
 
 import pytest
@@ -18,10 +19,12 @@ from backend.application.interfaces.unit_of_work.home import HomeUnitOfWork
 from backend.application.use_cases.devices.update_device import UpdateDeviceUseCase
 from backend.domain.aggregates.device.device import Device
 from backend.domain.entities.home_state.home_state import HomeState
-from backend.domain.identifiers import DeviceId, UserId
+from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.devices.relay_state import RelayState
+
+BOARD = EspDeviceId.generate()
 
 
 class RaceRepository:
@@ -75,6 +78,15 @@ class RacingStore(HomeUnitOfWork):
             RaceRepository: The lossy stand-in.
         """
         return self._repository
+
+    @property
+    def boards(self) -> object:
+        """The board repository is never used by the change under test.
+
+        Raises:
+            NotImplementedError: Always, as no device names a board here.
+        """
+        raise NotImplementedError
 
     @property
     def automation(self) -> object:
@@ -185,31 +197,41 @@ class LiveStateStore(HomeStateStore):
         return self._state
 
     async def record_background_reading(
-        self, user_id: UserId, reading: ClimateReading, changed_at: datetime
+        self,
+        user_id: UserId,
+        board_id: EspDeviceId,
+        reading: ClimateReading,
+        changed_at: datetime,
     ) -> ClimateReading:
-        del user_id, reading, changed_at
+        del user_id, board_id, reading, changed_at
         return ClimateReading()
 
     async def record_relay_report(
-        self, user_id: UserId, states: list[bool], changed_at: datetime
+        self,
+        user_id: UserId,
+        board_id: EspDeviceId,
+        states: Sequence[bool],
+        changed_at: datetime,
     ) -> tuple[int, ...]:
-        del user_id, states, changed_at
+        del user_id, board_id, states, changed_at
         return ()
 
     async def record_board_online(
-        self, user_id: UserId, online: bool, changed_at: datetime
+        self, user_id: UserId, board_id: EspDeviceId, online: bool, changed_at: datetime
     ) -> bool:
-        del user_id, changed_at
+        del user_id, board_id, changed_at
         return online
 
     async def record_command_result(
         self,
         user_id: UserId,
-        device: Device,
+        board_id: EspDeviceId,
+        device_id: DeviceId,
+        channel: int,
         status: DeviceStatus,
         changed_at: datetime,
     ) -> None:
-        del user_id, device, status, changed_at
+        del user_id, board_id, device_id, channel, status, changed_at
 
     async def forget_device_status(self, user_id: UserId, device_id: DeviceId) -> None:
         del user_id, device_id
@@ -223,14 +245,14 @@ class LiveStateStore(HomeStateStore):
 
 
 async def test_update_device_retries_on_a_lost_race_and_publishes_once():
-    device = make_device()
+    device = make_device(board_id=BOARD)
     repository = RaceRepository(device, races_lost=1)
     factory = SequenceFactory(repository)
     realtime = RecordingRealtime()
     state = HomeState(
         user_id=device.user_id,
-        board_online=True,
-        relay_states={int(device.channel): RelayState.ON},
+        online_boards=frozenset({BOARD}),
+        relay_states={BOARD: {int(device.channel): RelayState.ON}},
         device_modes={device.id: DeviceStatus.ACTIVE},
     )
     use_case = UpdateDeviceUseCase(

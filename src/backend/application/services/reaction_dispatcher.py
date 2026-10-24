@@ -20,10 +20,11 @@ import structlog
 from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
     DomainEventDispatcher,
 )
+from backend.domain.events import DomainEvent
 
 log = structlog.get_logger("application.reactions")
 
-Reaction = Callable[[tuple[object, ...]], Awaitable[None]]
+Reaction = Callable[[tuple[DomainEvent, ...]], Awaitable[None]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,7 +37,7 @@ class ReactionDispatcher(DomainEventDispatcher):
 
     reactions: tuple[Reaction, ...]
 
-    async def dispatch(self, events: Sequence[object]) -> None:
+    async def dispatch(self, events: Sequence[DomainEvent]) -> None:
         """Объявляет факты, которые агрегат записал, пока менялся.
 
         Отказавшего подписчика записывают в журнал и пропускают: транзакция уже

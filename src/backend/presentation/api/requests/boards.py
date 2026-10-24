@@ -7,9 +7,10 @@ from pydantic import Field
 from backend.application.dto.boards.claim_board_command import ClaimBoardCommand
 from backend.application.dto.boards.pair_board_command import PairBoardCommand
 from backend.application.dto.boards.set_network_command import SetNetworkCommand
+from backend.domain.value_objects.boards.board_name import BoardName
 from backend.presentation.api.base import StrictModel
 
-NAME_MAX_LENGTH = 120
+NAME_MAX_LENGTH = BoardName.MAX_LENGTH
 SSID_MAX_LENGTH = 64
 PASSWORD_MAX_LENGTH = 128
 ADDRESS_MAX_LENGTH = 255

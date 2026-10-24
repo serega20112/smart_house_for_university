@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from sqlalchemy import delete, insert, update
+from sqlalchemy import delete, insert, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
@@ -16,6 +16,7 @@ from backend.domain.aggregates.device.device import Device
 from backend.domain.exceptions import ChannelConflictError
 from backend.domain.identifiers import (
     DeviceId,
+    EspDeviceId,
     UserId,
 )
 from backend.infrastructure.database.mappers.device import (
@@ -149,6 +150,7 @@ class SqlDeviceRepository(DeviceRepository):
                     name=row.name,
                     kind=row.kind,
                     channel=row.channel,
+                    board_id=row.board_id,
                     enabled=row.enabled,
                     automation_enabled=row.automation_enabled,
                     version=device.version + 1,
@@ -189,3 +191,50 @@ class SqlDeviceRepository(DeviceRepository):
             )
         )
         return affected_rows(result) > 0
+
+    async def list_for_board(self, user_id: UserId, board_id: EspDeviceId) -> Sequence[Device]:
+        """Возвращает устройства, стоящие на каналах одной платы.
+
+        Каналы упорядочены, чтобы перечень, показанный человеку перед отвязкой
+        платы, был одним и тем же от запроса к запросу.
+
+        Args:
+            user_id: Владелец устройств.
+            board_id: Плата, каналы которой читают.
+
+        Returns:
+            Sequence[Device]: Устройства этой платы в порядке каналов.
+        """
+        result = await self._session.execute(
+            select(DeviceModel)
+            .where(
+                DeviceModel.user_id == user_id.value,
+                DeviceModel.board_id == board_id.value,
+            )
+            .order_by(DeviceModel.channel)
+        )
+        rows = list(result.scalars().all())
+        stored = await capabilities_of(self._session, [row.id for row in rows])
+        return [device_from_row(row, stored.get(row.id, frozenset())) for row in rows]
+
+    async def delete_for_board(self, user_id: UserId, board_id: EspDeviceId) -> int:
+        """Удаляет все устройства одной платы.
+
+        Способности, участие в автоматизации и карточки панели снимаются
+        каскадными ключами хранилища: человек потребовал удалить устройства, а не
+        оставить их следы.
+
+        Args:
+            user_id: Владелец устройств.
+            board_id: Плата, устройства которой удаляют.
+
+        Returns:
+            int: Сколько устройств удалили.
+        """
+        result = await self._session.execute(
+            delete(DeviceModel).where(
+                DeviceModel.user_id == user_id.value,
+                DeviceModel.board_id == board_id.value,
+            )
+        )
+        return affected_rows(result)

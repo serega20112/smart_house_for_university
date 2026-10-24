@@ -61,15 +61,24 @@ class ScenarioSettler:
     ) -> None:
         """Возвращает устройства, отправляет событие и относит сообщение.
 
+        Возвращаются только те устройства, которые сценарий переключил, — так
+        решает «вернуть как было». Поведение «выключить всё» названо буквально
+        и гасит весь дом, поэтому список устройств дома передаётся агрегату
+        явно, а не выводится из снимка сценария.
+
         Args:
             scenario: Сценарий, перешедший в финальную стадию.
-            devices: Устройства, которых касались его команды.
+            devices: Устройства дома, которых касались его команды.
             reason: Почему сценарий перестал действовать.
             failed: True для провала — текст берётся из ветки неудачи.
         """
-        await self._control.restore_statuses(
-            scenario.user_id, devices, scenario.statuses_to_restore()
-        )
+        home = [device.id for device in devices]
+        wanted = scenario.statuses_to_restore(home)
+        by_id = {device.id: device for device in devices}
+        targets = [
+            (by_id[device_id], status) for device_id, status in wanted.items() if device_id in by_id
+        ]
+        await self._control.restore_statuses(scenario.user_id, targets)
         await self._realtime.publish(
             scenario.user_id, EventName.SCENARIO_FINISHED, scenario_payload(scenario)
         )

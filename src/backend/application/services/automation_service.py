@@ -119,7 +119,7 @@ class AutomationService:
         if target is None:
             return SkipReason.NO_SUITABLE_DEVICE
         try:
-            await self._control.apply_to_device(user_id, target.id, demand.capability, manual=False)
+            await self._control.apply_to_loaded(user_id, target, demand.capability, manual=False)
         except BoardUnreachableError as error:
             return error.reason
         return None

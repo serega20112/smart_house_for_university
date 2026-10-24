@@ -63,7 +63,11 @@ class BrokersProvider(Provider):
     @provide(scope=APP)
     def lock(self, redis: Redis, settings: Settings) -> DistributedLock:
         """Собирает аренду, не пускающую два воркера к одному аккаунту."""
-        return RedisDistributedLock(redis, key_prefix=settings.redis_key_prefix)
+        return RedisDistributedLock(
+            redis,
+            key_prefix=settings.redis_key_prefix,
+            io_timeout_sec=settings.redis_io_timeout_sec,
+        )
 
     @provide(scope=APP)
     def realtime_tickets(self, redis: Redis, settings: Settings) -> RealtimeTicketStore:

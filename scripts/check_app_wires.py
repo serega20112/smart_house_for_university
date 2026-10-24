@@ -2,10 +2,12 @@
 
 Контейнер строится лениво, поэтому одной сборки приложения мало: провайдер с
 неподходящей сигнатурой или забытая зависимость всплывают только когда ключ
-впервые попросили. Здесь запрашиваются все связываемые узлы графа. Модель
-понимания фраз необязательна, поэтому граф собирается и без неё — ровно так, как
-работает развёртывание без необязательной зависимости: словарь узнаёт знакомые
-фразы сам, а смысловой конвейер в этом случае не подключается.
+впервые попросили. Здесь запрашиваются все связываемые узлы графа — и для роли
+интерфейса, и для роли рабочего: у ролей разные наборы провайдеров, и узел,
+доступный одной, может не собираться в другой. Модель понимания фраз
+необязательна, поэтому граф собирается и без неё — ровно так, как работает
+развёртывание без необязательной зависимости: словарь узнаёт знакомые фразы сам, а
+смысловой конвейер в этом случае не подключается.
 
 Запуск из корня проекта: python scripts/check_app_wires.py
 """
@@ -14,13 +16,13 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import httpx
-from dishka import make_async_container
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from backend.application.interfaces.queries.account_queries import AccountQueries
@@ -35,9 +37,6 @@ from backend.application.interfaces.services.language.command_understanding impo
 )
 from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
     DomainEventDispatcher,
-)
-from backend.application.interfaces.services.messaging.notification_factory import (
-    NotificationFactory,
 )
 from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
 from backend.application.interfaces.services.messaging.user_notifier import UserNotifier
@@ -64,15 +63,12 @@ from backend.application.services.scenarios.settling import ScenarioSettler
 from backend.application.use_cases.accounts.authenticate_account import AuthenticateAccountUseCase
 from backend.application.use_cases.accounts.register_account import RegisterAccountUseCase
 from backend.application.use_cases.automation.update_automation import UpdateAutomationUseCase
-from backend.application.use_cases.boards.claim_board import ClaimBoardUseCase
 from backend.application.use_cases.boards.configure_board_network import (
     ConfigureBoardNetworkUseCase,
 )
 from backend.application.use_cases.boards.list_boards import ListBoardsUseCase
 from backend.application.use_cases.boards.list_claims import ListBoardClaimsUseCase
-from backend.application.use_cases.boards.pair_board import PairBoardUseCase
 from backend.application.use_cases.boards.read_board_network import ReadBoardNetworkUseCase
-from backend.application.use_cases.boards.revoke_board import RevokeBoardUseCase
 from backend.application.use_cases.commands.cancel_scenario import CancelScenarioCommandUseCase
 from backend.application.use_cases.commands.describe_home import DescribeHomeCommandUseCase
 from backend.application.use_cases.commands.read_humidity import ReadHumidityCommandUseCase
@@ -103,19 +99,16 @@ from backend.application.use_cases.personalization.update_preferences import (
 from backend.application.use_cases.scenarios.cancel_scenario import CancelScenarioUseCase
 from backend.application.use_cases.scenarios.list_scenarios import ListScenariosUseCase
 from backend.application.use_cases.scenarios.schedule_scenario import ScheduleScenarioUseCase
+from backend.composition.app import build_api_app
 from backend.config import Settings
+from backend.infrastructure.brokers.board_presence import RedisBoardPresence
 from backend.infrastructure.brokers.chat_sessions import RedisChatSessionStore
 from backend.infrastructure.brokers.event_broker import RedisSubscriber
-from backend.infrastructure.di.dishka_container import (
-    ROLE_PROVIDERS,
-    SHARED_PROVIDERS,
-    ProcessRole,
-)
+from backend.infrastructure.di import ProcessRole, build_dishka_container
 from backend.infrastructure.esp.command_listener import BoardCommandListener
 from backend.infrastructure.esp.connection import EspConnection
 from backend.infrastructure.security.link_tokens import TelegramLinkTokenIssuer
 from backend.infrastructure.telegram.client import TelegramBotClient
-from backend.presentation.app_factory import create_app
 from backend.presentation.messages import NotificationFactoryImpl
 
 APP_ENTRIES: tuple[Any, ...] = (
@@ -183,9 +176,6 @@ REQUEST_ENTRIES: tuple[Any, ...] = (
     ReadHomeSnapshotUseCase,
     UpdateAutomationUseCase,
     ListScenariosUseCase,
-    ClaimBoardUseCase,
-    PairBoardUseCase,
-    RevokeBoardUseCase,
     ListBoardsUseCase,
     ListBoardClaimsUseCase,
     ConfigureBoardNetworkUseCase,
@@ -196,29 +186,52 @@ REQUEST_ENTRIES: tuple[Any, ...] = (
     UpdateDashboardUseCase,
 )
 
+WORKER_ENTRIES: tuple[Any, ...] = (
+    Settings,
+    AutomationService,
+    ScenarioAdvancer,
+    ScenarioSettler,
+    HomeStateService,
+    DeviceControlService,
+    BoardOnboardingService,
+    DistributedLock,
+    HomeStateStore,
+    RealtimePublisher,
+    UserNotifier,
+    AccountQueries,
+    RedisBoardPresence,
+    BoardGateway,
+)
 
-async def check_graph() -> list[str]:
-    """Пробует собрать каждый узел графа и перечисляет то, что не собралось.
+
+async def check_graph(
+    role: ProcessRole,
+    app_entries: Sequence[Any],
+    request_entries: Sequence[Any] = (),
+) -> list[str]:
+    """Пробует собрать каждый узел графа роли и перечисляет несобравшееся.
+
+    Args:
+        role: Роль процесса, чей граф проверяется.
+        app_entries: Узлы области приложения.
+        request_entries: Узлы области запроса.
 
     Returns:
         list[str]: Строки вида «узел — причина отказа», пустые когда граф цел.
     """
-    container = make_async_container(
-        *SHARED_PROVIDERS,
-        *ROLE_PROVIDERS[ProcessRole.API],
-        context={
-            Settings: Settings(),
-            NotificationFactory: NotificationFactoryImpl(),
-        },
+    container = build_dishka_container(
+        Settings(),
+        notifications=NotificationFactoryImpl(),
+        role=role,
     )
     failures: list[str] = []
-    for key in APP_ENTRIES:
+    for key in app_entries:
         try:
             await container.get(key)
         except Exception as error:
             failures.append(f"{getattr(key, '__name__', key)}: {type(error).__name__}: {error}")
     async with container() as request_container:
-        for key in REQUEST_ENTRIES:
+        for key in request_entries:
             try:
                 await request_container.get(key)
             except Exception as error:
@@ -231,27 +244,36 @@ def check_routes() -> list[str]:
     """Собирает приложение и возвращает опубликованные пути.
 
     Returns:
-        list[str]: Путы OpenAPI собранного приложения.
+        list[str]: Пути OpenAPI собранного приложения.
     """
     settings = Settings()
     print(f"app: {settings.app_name} on {settings.app_host}:{settings.app_port}")
-    app = create_app(settings)
+    app = build_api_app(settings)
     return sorted(app.openapi()["paths"])
 
 
 async def main() -> int:
-    """Собрать граф целиком и показать, что приложение опубликовало маршруты.
+    """Собрать графы обеих ролей и показать, что приложение опубликовало маршруты.
 
     Returns:
-        int: Ноль, когда граф собрался и маршруты на месте.
+        int: Ноль, когда оба графа собрались и маршруты на месте.
     """
     paths = check_routes()
     print(f"openapi paths: {len(paths)}")
     for path in paths:
         print(f"  {path}")
 
-    failures = await check_graph()
-    total = len(APP_ENTRIES) + len(REQUEST_ENTRIES)
+    roles = (
+        ("api", ProcessRole.API, APP_ENTRIES, REQUEST_ENTRIES),
+        ("worker", ProcessRole.WORKER, WORKER_ENTRIES, ()),
+    )
+    total = 0
+    failures: list[str] = []
+    for name, role, app_entries, request_entries in roles:
+        total += len(app_entries) + len(request_entries)
+        failures.extend(
+            f"{name} {failure}" for failure in await check_graph(role, app_entries, request_entries)
+        )
     print(f"graph entries: {total}, failed: {len(failures)}")
     for failure in failures:
         print(f"  ! {failure}")

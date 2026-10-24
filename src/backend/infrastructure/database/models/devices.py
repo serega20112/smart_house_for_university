@@ -10,6 +10,7 @@ from uuid import UUID
 from sqlalchemy import (
     Boolean,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     String,
@@ -18,6 +19,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from backend.domain.value_objects.devices.device_name import DeviceName
 from backend.infrastructure.database.models.base import Base
 
 
@@ -41,6 +43,12 @@ class DeviceModel(Base):
 
     __tablename__ = "devices"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["board_id", "user_id"],
+            ["esp_devices.id", "esp_devices.user_id"],
+            name="fk_devices_board_owner",
+            ondelete="RESTRICT",
+        ),
         Index(
             "uq_devices_user_id_channel",
             "user_id",
@@ -60,12 +68,10 @@ class DeviceModel(Base):
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
     user_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"))
-    name: Mapped[str] = mapped_column(String(120))
+    name: Mapped[str] = mapped_column(String(DeviceName.MAX_LENGTH))
     kind: Mapped[str] = mapped_column(String(32))
     channel: Mapped[int] = mapped_column(Integer)
-    board_id: Mapped[UUID | None] = mapped_column(
-        Uuid, ForeignKey("esp_devices.id", ondelete="CASCADE"), nullable=True
-    )
+    board_id: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean)
     automation_enabled: Mapped[bool] = mapped_column(Boolean)
     version: Mapped[int] = mapped_column(Integer, default=0)

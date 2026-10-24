@@ -4,13 +4,13 @@ import httpx
 import pytest
 
 from backend import __version__
+from backend.composition.app import build_api_app
 from backend.config.settings import Settings
-from backend.presentation.app_factory import create_app
 
 
 @pytest.mark.asyncio
 async def test_app_health_returns_the_package_version() -> None:
-    application = create_app(Settings())
+    application = build_api_app(Settings())
 
     transport = httpx.ASGITransport(app=application)
     client = httpx.AsyncClient(transport=transport, base_url="http://test")
@@ -25,7 +25,7 @@ async def test_app_health_returns_the_package_version() -> None:
 
 @pytest.mark.asyncio
 async def test_app_ready_reports_each_dependency() -> None:
-    application = create_app(Settings())
+    application = build_api_app(Settings())
 
     transport = httpx.ASGITransport(app=application)
     client = httpx.AsyncClient(transport=transport, base_url="http://test")

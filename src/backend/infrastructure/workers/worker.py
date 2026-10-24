@@ -11,10 +11,13 @@
 своим таймаутом, поэтому один дом с недоступной платой не задерживает
 остальные; упавший аккаунт пишется в лог с трейсбеком, а прочие продолжают
 работу. Периоды — секунды, а не календарные минуты, которые cron выразить не
-может, поэтому два горячих цикла планируются задачами на старте и снимаются на
-остановке, а часовая чистка устаревших объявлений плат — как раз для cron.
-Каждая задача вызывается и сама по себе: именно это даёт возможность тестировать
-цикл, не дожидаясь его.
+может, поэтому у планирования ровно один механизм: два горячих цикла живут
+задачами процесса на старте и снимаются на остановке, каждый со своим таймаутом
+из конфигурации, а часовая чистка устаревших объявлений плат отдана ARQ-cron,
+который для неё и предназначен. Задачи не дублируются в объявлении ARQ: цикл,
+который никто не ставит в очередь, там только вводил бы в заблуждение.
+Цикл вызывается и сам по себе: именно это даёт возможность тестировать его,
+не дожидаясь расписания.
 """
 
 from __future__ import annotations
@@ -32,17 +35,18 @@ from dishka import AsyncContainer
 from dishka.integrations.arq import DISHKA_APP_CONTAINER_KEY, setup_dishka
 
 from backend.application.interfaces.queries.account_queries import AccountQueries
-from backend.application.interfaces.services.messaging.notification_factory import (
-    NotificationFactory,
+from backend.application.interfaces.services.system.distributed_lock import (
+    DistributedLock,
+    LeaseLostError,
+    LockBusyError,
+    LockUnavailableError,
 )
-from backend.application.interfaces.services.system.distributed_lock import DistributedLock
 from backend.application.services.automation_service import AutomationService
 from backend.application.services.board_onboarding import BoardOnboardingService
 from backend.application.services.scenarios.advancing import ScenarioAdvancer
 from backend.config.settings import Settings
 from backend.domain.identifiers import UserId
 from backend.infrastructure.brokers.board_presence import RedisBoardPresence
-from backend.infrastructure.di import ProcessRole, build_dishka_container
 from backend.infrastructure.system import metrics
 from backend.infrastructure.system.logging import configure_logging, get_logger
 
@@ -105,40 +109,38 @@ class WorkerContext:
     loops: list[asyncio.Task[None]] = field(default_factory=list)
 
 
-def worker_settings(
-    settings: Settings,
-    notifications: NotificationFactory | None = None,
-) -> type[Any]:
+def worker_settings(settings: Settings, container: AsyncContainer) -> type[Any]:
     """Собирает класс настроек, с которым запускается ARQ.
 
-    Формулировки уведомлений приходят извне, а не выдумываются здесь: без них
-    контейнер собирает молчаливые сообщения, и рабочий не сможет сказать человеку,
-    что сценарий завершился.
+    Граф приходит готовым: его собрала композиция с той ролью и теми
+    формулировками, которые нужны этому процессу. Здесь остаётся только связать его
+    с задачами ARQ, чтобы каждая из них разрешала свои зависимости из него.
 
     Args:
         settings: Конфигурация, с которой работает рабочий.
-        notifications: Строит формулировки уведомлений этого процесса.
+        container: Граф зависимостей роли рабочего.
 
     Returns:
         type[Any]: Класс, из которого ARQ берёт аргументы рабочего.
     """
     built = _worker_class(settings)
-    setup_dishka(
-        build_dishka_container(settings, notifications=notifications, role=ProcessRole.WORKER),
-        built,
-    )
+    setup_dishka(container, built)
     return built
 
 
 def _worker_class(settings: Settings) -> type[Any]:
-    """Строит класс настроек ARQ под это развёртывание."""
+    """Строит класс настроек ARQ под это развёртывание.
+
+    В объявлении остаётся только то, что ARQ действительно исполняет: чистка
+    объявлений плат по расписанию. Горячие циклы в очередь никто не ставит, и
+    объявление их задачами ARQ было бы мёртвой конфигурацией: таймаут из неё ни
+    на что не влиял бы.
+    """
 
     class WorkerSettings:
         """Всё, что нужно ARQ для фоновых циклов системы."""
 
         functions: ClassVar[list[Any]] = [
-            func(automation_cycle, timeout=settings.worker_job_timeout_sec),
-            func(scenario_tick, timeout=settings.worker_job_timeout_sec),
             func(purge_board_claims, timeout=settings.worker_job_timeout_sec),
         ]
         cron_jobs: ClassVar[list[Any]] = [cron(purge_board_claims, minute={0}, second={0})]
@@ -169,10 +171,22 @@ async def startup(ctx: dict[str, Any]) -> None:
     context.loops.extend(
         [
             asyncio.create_task(
-                _every(ctx, automation_cycle, "automation", settings.automation_cycle_sec)
+                _every(
+                    ctx,
+                    automation_cycle,
+                    AUTOMATION_LOCK,
+                    settings.automation_cycle_sec,
+                    settings.worker_loop_timeout_sec,
+                )
             ),
             asyncio.create_task(
-                _every(ctx, scenario_tick, "scenarios", settings.automation_scenario_tick_sec)
+                _every(
+                    ctx,
+                    scenario_tick,
+                    SCENARIO_LOCK,
+                    settings.automation_scenario_tick_sec,
+                    settings.worker_loop_timeout_sec,
+                )
             ),
         ]
     )
@@ -310,6 +324,12 @@ async def _run_user(
 ) -> None:
     """Выполняет работу одного аккаунта под его арендой и слотом семафора.
 
+    Три отказа аренды приходят сюда разными типами, потому что и значат они разное.
+    Занятая аренда — обычное дело: аккаунт уже обслуживает сосед, и этот круг ему
+    не нужен. Молчащий Redis — деградация, о которой надо сказать громче. Потеря
+    аренды посреди работы — инцидент: тот же дом мог уже взять кто-то другой, и
+    продолжение дублировало бы команды.
+
     Args:
         user_id: Обслуживаемый аккаунт.
         run: Работа для аккаунта.
@@ -326,33 +346,45 @@ async def _run_user(
                 refresh_sec=limits.lock_refresh_sec,
             ):
                 await _run_guarded(user_id, run, limits.per_user_timeout_sec, lock_name)
-        except TimeoutError:
+        except LockBusyError:
             log.info("worker.user_skipped", user=str(user_id), lock=lock_name)
+        except LockUnavailableError:
+            metrics.count_cycle_error(lock_name)
+            log.warning("worker.lock_unavailable", user=str(user_id), lock=lock_name)
+        except LeaseLostError:
+            metrics.count_cycle_error(lock_name)
+            log.error("worker.lease_lost", user=str(user_id), lock=lock_name)
 
 
 async def _run_guarded(user_id: UserId, run: UserJob, timeout_sec: int, cycle: str) -> None:
     """Выполняет работу аккаунта с её таймаутом и полным трейсбеком.
 
+    Ошибка и таймаут считаются разными счётчиками: ошибка означает, что цикл упал,
+    а таймаут — что он не успел, и лечатся они по-разному.
+
     Args:
         user_id: Обслуживаемый аккаунт.
         run: Работа для аккаунта.
         timeout_sec: Секунды, отведённые на работу.
-        cycle: Название цикла — метрика ошибки не тонет в журнале.
+        cycle: Название цикла — метка метрики: всплеск не тонет в журнале.
     """
     try:
         async with asyncio.timeout(timeout_sec):
             await run(user_id)
     except TimeoutError:
-        log.warning("worker.user_timed_out", user=str(user_id), timeout_sec=timeout_sec)
+        metrics.count_cycle_timeout(cycle)
+        log.warning(
+            "worker.user_timed_out",
+            user=str(user_id),
+            cycle=cycle,
+            timeout_sec=timeout_sec,
+        )
     except Exception:
         metrics.count_cycle_error(cycle)
         log.exception("worker.user_failed", user=str(user_id))
 
 
-def run_worker(
-    settings: Settings,
-    notifications: NotificationFactory | None = None,
-) -> None:
+def run_worker(settings: Settings, container: AsyncContainer) -> None:
     """Запускает рабочий до его остановки.
 
     ARQ сам ведёт цикл событий, поэтому функция обычная, а не корутина: иначе
@@ -360,11 +392,11 @@ def run_worker(
 
     Args:
         settings: Конфигурация, с которой работает рабочий.
-        notifications: Строит формулировки уведомлений этого процесса.
+        container: Граф зависимостей роли рабочего.
     """
     from arq.worker import run_worker as run
 
-    run(worker_settings(settings, notifications))
+    run(worker_settings(settings, container))
 
 
 def container_of(ctx: dict[str, Any]) -> AsyncContainer:
@@ -398,18 +430,29 @@ async def _every(
     job: Callable[[dict[str, Any]], Awaitable[None]],
     name: str,
     period_sec: float,
+    timeout_sec: int,
 ) -> None:
     """Повторяет задачу каждые `period_sec` секунд, пока рабочий не остановлен.
+
+    Такт ограничен собственным таймаутом: зависший обход домов не должен сдвигать
+    следующий. Отказ такта остаётся виден дважды — в журнале с трейсбеком и в
+    метрике с именем цикла, — иначе редкая деградация тонула бы в потоке записей.
 
     Args:
         ctx: Контекст рабочего, уже несущий контейнер.
         job: Повторяемый цикл.
-        name: Какой это цикл — для записи об ошибке.
+        name: Имя цикла — метка метрики и записи об ошибке.
         period_sec: Секунды между запусками.
+        timeout_sec: Сколько может длиться один такт.
     """
     while True:
         await asyncio.sleep(period_sec)
         try:
-            await job(ctx)
+            async with asyncio.timeout(timeout_sec):
+                await job(ctx)
+        except TimeoutError:
+            metrics.count_cycle_timeout(name)
+            log.warning("worker.loop_timed_out", loop=name, timeout_sec=timeout_sec)
         except Exception:
+            metrics.count_cycle_error(name)
             log.exception("worker.loop_failed", loop=name)

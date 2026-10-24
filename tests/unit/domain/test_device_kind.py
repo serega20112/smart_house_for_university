@@ -1,5 +1,6 @@
 import pytest
 
+from backend.domain.exceptions.devices import InvalidDeviceKindError
 from backend.domain.value_objects.devices.device_kind import DeviceKind
 
 
@@ -19,5 +20,5 @@ def test_device_kind_parse_with_upper_case_text_returns_member(
 
 @pytest.mark.parametrize("raw", [None, "", "vacuum"])
 def test_device_kind_parse_with_unknown_value_raises(raw: object) -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidDeviceKindError):
         DeviceKind.parse(raw)

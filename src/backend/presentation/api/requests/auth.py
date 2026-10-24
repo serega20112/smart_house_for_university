@@ -6,11 +6,12 @@ from pydantic import Field
 
 from backend.application.dto.account.authenticate_command import AuthenticateCommand
 from backend.application.dto.account.register_account_command import RegisterAccountCommand
+from backend.domain.value_objects.account.display_name import DisplayName
 from backend.presentation.api.base import StrictModel
 
 PASSWORD_MIN_LENGTH = 8
 PASSWORD_MAX_LENGTH = 256
-DISPLAY_NAME_MAX_LENGTH = 120
+DISPLAY_NAME_MAX_LENGTH = DisplayName.MAX_LENGTH
 
 
 class RegisterBody(StrictModel):

@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.domain.value_objects.devices.relay_channel import PHYSICAL_RELAY_LIMIT
+from backend.domain.value_objects.devices.relay_channel import FIRST_CHANNEL, RELAY_COUNT
 from backend.infrastructure.esp import protocol
 
 FIXTURES = Path(__file__).parent
@@ -150,18 +150,35 @@ def test_backend_and_firmware_declare_one_protocol_version():
     assert _firmware_constant("PROTOCOL_VERSION", "transport.h") == protocol.PROTOCOL_VERSION
 
 
-def test_hello_fixture_relays_match_firmware_relay_count():
-    """Число контактов в HELLO-фикстуре равно числу реле платы и влезает в модель.
+def test_backend_and_firmware_agree_on_one_relay_count():
+    """Предел канала в бэкенде — то же число, что и число реле на плате.
+
+    Число реле когда-то стояло в четырёх местах, и три из них были больше
+    настоящего: устройство на несуществующем контакте создавалось, а плата
+    отвечала отказом, который бэкенд показывал как «плата недоступна». Пока
+    предел приходит из домена, а не из handshake, эта проверка держит его
+    равным прошивке, и разойтись им больше негде.
 
     Returns:
-        None: Только сверку железа, фикстуры и предела канала.
+        None: Только сверку двух независимых объявлений одной величины.
+    """
+    relay_count = _firmware_constant("RELAY_COUNT", "relay.h")
+
+    assert relay_count == RELAY_COUNT
+    assert FIRST_CHANNEL == 1
+
+
+def test_hello_fixture_relays_match_firmware_relay_count():
+    """Число контактов в HELLO-фикстуре равно числу реле платы.
+
+    Returns:
+        None: Только сверку железа и фикстуры.
     """
     relay_count = _firmware_constant("RELAY_COUNT", "relay.h")
     frame = protocol.parse_inbound(load("hello.json"))
 
     assert isinstance(frame, protocol.HelloFrame)
     assert len(frame.relays) == relay_count
-    assert 1 <= relay_count <= PHYSICAL_RELAY_LIMIT
 
 
 def test_firmware_hello_reports_its_server_endpoint():

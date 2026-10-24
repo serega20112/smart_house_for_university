@@ -1,17 +1,19 @@
-"""Device designations.
+"""Назначения устройств.
 
-A designation tells what a device is for. It does not know how to name it
-in any particular language: recognizing the word "lamp" is the job of the
-speech understanding pipeline, not the model.
+Назначение говорит, для чего устройство. Оно не знает, как называть его на
+каком-либо языке: узнать слово «лампа» — работа конвейера понимания фраз, а не
+модели.
 """
 
 from __future__ import annotations
 
 from enum import StrEnum
 
+from backend.domain.exceptions.devices import InvalidDeviceKindError
+
 
 class DeviceKind(StrEnum):
-    """What a logical device serves for."""
+    """Для чего служит логическое устройство."""
 
     LIGHT = "LIGHT"
     FAN = "FAN"
@@ -24,23 +26,26 @@ class DeviceKind(StrEnum):
 
     @classmethod
     def parse(cls, raw: object) -> DeviceKind:
-        """Read a designation from an external value.
+        """Читает назначение из внешнего значения.
 
-        Unknown names are rejected, not replaced with OTHER: OTHER means
-        the person manually created a device of unknown designation, not
-        that a typo was received in the request.
+        Неизвестные имена отвергаются, а не заменяются на OTHER: OTHER значит, что
+        человек сам создал устройство неведомого назначения, а не что в запросе
+        оказалась опечатка.
 
         Args:
-            raw: Name of designation or its enum member.
+            raw: Имя назначения или его член перечисления.
 
         Returns:
-            DeviceKind: Read designation.
+            DeviceKind: Прочитанное назначение.
 
         Raises:
-            ValueError: When the value does not name a designation.
+            InvalidDeviceKindError: Когда значение не называет назначение.
         """
         if isinstance(raw, cls):
             return raw
         if raw is None:
-            raise ValueError("device kind is missing")
-        return cls(str(raw).strip().upper())
+            raise InvalidDeviceKindError(raw)
+        try:
+            return cls(str(raw).strip().upper())
+        except ValueError as error:
+            raise InvalidDeviceKindError(raw) from error

@@ -11,10 +11,13 @@ from __future__ import annotations
 
 from backend.application.dto.boards.announce_board_command import AnnounceBoardCommand
 from backend.application.dto.boards.claim_board_command import ClaimBoardCommand
+from backend.application.dto.boards.detach_policy import DetachPolicy
 from backend.application.dto.boards.pair_board_command import PairBoardCommand
 from backend.application.dto.views.board_view import BoardView
+from backend.application.dto.views.paired_board_view import PairedBoardView
 from backend.application.errors import (
     BoardAlreadyClaimedError,
+    BoardHasDevicesError,
     BoardNotFoundError,
     ClaimNotFoundError,
 )
@@ -25,7 +28,6 @@ from backend.application.interfaces.services.system.clock import Clock
 from backend.application.interfaces.unit_of_work.board_onboarding import (
     BoardOnboardingUnitOfWorkFactory,
 )
-from backend.application.use_cases.boards.result import PairedBoard
 from backend.domain.aggregates.esp_device.esp_device import EspDevice
 from backend.domain.entities.esp_claim.esp_claim import EspClaim
 from backend.domain.events import EventName
@@ -138,7 +140,7 @@ class BoardOnboardingService:
         )
         return BoardView(id=board.id, name=board.name, online=False, last_seen_at=None)
 
-    async def pair(self, user_id: UserId, command: PairBoardCommand) -> PairedBoard:
+    async def pair(self, user_id: UserId, command: PairBoardCommand) -> PairedBoardView:
         """Сопрягает плату из интерфейса и ровно один раз отдаёт её ключ.
 
         Args:
@@ -146,7 +148,7 @@ class BoardOnboardingService:
             command: Имя платы и необязательный выбранный человеком ключ.
 
         Returns:
-            PairedBoard: Плата вместе с ключом, который она должна предъявлять.
+            PairedBoardView: Плата вместе с ключом, который она должна предъявлять.
 
         Raises:
             InvalidPairingKeyError: Когда переданный ключ неподходящей формы.
@@ -165,27 +167,52 @@ class BoardOnboardingService:
             )
             await uow.boards.add(board)
             await uow.commit()
-        return PairedBoard(
+        return PairedBoardView(
             board=BoardView(id=board.id, name=board.name, online=False, last_seen_at=None),
             pairing_key=key.value,
         )
 
-    async def revoke(self, user_id: UserId, board_id: EspDeviceId) -> None:
-        """Убирает плату из аккаунта.
+    async def revoke(
+        self,
+        user_id: UserId,
+        board_id: EspDeviceId,
+        policy: DetachPolicy = DetachPolicy.REFUSE,
+    ) -> None:
+        """Убирает плату из аккаунта, решая судьбу её устройств.
+
+        Устройства не исчезают вместе с платой: пока человек не выбрал,
+        оставить их без платы или удалить, сервис отказывается и называет их
+        имена. Всё выбранное выполняется одной транзакцией, поэтому плата уходит
+        ровно тогда, когда её каналы уже никому не нужны.
 
         Args:
             user_id: Владелец платы.
             board_id: Идентификатор платы.
+            policy: Что сделать с устройствами, стоящими на её каналах.
 
         Raises:
             BoardNotFoundError: Когда такой платы у аккаунта нет.
+            BoardHasDevicesError: Когда за платой стоят устройства, а решения нет.
+            ChannelConflictError: Когда оставленное без платы устройство заняло
+                канал, который у аккаунта уже занят.
         """
         async with self._uow() as uow:
+            board = await uow.boards.get(user_id, board_id)
+            if board is None:
+                raise BoardNotFoundError(board_id)
+            attached = await uow.devices.list_for_board(user_id, board_id)
+            if attached and policy is DetachPolicy.REFUSE:
+                raise BoardHasDevicesError(tuple(device.name for device in attached))
+            if policy is DetachPolicy.DETACH:
+                for device in attached:
+                    device.detach_from_board()
+                    await uow.devices.update(device)
+            elif policy is DetachPolicy.DELETE:
+                await uow.devices.delete_for_board(user_id, board_id)
             removed = await uow.boards.delete(user_id, board_id)
-            if removed:
-                await uow.commit()
-        if not removed:
-            raise BoardNotFoundError(board_id)
+            if not removed:
+                raise BoardNotFoundError(board_id)
+            await uow.commit()
 
     async def purge_expired_claims(self) -> int:
         """Убирает предложения, которые перестали быть действительными.

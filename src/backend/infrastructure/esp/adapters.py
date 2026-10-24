@@ -17,13 +17,6 @@ from backend.infrastructure.esp.connection import EspConnection
 from backend.infrastructure.system import metrics
 
 
-def _outcome(accepted: bool, reason: str | None) -> str:
-    """Возвращает меточную надпись итога команды для счётчика."""
-    if accepted:
-        return "accepted"
-    return reason or "rejected"
-
-
 class BoardGatewayAdapter(BoardGateway):
     """Водит каналами реле плат через соединение с этим процессом.
 
@@ -61,9 +54,9 @@ class BoardGatewayAdapter(BoardGateway):
             BoardCommandResult: Ответ платы.
         """
         started = time.perf_counter()
-        accepted, reason = await self._connection.set_relay(user_id, board_id, channel, energized)
-        metrics.record_board_command(_outcome(accepted, reason), time.perf_counter() - started)
-        return BoardCommandResult(accepted=accepted, reason=reason)
+        result = await self._connection.set_relay(user_id, board_id, channel, energized)
+        metrics.record_board_command(result.outcome, time.perf_counter() - started)
+        return result
 
     async def request_state(self, user_id: UserId, board_id: EspDeviceId) -> None:
         """Просит плату прислать заново всё, что она знает.
@@ -87,8 +80,7 @@ class BoardGatewayAdapter(BoardGateway):
         Returns:
             BoardCommandResult: Ответ платы.
         """
-        accepted, reason = await self._connection.set_network(user_id, board_id, profile)
-        return BoardCommandResult(accepted=accepted, reason=reason)
+        return await self._connection.set_network(user_id, board_id, profile)
 
     async def is_connected(self, user_id: UserId, board_id: EspDeviceId) -> bool:
         """Сообщает, держит ли плата соединение сейчас.

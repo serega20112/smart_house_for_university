@@ -11,6 +11,7 @@ from __future__ import annotations
 from fakeredis import FakeServer, aioredis
 
 from backend.domain.identifiers import EspDeviceId, UserId
+from backend.infrastructure.brokers import keys
 from backend.infrastructure.brokers.board_presence import RedisBoardPresence
 from tests.conftest import OWNER_UUID
 
@@ -109,3 +110,22 @@ async def test_online_user_ids_lists_accounts_with_a_board():
     await presence.mark_offline(other, other_board)
     after_leave = {str(user) for user in await presence.online_user_ids()}
     assert after_leave == {str(owner)}
+
+
+async def test_a_board_of_a_dead_process_leaves_the_online_list():
+    """Запись, у которой истёк срок, не остаётся в списке навсегда.
+
+    Процесс сервера плат может умереть, не успев сообщить об уходе: тогда никто не
+    позовёт `mark_offline`, и единственное, что говорит о смерти платы, — вес записи.
+
+    Returns:
+        None: Только проверка уборки по сроку.
+    """
+    redis = aioredis.FakeRedis(server=FakeServer(), decode_responses=True)
+    presence = RedisBoardPresence(redis, PREFIX, 60.0)
+    stale = keys.board_presence_key(PREFIX, UserId.parse(OWNER_UUID), EspDeviceId.generate())
+    index = keys.board_presence_index_key(PREFIX)
+    await redis.zadd(index, {stale: 1.0})
+
+    assert await presence.online_user_ids() == []
+    assert await redis.zscore(index, stale) is None

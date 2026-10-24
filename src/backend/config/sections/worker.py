@@ -32,6 +32,18 @@ def worker_max_jobs() -> int:
     return int(os.getenv("WORKER_MAX_JOBS", "4"))
 
 
+def worker_loop_timeout_sec() -> int:
+    """Сколько может длиться один такт встроенного цикла.
+
+    Предел ограничивает такт целиком, а не отдельный аккаунт: обход домов, не
+    уложившийся в него, считается зависшим независимо от того, где он встал.
+
+    Returns:
+        int: Секунды, отведённые на такт.
+    """
+    return int(os.getenv("WORKER_LOOP_TIMEOUT_SEC", "120"))
+
+
 def worker_max_concurrent_users() -> int:
     """Сколько аккаунтов обслуживается параллельно.
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from backend.application.dto.devices.update_device_command import UpdateDeviceCommand
 from backend.application.dto.views.device_view import DeviceView
 from backend.application.errors import (
+    BoardNotFoundError,
     ConcurrentModificationError,
     DeviceNotFoundError,
 )
@@ -66,6 +67,7 @@ class UpdateDeviceUseCase:
 
         Raises:
             DeviceNotFoundError: Когда такого устройства у аккаунта нет.
+            BoardNotFoundError: Когда новая плата не принадлежит аккаунту.
             ChannelConflictError: Когда новый канал уже занят.
             ConcurrentModificationError: Когда гонку продолжают выигрывать другие.
         """
@@ -120,16 +122,22 @@ class UpdateDeviceUseCase:
 
         Raises:
             DeviceNotFoundError: Когда такого устройства у аккаунта нет.
+            BoardNotFoundError: Когда новая плата не принадлежит аккаунту.
             ConcurrentModificationError: Когда запись проиграла гонку.
         """
         async with self._home_uow() as uow:
             device = await uow.devices.get(user_id, device_id)
             if device is None:
                 raise DeviceNotFoundError(device_id)
+            if command.board_id is not None:
+                board = await uow.boards.get(user_id, command.board_id)
+                if board is None:
+                    raise BoardNotFoundError(command.board_id)
             device.reconfigure(
                 name=command.name,
                 kind=command.kind,
                 channel=(None if command.channel is None else RelayChannel(command.channel)),
+                board_id=command.board_id,
                 capabilities=command.capabilities,
                 enabled=command.enabled,
                 automation_enabled=command.automation_enabled,

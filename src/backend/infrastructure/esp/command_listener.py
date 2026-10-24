@@ -7,6 +7,8 @@ WebSocket-сервер плат живёт только в процессе API,
 
 Каждая команда исполняется своей задачей: медленное подтверждение одной платы не
 задерживает очередь остальных, а сбой разбора отдельного кадра не роняет весь слушатель.
+Секрет команды слушатель забирает из хранилища одноразово, поэтому пароль сети не
+лежит в общем канале и не достаётся тому, кто прочитает его вторым.
 """
 
 from __future__ import annotations
@@ -14,6 +16,8 @@ from __future__ import annotations
 import asyncio
 from contextlib import suppress
 
+from backend.application.dto.boards.board_command_reason import BoardCommandReason
+from backend.application.dto.boards.board_command_result import BoardCommandResult
 from backend.infrastructure.brokers.command_bus import (
     REQUEST_STATE,
     SET_NETWORK,
@@ -25,9 +29,6 @@ from backend.infrastructure.esp.connection import EspConnection
 from backend.infrastructure.system.logging import get_logger
 
 log = get_logger("esp.command_listener")
-
-UNKNOWN_COMMAND_REASON = "unknown_command"
-MISSING_NETWORK_REASON = "invalid_network"
 
 
 class BoardCommandListener:
@@ -91,26 +92,42 @@ class BoardCommandListener:
             await self._connection.request_state(command.user_id, command.board_id)
         else:
             await self._bus.publish_result(
-                command.command_id, False, UNKNOWN_COMMAND_REASON
+                command.command_id,
+                BoardCommandResult(accepted=False, reason=BoardCommandReason.UNKNOWN_COMMAND),
             )
 
     async def _set_relay(self, command: BoardCommand) -> None:
         """Переключает канал реле и возвращает ответ платы."""
         if command.channel is None or command.energized is None:
-            await self._bus.publish_result(command.command_id, False, UNKNOWN_COMMAND_REASON)
+            await self._bus.publish_result(
+                command.command_id,
+                BoardCommandResult(accepted=False, reason=BoardCommandReason.UNKNOWN_COMMAND),
+            )
             return
-        accepted, reason = await self._connection.set_relay(
+        result = await self._connection.set_relay(
             command.user_id, command.board_id, command.channel, command.energized
         )
-        await self._bus.publish_result(command.command_id, accepted, reason)
+        await self._bus.publish_result(command.command_id, result)
 
     async def _set_network(self, command: BoardCommand) -> None:
-        """Меняет сеть платы и возвращает ответ, когда профиль разобран."""
-        profile = command.network_profile()
-        if profile is None:
-            await self._bus.publish_result(command.command_id, False, MISSING_NETWORK_REASON)
+        """Меняет сеть платы и возвращает ответ, когда профиль собран.
+
+        Пароль приходит не в кадре, а из короткоживущего ключа: без него профиль
+        неполон, и команда отклоняется с отдельной причиной.
+        """
+        password = await self._bus.take_secret(command.command_id)
+        if password is None:
+            await self._bus.publish_result(
+                command.command_id,
+                BoardCommandResult(accepted=False, reason=BoardCommandReason.SECRET_MISSING),
+            )
             return
-        accepted, reason = await self._connection.set_network(
-            command.user_id, command.board_id, profile
-        )
-        await self._bus.publish_result(command.command_id, accepted, reason)
+        profile = command.network_profile(password)
+        if profile is None:
+            await self._bus.publish_result(
+                command.command_id,
+                BoardCommandResult(accepted=False, reason=BoardCommandReason.INVALID_NETWORK),
+            )
+            return
+        result = await self._connection.set_network(command.user_id, command.board_id, profile)
+        await self._bus.publish_result(command.command_id, result)

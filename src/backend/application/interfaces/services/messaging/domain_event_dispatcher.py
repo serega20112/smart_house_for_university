@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Protocol
 
+from backend.domain.events import DomainEvent
+
 
 class DomainEventDispatcher(Protocol):
     """Отдаёт записанные факты тому, кто на них подписан.
@@ -13,5 +15,5 @@ class DomainEventDispatcher(Protocol):
     объявит то, что откатили.
     """
 
-    async def dispatch(self, events: Sequence[object]) -> None:
+    async def dispatch(self, events: Sequence[DomainEvent]) -> None:
         """Сообщает факты, записанные с момента последней раздачи."""

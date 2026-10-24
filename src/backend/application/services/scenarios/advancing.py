@@ -149,21 +149,25 @@ class ScenarioAdvancer:
         """Начинает действие, записывая старт только если он удался.
 
         Состояния устройств снимаются до любого переключения, чтобы поведение
-        «вернуть как было» знало, куда именно оно возвращает.
+        «вернуть как было» знало, куда именно оно возвращает. В сценарий при
+        этом попадают только те устройства, которые он действительно
+        переключил: снимок всего дома заставил бы его после завершения отменить
+        решения, принятые человеком во время сценария.
 
         Args:
             scenario: Сценарий, чей час настал.
             devices: Устройства, которым адресованы команды.
             state: Дом до начала команд.
         """
-        captured = {device.id: state.status_of(device) for device in devices}
+        previous = {device.id: state.status_of(device) for device in devices}
+        touched: set[DeviceId] = set()
         try:
-            await self._perform_actions(scenario, devices)
+            await self._perform_actions(scenario, devices, touched)
         except EXPECTED_REFUSALS as refusal:
-            await self._undo_started_devices(scenario, devices, captured)
+            await self._undo_started_devices(scenario, devices, _touched_states(previous, touched))
             raise refusal
         async with self._home_uow() as uow:
-            scenario.start(captured)
+            scenario.start(_touched_states(previous, touched))
             await uow.scenarios.update(scenario)
             await uow.commit()
         await self._realtime.publish(
@@ -175,17 +179,22 @@ class ScenarioAdvancer:
             self._notifications.scenario_started(str(scenario.id), scenario.target),
         )
 
-    async def _perform_actions(self, scenario: Scenario, devices: Sequence[Device]) -> None:
-        """Доводит команды сценария до железа.
+    async def _perform_actions(
+        self, scenario: Scenario, devices: Sequence[Device], touched: set[DeviceId]
+    ) -> None:
+        """Доводит команды сценария до железа, запоминая переключённых.
 
         Args:
             scenario: Сценарий, чьи команды выполняются.
             devices: Устройства, которым они адресованы.
+            touched: Пополняется устройствами, которые сценарий действительно
+                переключил, — по ним и строится снимок для возврата.
         """
         for action in scenario.actions:
-            await self._control.apply_to_first_matching(
+            driven = await self._control.apply_to_first_matching(
                 scenario.user_id, devices, action.capability, manual=False
             )
+            touched.add(driven.id)
 
     async def _undo_started_devices(
         self,
@@ -202,13 +211,17 @@ class ScenarioAdvancer:
         Args:
             scenario: Владелец возвращаемых состояний.
             devices: Устройства, которым адресовались команды.
-            captured: Состояния устройств до действия сценария.
+            captured: Снимок тех устройств, которые сценарий успел переключить.
         """
         wanted = restorable_states(captured)
         if not wanted:
             return
+        by_id = {device.id: device for device in devices}
+        targets = [
+            (by_id[device_id], status) for device_id, status in wanted.items() if device_id in by_id
+        ]
         try:
-            await self._control.restore_statuses(scenario.user_id, devices, wanted)
+            await self._control.restore_statuses(scenario.user_id, targets)
         except EXPECTED_REFUSALS:
             return
 
@@ -269,3 +282,21 @@ class ScenarioAdvancer:
                 str(scenario.id), None if temperature is None else temperature.celsius
             ),
         )
+
+
+def _touched_states(
+    previous: dict[DeviceId, DeviceStatus], touched: set[DeviceId]
+) -> dict[DeviceId, DeviceStatus]:
+    """Оставляет в снимке только те устройства, которые сценарий переключил.
+
+    Порядок берётся из исходного снимка, чтобы запись агрегата не зависела от
+    обхода множества.
+
+    Args:
+        previous: Состояния всех устройств дома перед командами.
+        touched: Устройства, которые сценарий действительно переключил.
+
+    Returns:
+        dict[DeviceId, DeviceStatus]: Снимок переключённого подмножества.
+    """
+    return {device_id: status for device_id, status in previous.items() if device_id in touched}

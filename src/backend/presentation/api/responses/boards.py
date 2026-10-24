@@ -7,7 +7,7 @@ from datetime import datetime
 from backend.application.dto.views.board_claim_view import BoardClaimView
 from backend.application.dto.views.board_network_view import BoardNetworkView
 from backend.application.dto.views.board_view import BoardView
-from backend.application.use_cases.boards.result import PairedBoard
+from backend.application.dto.views.paired_board_view import PairedBoardView
 from backend.presentation.api.responses.common import StrictModel
 
 
@@ -121,7 +121,7 @@ def claim_of(claim: BoardClaimView) -> BoardClaimResponse:
     )
 
 
-def paired_of(paired: PairedBoard) -> BoardPairedResponse:
+def paired_of(paired: PairedBoardView) -> BoardPairedResponse:
     """Возвращает тело сопряжённой платы вместе с её ключом.
 
     Args:

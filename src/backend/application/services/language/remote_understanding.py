@@ -18,6 +18,7 @@ from backend.application.interfaces.services.language.remote_understanding impor
     RemoteUnderstanding,
 )
 from backend.application.services.language.intents import intent_of
+from backend.domain.exceptions import DomainError
 from backend.domain.value_objects.climate.temperature import Temperature
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_kind import DeviceKind
@@ -115,7 +116,7 @@ def _kinds_of(names: tuple[str, ...]) -> frozenset[DeviceKind]:
     for name in names:
         try:
             found.add(DeviceKind.parse(name))
-        except ValueError:
+        except DomainError:
             continue
     return frozenset(found)
 
@@ -125,5 +126,5 @@ def _capability_of(name: str | None) -> Capability | None:
         return None
     try:
         return Capability.parse(name)
-    except ValueError:
+    except DomainError:
         return None

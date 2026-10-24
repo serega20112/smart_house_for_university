@@ -5,11 +5,13 @@ from __future__ import annotations
 from pydantic import Field, field_validator
 
 from backend.application.dto.scenario.schedule_scenario_command import ScheduleScenarioCommand
+from backend.domain.aggregates.scenario.scenario import MAX_TARGET_LENGTH
 from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.value_objects.climate.temperature import Temperature
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
 from backend.presentation.api.base import StrictModel
+from backend.presentation.api.requests.validation import known_to_domain
 
 DELAY_MAX_MINUTES = 10080
 DURATION_MAX_MINUTES = 10080
@@ -31,7 +33,7 @@ class ScenarioCreateBody(StrictModel):
 
     capability: str
     delay_minutes: int | None = Field(default=None, ge=0, le=DELAY_MAX_MINUTES)
-    target: str | None = None
+    target: str | None = Field(default=None, max_length=MAX_TARGET_LENGTH)
     target_temperature: float | None = Field(default=None, ge=TEMPERATURE_MIN, le=TEMPERATURE_MAX)
     completion_behavior: str = CompletionBehavior.LEAVE_TO_AUTOMATION.value
     duration_minutes: int | None = Field(default=None, ge=1, le=DURATION_MAX_MINUTES)
@@ -47,8 +49,7 @@ class ScenarioCreateBody(StrictModel):
         Returns:
             str: То же значение, если оно читается перечислением.
         """
-        Capability.parse(value)
-        return value
+        return known_to_domain(Capability.parse, value)
 
     @field_validator("completion_behavior")
     @classmethod
@@ -61,8 +62,7 @@ class ScenarioCreateBody(StrictModel):
         Returns:
             str: То же значение, если оно читается перечислением.
         """
-        CompletionBehavior(value)
-        return value
+        return known_to_domain(CompletionBehavior.parse, value)
 
 
 def schedule_command(body: ScenarioCreateBody) -> ScheduleScenarioCommand:
@@ -83,6 +83,6 @@ def schedule_command(body: ScenarioCreateBody) -> ScheduleScenarioCommand:
         ),
         delay_minutes=body.delay_minutes,
         target=body.target,
-        completion_behavior=CompletionBehavior(body.completion_behavior),
+        completion_behavior=CompletionBehavior.parse(body.completion_behavior),
         duration_minutes=body.duration_minutes,
     )

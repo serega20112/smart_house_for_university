@@ -15,11 +15,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Self
 
-from backend.domain.exceptions import InvalidBoardNameError
 from backend.domain.identifiers import EspDeviceId, UserId
+from backend.domain.value_objects.boards.board_name import BoardName
 from backend.domain.value_objects.boards.pairing_key import PairingKey
-
-MAX_NAME_LENGTH = 60
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,9 +51,7 @@ class EspDevice:
         Raises:
             InvalidBoardNameError: Когда имя пустое или слишком длинное.
         """
-        trimmed = self.name.strip()
-        if not trimmed or len(trimmed) > MAX_NAME_LENGTH:
-            raise InvalidBoardNameError()
+        trimmed = BoardName.parse(self.name).value
         object.__setattr__(self, "name", trimmed)
 
     @classmethod

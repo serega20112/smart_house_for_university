@@ -26,7 +26,6 @@ from backend.infrastructure.brokers.command_bus import (
     BoardCommand,
     RedisBoardCommandBus,
 )
-from backend.infrastructure.esp.adapters import _outcome
 from backend.infrastructure.system import metrics
 
 
@@ -71,9 +70,9 @@ class RemoteBoardGateway(BoardGateway):
             energized=energized,
         )
         started = time.perf_counter()
-        accepted, reason = await self._bus.execute(command)
-        metrics.record_board_command(_outcome(accepted, reason), time.perf_counter() - started)
-        return BoardCommandResult(accepted=accepted, reason=reason)
+        result = await self._bus.execute(command)
+        metrics.record_board_command(result.outcome, time.perf_counter() - started)
+        return result
 
     async def request_state(self, user_id: UserId, board_id: EspDeviceId) -> None:
         """Просит плату прислать заново всё известное ей, не дожидаясь ответа.
@@ -96,6 +95,10 @@ class RemoteBoardGateway(BoardGateway):
     ) -> BoardCommandResult:
         """Сообщает плате сеть через шину и ждёт подтверждения.
 
+        Пароль сети в кадр не попадает: он уходит в короткоживущий ключ, а команда
+        называет его своим идентификатором. Шина не шифруется, поэтому секрет в
+        общем канале лежал бы нараспашку.
+
         Args:
             user_id: Владелец платы.
             board_id: Идентификатор платы.
@@ -110,11 +113,12 @@ class RemoteBoardGateway(BoardGateway):
             board_id=board_id,
             kind=SET_NETWORK,
             network=BoardCommand.network_of(profile),
+            secret=profile.password,
         )
         started = time.perf_counter()
-        accepted, reason = await self._bus.execute(command)
-        metrics.record_board_command(_outcome(accepted, reason), time.perf_counter() - started)
-        return BoardCommandResult(accepted=accepted, reason=reason)
+        result = await self._bus.execute(command)
+        metrics.record_board_command(result.outcome, time.perf_counter() - started)
+        return result
 
     async def is_connected(self, user_id: UserId, board_id: EspDeviceId) -> bool:
         """Сообщает, держит ли плата соединение сейчас, по общему реестру.

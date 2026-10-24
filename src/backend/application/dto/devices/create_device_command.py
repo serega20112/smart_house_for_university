@@ -1,4 +1,4 @@
-"""Data transfer object for creating a new device."""
+"""Значения устройства, которое создают из интерфейса."""
 
 from __future__ import annotations
 
@@ -11,16 +11,16 @@ from backend.domain.value_objects.devices.device_kind import DeviceKind
 
 @dataclass(frozen=True, slots=True)
 class CreateDeviceCommand:
-    """Values of a device to be created via the UI.
+    """Значения устройства, которое человек создаёт через интерфейс.
 
     Attributes:
-        name: Name shown to the person.
-        kind: What the device is for.
-        channel: Relay channel the device is connected to.
-        capabilities: Actions the device can perform.
-        enabled: Whether the device can be controlled at all.
-        automation_enabled: Whether the device participates in automation.
-        board_id: Board the channel is on, or None for single-board home.
+        name: Имя, показанное человеку.
+        kind: Для чего устройство.
+        channel: Канал реле, к которому подключено устройство.
+        capabilities: Действия, которые устройство умеет выполнять.
+        enabled: Разрешено ли устройством управлять вообще.
+        automation_enabled: Участвует ли устройство в автоматизации.
+        board_id: Плата, на которой стоит канал, или None для дома с одной платой.
     """
 
     name: str

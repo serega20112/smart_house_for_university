@@ -1,8 +1,10 @@
 name: smart-home
 
-# One stack: the relational store with pgvector, the volatile state store, the
-# API and the background worker. The API and the worker share one image with
-# different commands, so a deployment cannot run an old worker next to a new API.
+# One stack: the relational store with pgvector, the volatile state store, a
+# one-shot migration, the API and the background worker. The API, the worker and
+# the migration share one image with different commands, so a deployment cannot
+# run an old worker next to a new API, and the database is brought to the current
+# revision before anyone serving requests can touch it.
 # The warning threshold of every healthcheck keeps a cold start of Postgres from
 # killing the container that waits for it.
 
@@ -11,7 +13,7 @@ services:
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: backend
-      POSTGRES_PASSWORD: backend
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: backend
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U backend -d backend"]
@@ -31,6 +33,18 @@ services:
       retries: 30
     restart: unless-stopped
 
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["alembic", "-c", "migrations/alembic.ini", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://backend:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   backend:
     build:
       context: .
@@ -42,7 +56,7 @@ services:
       APP_HOST: 0.0.0.0
       APP_PORT: 8000
       BOARD_SOCKET_PORT: 8001
-      DATABASE_URL: postgresql+asyncpg://backend:backend@postgres:5432/backend
+      DATABASE_URL: postgresql+asyncpg://backend:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/backend
       REDIS_URL: redis://redis:6379/0
       # The secret is required, not generated at startup: a deployment that
       # invents one signs every session out on every restart and leaves none to
@@ -53,6 +67,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/ready')"]
       interval: 30s
@@ -65,9 +81,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["python", "-m", "backend.worker_entry"]
+    command: ["python", "-m", "backend.composition.worker_entry"]
     environment:
-      DATABASE_URL: postgresql+asyncpg://backend:backend@postgres:5432/backend
+      DATABASE_URL: postgresql+asyncpg://backend:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/backend
       REDIS_URL: redis://redis:6379/0
       AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?set AUTH_TOKEN_SECRET in .env (at least 32 characters)}
     depends_on:
@@ -75,6 +91,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import os,redis;r=redis.Redis.from_url(os.environ['REDIS_URL']);assert r.ping()"]
       interval: 30s

@@ -15,6 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
+from backend.domain.value_objects.account.display_name import DisplayName
 from backend.infrastructure.database.models.base import Base
 
 
@@ -35,5 +36,5 @@ class UserModel(Base):
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
     email: Mapped[str] = mapped_column(String(254), unique=True)
     password_hash: Mapped[str] = mapped_column(String(256))
-    display_name: Mapped[str] = mapped_column(String(80))
+    display_name: Mapped[str] = mapped_column(String(DisplayName.MAX_LENGTH))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

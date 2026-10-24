@@ -6,6 +6,18 @@ from abc import ABC, abstractmethod
 from contextlib import AbstractAsyncContextManager
 
 
+class LockBusyError(Exception):
+    """Аренду сейчас держит другой процесс — этот круг работы не нужен."""
+
+
+class LockUnavailableError(Exception):
+    """Хранилище аренд не ответило: взять или продлить аренду не удалось."""
+
+
+class LeaseLostError(Exception):
+    """Аренда потеряна во время работы — продолжать её нельзя без дублирования."""
+
+
 class DistributedLock(ABC):
     """Не даёт двум рабочим сделать одну и ту же работу."""
 
@@ -28,5 +40,8 @@ class DistributedLock(ABC):
             AbstractAsyncContextManager: Контекст, держащий аренду.
 
         Raises:
-            TimeoutError: Когда блокировку не удалось взять.
+            LockBusyError: Когда аренду держит другой процесс.
+            LockUnavailableError: Когда хранилище аренд не ответило.
+            LeaseLostError: Когда аренда истекла, пока блок выполнялся: работа
+                уже не одинока, и продолжать её значит дублировать команды.
         """

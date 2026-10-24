@@ -25,7 +25,7 @@ from backend.application.services.device_control import DeviceControlService
 from backend.domain.aggregates.automation.automation_settings import AutomationSettings
 from backend.domain.aggregates.device.device import Device
 from backend.domain.entities.home_state.home_state import HomeState
-from backend.domain.identifiers import DeviceId, UserId
+from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
 from backend.domain.policies.climate_policy import DemandCalculator
 from backend.domain.policies.device_selector import DeviceSelector
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
@@ -35,6 +35,7 @@ from backend.domain.value_objects.devices.device_kind import DeviceKind
 from backend.domain.value_objects.devices.relay_channel import RelayChannel
 
 NOW = datetime(2026, 5, 1, 12, 0, tzinfo=UTC)
+BOARD = EspDeviceId.generate()
 
 
 class FakeClock(Clock):
@@ -48,16 +49,16 @@ class JournalingControl(DeviceControlService):
         self._accepts = accepts
         self.calls: list[tuple[DeviceId, Capability]] = []
 
-    async def apply_to_device(
+    async def apply_to_loaded(
         self,
         user_id: UserId,
-        device_id: DeviceId,
+        device: Device,
         capability: Capability,
         *,
         manual: bool = True,
     ) -> object:
         self._journal.append("control")
-        self.calls.append((device_id, capability))
+        self.calls.append((device.id, capability))
         if not self._accepts:
             raise BoardUnreachableError("board down")
         return object()
@@ -120,7 +121,12 @@ class FakeDeviceRepository:
         return list(self._devices)
 
     async def get(self, user_id: UserId, device_id: DeviceId) -> Device | None:
-        return next((d for d in self._devices if d.id == device_id), None)
+        """Отвергает перечитывание: цикл работает с уже прочитанным домом.
+
+        Raises:
+            AssertionError: Когда автоматика перечитала выбранное устройство.
+        """
+        raise AssertionError(f"{device_id} was already read with the rest of the home")
 
     async def add(self, device: Device) -> None:
         pass
@@ -149,24 +155,34 @@ class FakeStateStore(HomeStateStore):
         return self._state
 
     async def record_background_reading(
-        self, user_id: UserId, reading: ClimateReading, changed_at: datetime
+        self,
+        user_id: UserId,
+        board_id: EspDeviceId,
+        reading: ClimateReading,
+        changed_at: datetime,
     ) -> ClimateReading:
         return ClimateReading()
 
     async def record_relay_report(
-        self, user_id: UserId, states: list[bool], changed_at: datetime
+        self,
+        user_id: UserId,
+        board_id: EspDeviceId,
+        states: Sequence[bool],
+        changed_at: datetime,
     ) -> tuple[int, ...]:
         return ()
 
     async def record_board_online(
-        self, user_id: UserId, online: bool, changed_at: datetime
+        self, user_id: UserId, board_id: EspDeviceId, online: bool, changed_at: datetime
     ) -> bool:
-        return self._state.board_online
+        return self._state.is_board_online(board_id)
 
     async def record_command_result(
         self,
         user_id: UserId,
-        device: Device,
+        board_id: EspDeviceId,
+        device_id: DeviceId,
+        channel: int,
         status: object,
         changed_at: datetime,
     ) -> None:
@@ -205,7 +221,7 @@ def _make_service(
     journal: list[str] = []
     control = JournalingControl(journal, accepts=accepts)
     if state is None:
-        state = HomeState(user_id=UserId.parse(OWNER_UUID), board_online=True)
+        state = _home_state()
     service = AutomationService(
         home_uow=FakeUnitOfWorkFactory(settings, devices),
         control=control,
@@ -215,6 +231,15 @@ def _make_service(
         clock=FakeClock(),
     )
     return service, control
+
+
+def _home_state() -> HomeState:
+    """Builds a home whose only board answers.
+
+    Returns:
+        HomeState: State of a home with one reachable board.
+    """
+    return HomeState(user_id=UserId.parse(OWNER_UUID), online_boards=frozenset({BOARD}))
 
 
 def _cold_reading() -> ClimateReading:
@@ -241,7 +266,7 @@ async def test_run_cycle_skips_when_automation_disabled() -> None:
 
 async def test_run_cycle_skips_when_manual_control_active() -> None:
     settings = _enabled_settings()
-    state = HomeState(user_id=UserId.parse(OWNER_UUID), board_online=True)
+    state = _home_state()
     state.suspend_automation_for(NOW, 5)
     service, control = _make_service(settings, [make_device()], state=state)
     report = await service.run_cycle(UserId.parse(OWNER_UUID))
@@ -274,8 +299,8 @@ async def test_run_cycle_board_failure_does_not_stop_other_demands() -> None:
         capabilities=frozenset({Capability.HEAT, Capability.OFF}),
         channel=RelayChannel(2),
     )
-    hot_state = HomeState(user_id=UserId.parse(OWNER_UUID), board_online=True)
-    hot_state.apply_reading(_cold_reading(), NOW)
+    hot_state = _home_state()
+    hot_state.apply_reading(BOARD, _cold_reading(), NOW)
     service, control = _make_service(settings, [heater1, heater2], state=hot_state, accepts=False)
     report = await service.run_cycle(UserId.parse(OWNER_UUID))
     assert len(control.calls) == 1
@@ -289,8 +314,8 @@ async def test_run_cycle_reports_skipped_when_no_device_supports_demand() -> Non
 
     settings = _enabled_settings()
     settings.aim_at_temperature(Temperature(22.0))
-    hot_state = HomeState(user_id=UserId.parse(OWNER_UUID), board_online=True)
-    hot_state.apply_reading(_cold_reading(), NOW)
+    hot_state = _home_state()
+    hot_state.apply_reading(BOARD, _cold_reading(), NOW)
     service, control = _make_service(settings, [], state=hot_state)
     report = await service.run_cycle(UserId.parse(OWNER_UUID))
     assert len(report.skipped) == 1
@@ -309,8 +334,8 @@ async def test_run_cycle_reports_performed_on_success() -> None:
         capabilities=frozenset({Capability.HEAT, Capability.OFF}),
         channel=RelayChannel(1),
     )
-    hot_state = HomeState(user_id=UserId.parse(OWNER_UUID), board_online=True)
-    hot_state.apply_reading(_cold_reading(), NOW)
+    hot_state = _home_state()
+    hot_state.apply_reading(BOARD, _cold_reading(), NOW)
     service, control = _make_service(settings, [heater], state=hot_state)
     report = await service.run_cycle(UserId.parse(OWNER_UUID))
     assert len(report.performed) == 1

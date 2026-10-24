@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 from backend.domain.exceptions import InvalidDisplayNameError
-
-MAX_LENGTH = 80
 
 
 @dataclass(frozen=True, slots=True, order=True)
@@ -15,10 +14,13 @@ class DisplayName:
 
     Attributes:
         value: Имя без окружающих пробелов.
+        MAX_LENGTH: Сколько символов помещается в подпись аккаунта.
 
     Raises:
         InvalidDisplayNameError: Когда имя пустое или слишком длинное.
     """
+
+    MAX_LENGTH: ClassVar[int] = 80
 
     value: str
 
@@ -31,8 +33,8 @@ class DisplayName:
         trimmed = self.value.strip()
         if not trimmed:
             raise InvalidDisplayNameError("is empty")
-        if len(trimmed) > MAX_LENGTH:
-            raise InvalidDisplayNameError(f"is longer than {MAX_LENGTH} characters")
+        if len(trimmed) > self.MAX_LENGTH:
+            raise InvalidDisplayNameError(f"is longer than {self.MAX_LENGTH} characters")
         object.__setattr__(self, "value", trimmed)
 
     @classmethod

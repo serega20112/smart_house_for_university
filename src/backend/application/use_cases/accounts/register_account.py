@@ -74,7 +74,7 @@ class RegisterAccountUseCase:
         user = User.register(
             email=Email.parse(command.email),
             display_name=DisplayName.parse(command.display_name),
-            password_hash=self._hasher.hash(raw_password.value),
+            password_hash=await self._hasher.hash(raw_password.value),
             created_at=self._clock.now(),
         )
         async with self._account_uow() as uow:

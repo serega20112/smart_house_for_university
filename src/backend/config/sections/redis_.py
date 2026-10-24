@@ -30,3 +30,15 @@ def redis_key_prefix() -> str:
         str: Префикс ключей.
     """
     return os.getenv("REDIS_KEY_PREFIX", "smart-home")
+
+
+def redis_io_timeout_sec() -> float:
+    """Сколько ждать ответа хранилища на одну команду.
+
+    Ждать бесконечно нельзя: молчащий Redis иначе остановил бы аренды и продления без
+    единого отказа, а пяти секунд хватает, чтобы не принять медленный ответ за мёртвый.
+
+    Returns:
+        float: Секунды ожидания ответа.
+    """
+    return float(os.getenv("REDIS_IO_TIMEOUT_SEC", "5.0"))

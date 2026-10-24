@@ -1,4 +1,4 @@
-"""Request bodies for devices and translation to application commands."""
+"""Тела запросов устройств и перевод их в команды приложения."""
 
 from __future__ import annotations
 
@@ -9,32 +9,31 @@ from backend.application.dto.devices.update_device_command import UpdateDeviceCo
 from backend.domain.identifiers import EspDeviceId
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_kind import DeviceKind
+from backend.domain.value_objects.devices.device_name import DeviceName
+from backend.domain.value_objects.devices.relay_channel import FIRST_CHANNEL, RELAY_COUNT
 from backend.presentation.api.base import StrictModel
-
-NAME_MAX_LENGTH = 120
-CHANNEL_MIN = 1
-CHANNEL_MAX = 32
+from backend.presentation.api.requests.validation import known_to_domain
 
 
 class DeviceCreateBody(StrictModel):
-    """Describes a device the user wants to create.
+    """Описывает устройство, которое человек хочет создать.
 
-    Kind and capabilities arrive as strings: the domain dictionary is the only place,
-    where they mean something, and the request body only carries the text.
+    Тип и способности приходят текстом: словарь домена — единственное место, где они
+    что-то означают, а тело запроса несёт только текст.
 
     Attributes:
-        name: Name shown to the person.
-        kind: What the device is for.
-        channel: Relay channel the device is connected to.
-        capabilities: Actions the device can perform.
-        enabled: Whether the device can be controlled at all.
-        automation_enabled: Whether the device participates in automation.
-        board_id: Board the channel is on, or None for single-board home.
+        name: Имя, показанное человеку.
+        kind: Для чего устройство.
+        channel: Канал реле, к которому подключено устройство.
+        capabilities: Действия, которые устройство умеет выполнять.
+        enabled: Разрешено ли устройством управлять вообще.
+        automation_enabled: Участвует ли устройство в автоматизации.
+        board_id: Плата, на которой стоит канал, или None для дома с одной платой.
     """
 
-    name: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)
+    name: str = Field(min_length=1, max_length=DeviceName.MAX_LENGTH)
     kind: str
-    channel: int = Field(ge=CHANNEL_MIN, le=CHANNEL_MAX)
+    channel: int = Field(ge=FIRST_CHANNEL, le=RELAY_COUNT)
     capabilities: list[str]
     enabled: bool = True
     automation_enabled: bool = True
@@ -43,48 +42,49 @@ class DeviceCreateBody(StrictModel):
     @field_validator("kind")
     @classmethod
     def _known_kind(cls, value: str) -> str:
-        """Rejects a kind unknown to the domain.
+        """Отвергает тип, которого нет в словаре домена.
 
         Args:
-            value: Named device kind.
+            value: Названный тип устройства.
 
         Returns:
-            str: The same value if it can be parsed by the enumeration.
+            str: То же значение, если оно читается перечислением.
         """
-        DeviceKind.parse(value)
-        return value
+        return known_to_domain(DeviceKind.parse, value)
 
     @field_validator("capabilities")
     @classmethod
     def _known_capabilities(cls, value: list[str]) -> list[str]:
-        """Rejects a capability absent from the domain dictionary.
+        """Отвергает способность, которой нет в словаре домена.
 
         Args:
-            value: Named capabilities.
+            value: Названные способности.
 
         Returns:
-            list[str]: The same values if each can be parsed by the enumeration.
+            list[str]: Те же значения, если каждое читается перечислением.
         """
         for item in value:
-            Capability.parse(item)
+            known_to_domain(Capability.parse, item)
         return value
 
 
 class DeviceUpdateBody(StrictModel):
-    """Partial update of a device.
+    """Частичное изменение устройства.
 
     Attributes:
-        name: New name or None.
-        kind: New kind or None.
-        channel: New relay channel or None.
-        capabilities: New capabilities or None.
-        enabled: New enabled flag or None.
-        automation_enabled: New automation enabled flag or None.
+        name: Новое имя или None, чтобы оставить текущее.
+        kind: Новый тип или None, чтобы оставить текущий.
+        channel: Новый канал реле или None, чтобы оставить текущий.
+        board_id: Новая плата или None, чтобы оставить текущую.
+        capabilities: Новые способности или None, чтобы оставить текущие.
+        enabled: Новый признак управления или None, чтобы оставить текущий.
+        automation_enabled: Новый признак участия в автоматизации или None.
     """
 
-    name: str | None = Field(default=None, min_length=1, max_length=NAME_MAX_LENGTH)
+    name: str | None = Field(default=None, min_length=1, max_length=DeviceName.MAX_LENGTH)
     kind: str | None = None
-    channel: int | None = Field(default=None, ge=CHANNEL_MIN, le=CHANNEL_MAX)
+    channel: int | None = Field(default=None, ge=FIRST_CHANNEL, le=RELAY_COUNT)
+    board_id: str | None = None
     capabilities: list[str] | None = None
     enabled: bool | None = None
     automation_enabled: bool | None = None
@@ -92,43 +92,43 @@ class DeviceUpdateBody(StrictModel):
     @field_validator("kind")
     @classmethod
     def _known_kind(cls, value: str | None) -> str | None:
-        """Rejects a kind unknown to the domain.
+        """Отвергает тип, которого нет в словаре домена.
 
         Args:
-            value: Named device kind or None to keep current.
+            value: Названный тип устройства или None, чтобы оставить текущий.
 
         Returns:
-            str | None: The same value if it can be parsed by the enumeration.
+            str | None: То же значение, если оно читается перечислением.
         """
         if value is not None:
-            DeviceKind.parse(value)
+            known_to_domain(DeviceKind.parse, value)
         return value
 
     @field_validator("capabilities")
     @classmethod
     def _known_capabilities(cls, value: list[str] | None) -> list[str] | None:
-        """Rejects a capability absent from the domain dictionary.
+        """Отвергает способность, которой нет в словаре домена.
 
         Args:
-            value: Named capabilities or None to keep current.
+            value: Названные способности или None, чтобы оставить текущие.
 
         Returns:
-            list[str] | None: The same values if each can be parsed by the enumeration.
+            list[str] | None: Те же значения, если каждое читается перечислением.
         """
         if value is not None:
             for item in value:
-                Capability.parse(item)
+                known_to_domain(Capability.parse, item)
         return value
 
 
 def create_command(body: DeviceCreateBody) -> CreateDeviceCommand:
-    """Returns a create device command.
+    """Возвращает команду создания устройства.
 
     Args:
-        body: Describes the device to be created.
+        body: Описание устройства, которое нужно создать.
 
     Returns:
-        CreateDeviceCommand: Command understandable by the application scenario.
+        CreateDeviceCommand: Команда, понятная сценарию приложения.
     """
     return CreateDeviceCommand(
         name=body.name,
@@ -142,18 +142,19 @@ def create_command(body: DeviceCreateBody) -> CreateDeviceCommand:
 
 
 def update_command(body: DeviceUpdateBody) -> UpdateDeviceCommand:
-    """Returns a update device command.
+    """Возвращает команду изменения устройства.
 
     Args:
-        body: Fields to be changed.
+        body: Поля, которые нужно изменить.
 
     Returns:
-        UpdateDeviceCommand: Command understandable by the application scenario.
+        UpdateDeviceCommand: Команда, понятная сценарию приложения.
     """
     return UpdateDeviceCommand(
         name=body.name,
         kind=None if body.kind is None else DeviceKind.parse(body.kind),
         channel=body.channel,
+        board_id=None if body.board_id is None else EspDeviceId.parse(body.board_id),
         capabilities=(
             None
             if body.capabilities is None

@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Self
@@ -19,6 +20,7 @@ from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.events import ScenarioFinished, ScenarioScheduled, ScenarioStarted
 from backend.domain.exceptions import (
     IllegalScenarioTransitionError,
+    InvalidScenarioTargetError,
     ScenarioAlreadyFinishedError,
 )
 from backend.domain.identifiers import DeviceId, ScenarioId, UserId
@@ -48,8 +50,8 @@ class Scenario:
         target: Место или предмет, который назвал человек, или None.
         completion_behavior: Что будет с устройствами после.
         actions: Действия, которые сценарий выполняет после начала.
-        captured_statuses: Состояния устройств, снятые до начала; нужны
-            поведению возврата.
+        captured_statuses: Состояния переключённых устройств, снятые до начала;
+            нужны поведению возврата.
         _events: Факты, записанные с момента загрузки сценария.
     """
 
@@ -126,10 +128,13 @@ class Scenario:
 
         Состояния, в которых устройства были за мгновение до этого, снимаются
         здесь, а не у вызывающего: поведение возврата опирается на снимок, и только
-        агрегат знает, понадобится ли он ему.
+        агрегат знает, понадобится ли он ему. Снимок описывает только те
+        устройства, которые сценарий действительно переключит: чем меньше в нём
+        строк, тем меньше чужих решений сценарий отменит после себя.
 
         Args:
-            current_statuses: Состояние каждого устройства прямо перед стартом.
+            current_statuses: Состояние каждого переключаемого устройства прямо
+                перед стартом.
 
         Returns:
             ScenarioStarted: Записанный факт.
@@ -191,20 +196,33 @@ class Scenario:
             raise ScenarioAlreadyFinishedError(str(self.id), self.status.value)
         return self._finish(ScenarioStatus.FAILED, reason)
 
-    def statuses_to_restore(self) -> dict[DeviceId, DeviceStatus]:
-        """Возвращает состояния, в которые устройства нужно вернуть.
+    def statuses_to_restore(self, home: Sequence[DeviceId]) -> dict[DeviceId, DeviceStatus]:
+        """Возвращает состояния, в которые нужно вернуть устройства дома.
+
+        «Вернуть как было» опирается на снимок, а снимок содержит только те
+        устройства, которые сценарий переключил, поэтому устройство, включённое
+        человеком во время сценария, остаётся включённым.
+
+        «Выключить всё» названо буквально: оно гасит весь дом, включая
+        устройства вне сценария. Именно поэтому список устройств дома приходит
+        аргументом, а не выводится из снимка — иначе поведение молча означало бы
+        не то, что написано в его имени.
+
+        Args:
+            home: Устройства дома, которые вправе погасить поведение
+                «выключить всё».
 
         Returns:
             dict[DeviceId, DeviceStatus]: Состояния возврата; пусто, когда
-            устройства оставляют автоматике.
+            сценарий оставляет устройства автоматике.
         """
+        if self.completion_behavior is CompletionBehavior.SWITCH_EVERYTHING_OFF:
+            return dict.fromkeys(home, DeviceStatus.OFF)
         restored: dict[DeviceId, DeviceStatus] = {}
         for device_id, captured in self.captured_statuses.items():
             target = self.completion_behavior.status_to_apply(captured)
             if target is not None:
                 restored[device_id] = target
-        if self.completion_behavior is CompletionBehavior.SWITCH_EVERYTHING_OFF:
-            return dict.fromkeys(self.captured_statuses, DeviceStatus.OFF)
         return restored
 
     def pull_events(self) -> tuple[ScenarioScheduled | ScenarioStarted | ScenarioFinished, ...]:
@@ -259,10 +277,12 @@ class Scenario:
             Self: Созданный сценарий.
 
         Raises:
-            ValueError: Когда названное место длиннее разрешённого моделью.
+            InvalidScenarioTargetError: Когда названное место длиннее разрешённого моделью.
         """
-        if target is not None and len(target.strip()) > MAX_TARGET_LENGTH:
-            raise ValueError(f"scenario target is longer than {MAX_TARGET_LENGTH} characters")
+        if target is not None:
+            length = len(target.strip())
+            if length > MAX_TARGET_LENGTH:
+                raise InvalidScenarioTargetError(length, MAX_TARGET_LENGTH)
         delay = delay_minutes if delay_minutes and delay_minutes > 0 else 0
         scenario = cls(
             id=ScenarioId.generate(),

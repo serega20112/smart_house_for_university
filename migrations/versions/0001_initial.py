@@ -1,13 +1,13 @@
-"""Initial schema of the smart home backend.
+"""Начальная схема бэкенда умного дома.
 
-Every table of the persistence layer is created here and nowhere else: nothing in
-the application is allowed to bring a table into existence, so a deployment can
-always rebuild its schema from zero and a review reads the schema as a diff.
+Все таблицы слоя хранения создаются здесь и больше нигде: ничто в приложении не
+имеет права завести таблицу, поэтому развёртывание всегда может собрать схему с
+нуля, а ревью читает схему как diff.
 
-Collections that used to be opaque blobs are real tables with real foreign keys,
-which is what lets the store keep accounts apart, protect the ordering of a layout
-and cascade a deletion into the rows that described something that no longer
-exists.
+Коллекции, которые раньше лежали непрозрачными сгустками, стали настоящими
+таблицами с настоящими внешними ключами: именно поэтому хранилище держит аккаунты
+порознь, защищает порядок раскладки и уносит удаление в строки, описывавшие то,
+чего больше нет.
 
 Revision ID: 0001_initial
 Revises:
@@ -27,7 +27,7 @@ depends_on: str | None = None
 
 
 def upgrade() -> None:
-    """Create every table of the schema.
+    """Создаёт каждую таблицу схемы.
 
     Returns:
         None.
@@ -266,7 +266,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Remove every table of the schema.
+    """Удаляет каждую таблицу схемы.
 
     Returns:
         None.
