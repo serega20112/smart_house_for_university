@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from backend.application.dto.views.board_claim_view import BoardClaimView
+from backend.application.dto.views.board_view import BoardView
 from backend.domain.identifiers import UserId
-from backend.domain.value_objects.boards.board_claim_view import BoardClaimView
-from backend.domain.value_objects.boards.board_view import BoardView
 
 
 class BoardQueries(Protocol):

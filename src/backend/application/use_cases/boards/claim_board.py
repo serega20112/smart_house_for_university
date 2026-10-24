@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from backend.application.dto.boards.claim_board_command import ClaimBoardCommand
+from backend.application.dto.views.board_view import BoardView
 from backend.application.services.board_onboarding import BoardOnboardingService
 from backend.domain.identifiers import UserId
-from backend.domain.value_objects.boards.board_view import BoardView
 
 
 class ClaimBoardUseCase:

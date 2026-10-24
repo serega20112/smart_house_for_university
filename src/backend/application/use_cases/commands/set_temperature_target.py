@@ -49,6 +49,7 @@ class SetTemperatureTargetCommandUseCase:
             settings = stored if stored is not None else AutomationSettings.create(user_id)
             settings.aim_at_temperature(parsed.temperature)
             await uow.automation.save(settings)
+            await uow.commit()
         return CommandReply(
             intent=self.intent,
             answer="",

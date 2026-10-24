@@ -95,4 +95,4 @@ class ClimateBand[MeasuredT]:
         percent = getattr(measurement, "percent", None)
         if percent is not None:
             return float(percent)
-        return float(measurement)  # type: ignore[arg-type]
+        raise TypeError("a climate measurement must expose celsius or percent")

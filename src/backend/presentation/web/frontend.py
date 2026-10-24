@@ -23,7 +23,7 @@ ASSETS_DIRECTORY = "assets"
 FRONTEND_DIST_VARIABLE = "FRONTEND_DIST"
 
 CANDIDATES: tuple[Path, ...] = (
-    Path("/src/frontend/dist"),
+    Path("/app/src/frontend/dist"),
     Path(__file__).resolve().parents[3] / "frontend" / "dist",
     Path(__file__).resolve().parents[3] / "static",
 )

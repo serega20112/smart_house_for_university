@@ -14,12 +14,13 @@ from contextlib import asynccontextmanager
 from dishka import AsyncContainer
 from fastapi import FastAPI
 
+from backend.application.errors import LanguageModelUnavailable
 from backend.application.services.command_dispatcher import CommandDispatcher
 from backend.application.services.language.understanding import ReferencePhraseSeeder
 from backend.config.settings import Settings
 from backend.infrastructure.brokers.chat_sessions import RedisChatSessionStore
+from backend.infrastructure.esp.command_listener import BoardCommandListener
 from backend.infrastructure.esp.connection import EspConnection
-from backend.infrastructure.nlp.embeddings import EmbeddingsUnavailableError
 from backend.infrastructure.security.link_tokens import TelegramLinkTokenIssuer
 from backend.infrastructure.system.logging import get_logger
 from backend.infrastructure.telegram.client import TelegramBotClient
@@ -44,6 +45,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     container: AsyncContainer = app.state.container
     settings: Settings = await container.get(Settings)
     await container.get(EspConnection)
+    await container.get(BoardCommandListener)
     await container.get(WebSocketHub)
     await _seed_reference_phrases(container)
     bot = await _start_telegram(container, settings)
@@ -58,18 +60,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 async def _seed_reference_phrases(container: AsyncContainer) -> None:
     """Дописывает в индекс недостающие опорные фразы.
 
-    Дом работает и без понимания фраз: реле, автоматика и сценарии ничего у модели не
-    просят, поэтому отсутствующий кодировщик записывается в журнал и не мешает запуску.
-    Сам посев происходит явно на старте: индекс, который наполняется первым же вопросом,
-    превращает первый запрос в ожидание.
+    Дом работает и без смыслового разбора: реле, автоматика и сценарии ничего у модели
+    не просят, а знакомые фразы узнаёт словарь. Поэтому без кодировщика шаг просто не
+    делает ничего, а его отказ записывается в журнал и не мешает запуску. Сам посев
+    происходит явно на старте: индекс, который наполняется первым же вопросом, превращает
+    первый запрос в ожидание.
 
     Args:
         container: Граф зависимостей запущенного процесса.
     """
+    seeder = await container.get(ReferencePhraseSeeder)
     try:
-        seeder = await container.get(ReferencePhraseSeeder)
         await seeder.seed()
-    except EmbeddingsUnavailableError as error:
+    except LanguageModelUnavailable as error:
         log.warning("nlp.embeddings_unavailable", error=str(error))
 
 

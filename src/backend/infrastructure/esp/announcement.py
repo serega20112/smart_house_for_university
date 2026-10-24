@@ -11,11 +11,12 @@ from __future__ import annotations
 from dishka import AsyncContainer
 
 from backend.application.dto.boards.announce_board_command import AnnounceBoardCommand
+from backend.application.interfaces.services.boards.board_announcer import BoardAnnouncer
 from backend.application.services.board_onboarding import BoardOnboardingService
 from backend.domain.entities.esp_claim.esp_claim import EspClaim
 
 
-class DeferredBoardAnnouncer:
+class DeferredBoardAnnouncer(BoardAnnouncer):
     """Публикует плату через сервис, которого ещё нет в момент сборки транспорта."""
 
     def __init__(self, container: AsyncContainer) -> None:

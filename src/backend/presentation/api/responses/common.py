@@ -29,3 +29,15 @@ class HealthResponse(StrictModel):
     status: str
     name: str
     version: str
+
+
+class ReadyResponse(StrictModel):
+    """Готовность сервиса принимать запросы — с проверкой внешних систем.
+
+    Attributes:
+        status: ``ready`` или ``unavailable``.
+        dependencies: Отклик каждой внешней зависимости (база, Redis).
+    """
+
+    status: str
+    dependencies: dict[str, bool]

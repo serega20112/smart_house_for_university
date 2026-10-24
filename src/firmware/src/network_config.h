@@ -77,12 +77,39 @@ inline bool networkConfigIsValid(const NetworkConfig &config) {
  * @brief Сообщает, числовой ли адрес сервера.
  *
  * Плата разрешает имя через WiFi.hostByName, что на этой микросхеме ненадёжно,
- * поэтому принимается только числовой адрес.
+ * поэтому принимается только числовой адрес в форме IPv4 «a.b.c.d». Разбор делается
+ * здесь вручную и без класса IPAddress: этот заголовок — чистые данные о сети, и
+ * тянуть ради проверки строки WiFi-библиотеку в каждый включивший его модуль нельзя.
  *
  * @param host Адрес, который рассматривают.
- * @return True, когда адрес читается как IP.
+ * @return True, когда адрес читается как IPv4 из четырёх октетов.
  */
 inline bool networkHostIsNumeric(const char *host) {
-    IPAddress parsed;
-    return parsed.fromString(host);
+    if (host == nullptr || host[0] == '\0') {
+        return false;
+    }
+    int octets = 0;
+    const char *cursor = host;
+    while (true) {
+        if (*cursor < '0' || *cursor > '9') {
+            return false;
+        }
+        int value = 0;
+        while (*cursor >= '0' && *cursor <= '9') {
+            value = value * 10 + (*cursor - '0');
+            cursor++;
+        }
+        if (value > 255) {
+            return false;
+        }
+        octets++;
+        if (*cursor == '\0') {
+            break;
+        }
+        if (*cursor != '.') {
+            return false;
+        }
+        cursor++;
+    }
+    return octets == 4;
 }

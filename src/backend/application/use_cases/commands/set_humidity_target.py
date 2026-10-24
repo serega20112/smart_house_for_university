@@ -51,6 +51,7 @@ class SetHumidityTargetCommandUseCase:
             settings = stored if stored is not None else AutomationSettings.create(user_id)
             settings.aim_at_humidity(target)
             await uow.automation.save(settings)
+            await uow.commit()
         return CommandReply(
             intent=self.intent,
             answer="",

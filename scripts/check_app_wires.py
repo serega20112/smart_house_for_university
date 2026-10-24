@@ -2,8 +2,10 @@
 
 Контейнер строится лениво, поэтому одной сборки приложения мало: провайдер с
 неподходящей сигнатурой или забытая зависимость всплывают только когда ключ
-впервые попросили. Здесь запрашиваются все связываемые узлы графа, а кодировщик
-предложений подменяется заглушкой, чтобы проверка не скачивала модель.
+впервые попросили. Здесь запрашиваются все связываемые узлы графа. Модель
+понимания фраз необязательна, поэтому граф собирается и без неё — ровно так, как
+работает развёртывание без необязательной зависимости: словарь узнаёт знакомые
+фразы сам, а смысловой конвейер в этом случае не подключается.
 
 Запуск из корня проекта: python scripts/check_app_wires.py
 """
@@ -12,7 +14,6 @@ from __future__ import annotations
 
 import asyncio
 import sys
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +33,6 @@ from backend.application.interfaces.services.boards.board_report import BoardRep
 from backend.application.interfaces.services.language.command_understanding import (
     CommandUnderstandingPort,
 )
-from backend.application.interfaces.services.language.embedder import Embedder
 from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
     DomainEventDispatcher,
 )
@@ -106,7 +106,12 @@ from backend.application.use_cases.scenarios.schedule_scenario import ScheduleSc
 from backend.config import Settings
 from backend.infrastructure.brokers.chat_sessions import RedisChatSessionStore
 from backend.infrastructure.brokers.event_broker import RedisSubscriber
-from backend.infrastructure.di.dishka_container import PROVIDERS
+from backend.infrastructure.di.dishka_container import (
+    ROLE_PROVIDERS,
+    SHARED_PROVIDERS,
+    ProcessRole,
+)
+from backend.infrastructure.esp.command_listener import BoardCommandListener
 from backend.infrastructure.esp.connection import EspConnection
 from backend.infrastructure.security.link_tokens import TelegramLinkTokenIssuer
 from backend.infrastructure.telegram.client import TelegramBotClient
@@ -151,6 +156,7 @@ APP_ENTRIES: tuple[Any, ...] = (
     ReferencePhraseSeeder,
     BoardOnboardingService,
     EspConnection,
+    BoardCommandListener,
     BoardGateway,
     SwitchDeviceCommandUseCase,
     SwitchAllDevicesCommandUseCase,
@@ -191,14 +197,6 @@ REQUEST_ENTRIES: tuple[Any, ...] = (
 )
 
 
-class PlaceholderEmbedder:
-    """Кодировщик без модели: проверка сверяет связи графа, а не качество векторов."""
-
-    def encode(self, texts: Sequence[str]) -> list[list[float]]:
-        """Возвращает по одному нулевому измерению на фразу."""
-        return [[0.0] for _ in texts]
-
-
 async def check_graph() -> list[str]:
     """Пробует собрать каждый узел графа и перечисляет то, что не собралось.
 
@@ -206,11 +204,11 @@ async def check_graph() -> list[str]:
         list[str]: Строки вида «узел — причина отказа», пустые когда граф цел.
     """
     container = make_async_container(
-        *PROVIDERS,
+        *SHARED_PROVIDERS,
+        *ROLE_PROVIDERS[ProcessRole.API],
         context={
             Settings: Settings(),
             NotificationFactory: NotificationFactoryImpl(),
-            Embedder: PlaceholderEmbedder(),
         },
     )
     failures: list[str] = []

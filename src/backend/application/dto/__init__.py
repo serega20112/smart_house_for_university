@@ -2,7 +2,7 @@
 
 Каждый контракт живёт в своём файле внутри папки фичи, а здесь они собраны,
 чтобы вызывающий назвал одну точку — фичу, а не ворох несвязанных форм.
-Модели чтения (то, что экран показывает) живут в `domain/value_objects`.
+Модели чтения (то, что экран показывает) живут в `application.dto.views`.
 """
 
 from backend.application.dto.account import AuthenticateCommand, RegisterAccountCommand

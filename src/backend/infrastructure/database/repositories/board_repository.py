@@ -8,6 +8,7 @@ from datetime import datetime
 from sqlalchemy import delete, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from backend.application.interfaces.repositories.board_repository import BoardRepository
 from backend.domain.aggregates.esp_device.esp_device import EspDevice
 from backend.domain.identifiers import (
     EspDeviceId,
@@ -17,13 +18,13 @@ from backend.infrastructure.database.mappers.boards import board_from_row, board
 from backend.infrastructure.database.models import (
     EspDeviceModel,
 )
-from backend.infrastructure.database.repositories.base import first_row, row_values
+from backend.infrastructure.database.repositories.base import affected_rows, first_row, row_values
 
 UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
 
 
-class SqlBoardRepository:
+class SqlBoardRepository(BoardRepository):
     """Хранение плат, сопряжённых с аккаунтами.
 
     Attributes:
@@ -137,4 +138,4 @@ class SqlBoardRepository:
                 EspDeviceModel.id == board_id.value, EspDeviceModel.user_id == user_id.value
             )
         )
-        return bool(result.rowcount)
+        return affected_rows(result) > 0

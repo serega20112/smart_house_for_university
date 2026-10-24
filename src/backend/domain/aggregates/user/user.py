@@ -15,15 +15,12 @@ from datetime import datetime
 from typing import Self
 
 from backend.domain.events import UserRegistered
-from backend.domain.exceptions import WeakPasswordError
 from backend.domain.identifiers import UserId
 from backend.domain.value_objects.account.display_name import DisplayName
 from backend.domain.value_objects.account.email import Email
 
-MIN_PASSWORD_LENGTH = 8
 
-
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class User:
     """Один человек, пользующийся платформой.
 
@@ -59,11 +56,15 @@ class User:
     def pull_events(self) -> tuple[UserRegistered, ...]:
         """Возвращает записанные факты и забывает их.
 
+        Агрегат намеренно не frozen, как и `Device`/`Scenario`: список фактов
+        очищается обычным `clear()`, а не обходом собственной иммутабельности через
+        `object.__setattr__`. Защита инвариантов — в методах, а не в ложном `frozen`.
+
         Returns:
             tuple[UserRegistered, ...]: Факты с прошлого обращения.
         """
         recorded = tuple(self._events)
-        object.__setattr__(self, "_events", [])
+        self._events.clear()
         return recorded
 
     @classmethod
@@ -72,27 +73,23 @@ class User:
         email: Email,
         display_name: DisplayName,
         password_hash: str,
-        password_length: int,
         created_at: datetime,
     ) -> Self:
         """Создаёт новый аккаунт.
+
+        Агрегат хранит уже построенный хеш: проверка сырого пароля — забота объекта-
+        значения `RawPassword`, а хеширование — инфраструктура, и в домен приходит только
+        результат.
 
         Args:
             email: Логин аккаунта.
             display_name: Имя, показанное в интерфейсе.
             password_hash: Сохранённая форма пароля.
-            password_length: Длина пароля, который выбрал человек, — слишком
-                короткую модель не примет.
             created_at: Момент создания аккаунта.
 
         Returns:
             Self: Созданный аккаунт.
-
-        Raises:
-            WeakPasswordError: Когда пароль короче разрешённого.
         """
-        if password_length < MIN_PASSWORD_LENGTH:
-            raise WeakPasswordError(MIN_PASSWORD_LENGTH)
         user = cls(
             id=UserId.generate(),
             email=email,

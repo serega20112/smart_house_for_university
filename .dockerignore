@@ -1,0 +1,37 @@
+# Контекст сборки — только исходники, нужные образу. Без этого Docker тащит в
+# tar залокированные Windows-кэши (.pytest_cache), виртуальные окружения и
+# node_modules: сборка либо падает с "Access is denied", либо раздувается.
+
+# Система контроля версий и среды редактора
+.git/
+.idea/
+.vscode/
+.qoder/
+
+# Python: кэши и окружения не попадают в образ (зависимости ставит pip из pyproject)
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+**/.pytest_cache/
+.ruff_cache/
+**/.ruff_cache/
+.mypy_cache/
+**/.mypy_cache/
+.import_linter_cache/
+**/.import_linter_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Секретов в образ не кладём: they come from the environment at runtime
+.env
+
+# Фронтенд: node_modules и собранный dist пересоздаёт stage интерфейса
+**/node_modules/
+src/frontend/dist/
+*.tsbuildinfo
+
+# Прошивка не нужна в образе бэкенда и тянет за собой артефакты PlatformIO
+src/firmware/.pio/

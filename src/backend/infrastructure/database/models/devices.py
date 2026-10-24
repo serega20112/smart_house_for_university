@@ -10,10 +10,11 @@ from uuid import UUID
 from sqlalchemy import (
     Boolean,
     ForeignKey,
+    Index,
     Integer,
     String,
-    UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -29,6 +30,7 @@ class DeviceModel(Base):
         name: Имя, показанное человеку.
         kind: Для чего устройство; лежит текстом.
         channel: Канал реле, к которому подключено устройство.
+        board_id: Плата, на которой стоит канал, или None для не закреплённого канала.
         enabled: Разрешено ли устройством управлять вообще.
         automation_enabled: Участвует ли устройство в автоматизации.
         version: Ревизия строки, поднимаемая при каждой записи. Кто прочитал
@@ -38,13 +40,32 @@ class DeviceModel(Base):
     """
 
     __tablename__ = "devices"
-    __table_args__ = (UniqueConstraint("user_id", "channel", name="uq_devices_user_id_channel"),)
+    __table_args__ = (
+        Index(
+            "uq_devices_user_id_channel",
+            "user_id",
+            "channel",
+            unique=True,
+            postgresql_where=text("board_id IS NULL"),
+        ),
+        Index(
+            "uq_devices_board_id_channel",
+            "user_id",
+            "board_id",
+            "channel",
+            unique=True,
+            postgresql_where=text("board_id IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
     user_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(120))
     kind: Mapped[str] = mapped_column(String(32))
     channel: Mapped[int] = mapped_column(Integer)
+    board_id: Mapped[UUID | None] = mapped_column(
+        Uuid, ForeignKey("esp_devices.id", ondelete="CASCADE"), nullable=True
+    )
     enabled: Mapped[bool] = mapped_column(Boolean)
     automation_enabled: Mapped[bool] = mapped_column(Boolean)
     version: Mapped[int] = mapped_column(Integer, default=0)

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from backend.application.dto.views.preferences_view import PreferencesView
 from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.domain.entities.personalization.user_preferences import UserPreferences
 from backend.domain.identifiers import UserId
-from backend.domain.value_objects.personalization.preferences_view import PreferencesView
 
 
 class ReadPreferencesUseCase:

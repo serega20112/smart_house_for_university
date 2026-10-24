@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 from backend.application.dto.account.register_account_command import RegisterAccountCommand
+from backend.application.dto.views.account_profile import AccountProfile
 from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
     DomainEventDispatcher,
 )
@@ -21,9 +22,9 @@ from backend.application.interfaces.services.system.clock import Clock
 from backend.application.interfaces.unit_of_work.account import AccountUnitOfWorkFactory
 from backend.application.use_cases.accounts.result import AuthenticatedSession
 from backend.domain.aggregates.user.user import User
-from backend.domain.value_objects.account.account_profile import AccountProfile
 from backend.domain.value_objects.account.display_name import DisplayName
 from backend.domain.value_objects.account.email import Email
+from backend.domain.value_objects.account.raw_password import RawPassword
 
 
 class RegisterAccountUseCase:
@@ -69,15 +70,16 @@ class RegisterAccountUseCase:
             InvalidDisplayNameError: Когда имя пустое или слишком длинное.
             WeakPasswordError: Когда пароль слишком короткий.
         """
+        raw_password = RawPassword(command.password)
         user = User.register(
             email=Email.parse(command.email),
             display_name=DisplayName.parse(command.display_name),
-            password_hash=self._hasher.hash(command.password),
-            password_length=len(command.password),
+            password_hash=self._hasher.hash(raw_password.value),
             created_at=self._clock.now(),
         )
         async with self._account_uow() as uow:
             await uow.accounts.add(user)
+            await uow.commit()
         session = self._tokens.issue(user.id)
         await self._dispatcher.dispatch(user.pull_events())
         return AuthenticatedSession(

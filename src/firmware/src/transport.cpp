@@ -129,6 +129,13 @@ void sendHello() {
     addRelays(doc, status);
     doc["ssid"] = network.ssid;
     doc["provisioned"] = network.provisioned;
+    // Сервер, которому плата докладывает, едет рядом с ssid: интерфейс заполняет
+    // адрес из того, что плата уже использует, а не спрашивает человека второй раз.
+    // Пароль сети здесь не звучит никогда — это секрет, он остаётся в памяти платы.
+    doc["server_host"] = network.serverHost;
+    doc["server_port"] = network.serverPort;
+    doc["socket_port"] = network.socketPort;
+    doc["socket_path"] = network.socketPath;
     sendDocument(doc);
 }
 
@@ -219,10 +226,13 @@ void transportLoop() {
         redialAt = 0;
         dialRequested = true;
     }
-    if (!socket.isConnected() && !dialRequested) {
+    // Соединение уже держится — в этом цикле делать нечего. Раньше сюда попадали и с
+    // открытым сокетом, и каждый цикл звали dial(), который перетыкал socket.begin():
+    // плата рвала и открывала соединение десятки раз в секунду.
+    if (socket.isConnected()) {
         return;
     }
-    if (lastTryAt != 0 && !socket.isConnected() && now - lastTryAt < SOCKET_RETRY_MS) {
+    if (!dialRequested && lastTryAt != 0 && now - lastTryAt < SOCKET_RETRY_MS) {
         return;
     }
     dialRequested = false;

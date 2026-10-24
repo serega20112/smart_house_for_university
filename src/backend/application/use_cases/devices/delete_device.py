@@ -42,6 +42,8 @@ class DeleteDeviceUseCase:
         """
         async with self._home_uow() as uow:
             removed = await uow.devices.delete(user_id, device_id)
+            if removed:
+                await uow.commit()
         if not removed:
             raise DeviceNotFoundError(device_id)
         await self._state_store.forget_device_status(user_id, device_id)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import overload
 from uuid import UUID
 
 from sqlalchemy import Table
@@ -27,8 +28,25 @@ def row_values(table: Table, row: Base) -> dict[str, object]:
     return {column.name: getattr(row, column.name) for column in table.columns}
 
 
+@overload
+def as_utc(value: datetime) -> datetime: ...
+
+
+@overload
+def as_utc(value: None) -> None: ...
+
+
+@overload
+def as_utc(value: datetime | None) -> datetime | None: ...
+
+
 def as_utc(value: datetime | None) -> datetime | None:
-    """Возвращает момент в часовом поясе UTC или None, если значения нет."""
+    """Возвращает момент в часовом поясе UTC или None, если значения нет.
+
+    Перегрузки держат связь формы и результата: ненулевая колонка, отданная как
+    `datetime`, возвращается `datetime` и не требует проверки на None там, где его не
+    бывает; а nullable-колонка так же честно остаётся `datetime | None`.
+    """
     if value is None:
         return None
     if value.tzinfo is None:

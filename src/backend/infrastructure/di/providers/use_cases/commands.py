@@ -5,17 +5,15 @@ from __future__ import annotations
 from dishka import Provider, Scope, provide
 
 from backend.application.dto.language.intent import Intent
-from backend.application.interfaces.queries.automation_queries import AutomationQueries
-from backend.application.interfaces.queries.device_queries import DeviceQueries
 from backend.application.interfaces.queries.scenario_queries import ScenarioQueries
 from backend.application.interfaces.services.language.command_understanding import (
     CommandUnderstandingPort,
 )
 from backend.application.interfaces.services.state.home_state_store import HomeStateStore
-from backend.application.interfaces.services.system.clock import Clock
 from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.command_dispatcher import CommandDispatcher, CommandHandler
 from backend.application.services.device_control import DeviceControlService
+from backend.application.services.home_overview import HomeOverviewQuery
 from backend.application.use_cases.commands.cancel_scenario import CancelScenarioCommandUseCase
 from backend.application.use_cases.commands.describe_home import DescribeHomeCommandUseCase
 from backend.application.use_cases.commands.read_humidity import ReadHumidityCommandUseCase
@@ -84,18 +82,9 @@ class CommandsUseCaseProvider(Provider):
         return RunCapabilityCommandUseCase(home_uow, control, state_store, DemandCalculator())
 
     @provide(scope=APP)
-    def describe_home(
-        self,
-        state_store: HomeStateStore,
-        device_queries: DeviceQueries,
-        scenario_queries: ScenarioQueries,
-        automation_queries: AutomationQueries,
-        clock: Clock,
-    ) -> DescribeHomeCommandUseCase:
+    def describe_home(self, overview: HomeOverviewQuery) -> DescribeHomeCommandUseCase:
         """Собирает описание дома по фразе."""
-        return DescribeHomeCommandUseCase(
-            state_store, device_queries, scenario_queries, automation_queries, clock
-        )
+        return DescribeHomeCommandUseCase(overview)
 
     @provide(scope=APP)
     def read_temperature(self, state_store: HomeStateStore) -> ReadTemperatureCommandUseCase:

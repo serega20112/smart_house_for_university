@@ -13,7 +13,6 @@ torch, индекс опорных фраз в pgvector и HTTP-клиент с�
 """
 
 from backend.infrastructure.nlp.embeddings import (
-    EmbeddingsUnavailableError,
     SentenceTransformerEmbedder,
     load_embedder,
 )
@@ -21,7 +20,6 @@ from backend.infrastructure.nlp.phrases import PgVectorPhraseIndex
 from backend.infrastructure.nlp.remote_client import RemoteUnderstandingClient
 
 __all__ = [
-    "EmbeddingsUnavailableError",
     "PgVectorPhraseIndex",
     "RemoteUnderstandingClient",
     "SentenceTransformerEmbedder",

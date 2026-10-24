@@ -47,3 +47,4 @@ class HomeProvisioning:
             await uow.dashboard.save(
                 DashboardState.starter(user_id, tuple(device.id for device in devices))
             )
+            await uow.commit()

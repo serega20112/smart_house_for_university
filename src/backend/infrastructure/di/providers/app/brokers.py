@@ -8,12 +8,16 @@ from dishka import Provider, Scope, provide
 from redis.asyncio import Redis
 
 from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
+from backend.application.interfaces.services.security.realtime_ticket_store import (
+    RealtimeTicketStore,
+)
 from backend.application.interfaces.services.state.home_state_store import HomeStateStore
 from backend.application.interfaces.services.system.distributed_lock import DistributedLock
 from backend.config.settings import Settings
 from backend.infrastructure.brokers.chat_sessions import RedisChatSessionStore
 from backend.infrastructure.brokers.event_broker import RedisEventBroker, RedisSubscriber
 from backend.infrastructure.brokers.locks import RedisDistributedLock
+from backend.infrastructure.brokers.realtime_tickets import RedisRealtimeTicketStore
 from backend.infrastructure.brokers.state_store import RedisHomeStateStore
 
 APP = Scope.APP
@@ -43,13 +47,13 @@ class BrokersProvider(Provider):
         return RedisEventBroker(redis, settings.redis_key_prefix)
 
     @provide(scope=APP)
-    def subscriber(self, settings: Settings) -> RedisSubscriber:
-        """Собирает подписку, из которой читает концентратор."""
-        return RedisSubscriber(
-            url=settings.redis_url,
-            password=settings.redis_password,
-            key_prefix=settings.redis_key_prefix,
-        )
+    def subscriber(self, redis: Redis, settings: Settings) -> RedisSubscriber:
+        """Собирает подписку, из которой читает концентратор.
+
+        Подписчик берёт подписки из общего асинхронного соединения, а не заводит свой
+        блокирующий клиент: число живых подписок ограничено пулом этого соединения.
+        """
+        return RedisSubscriber(redis, settings.redis_key_prefix)
 
     @provide(scope=APP)
     def chat_sessions(self, redis: Redis, settings: Settings) -> RedisChatSessionStore:
@@ -60,3 +64,12 @@ class BrokersProvider(Provider):
     def lock(self, redis: Redis, settings: Settings) -> DistributedLock:
         """Собирает аренду, не пускающую два воркера к одному аккаунту."""
         return RedisDistributedLock(redis, key_prefix=settings.redis_key_prefix)
+
+    @provide(scope=APP)
+    def realtime_tickets(self, redis: Redis, settings: Settings) -> RealtimeTicketStore:
+        """Собирает хранилище одноразовых билетов, которыми WebSocket меняется на сессию."""
+        return RedisRealtimeTicketStore(
+            redis,
+            key_prefix=settings.redis_key_prefix,
+            ttl_sec=settings.realtime_ticket_ttl_sec,
+        )

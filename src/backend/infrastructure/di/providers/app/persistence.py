@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dishka import Provider, Scope, provide
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from backend.application.interfaces.queries.account_queries import AccountQueries
 from backend.application.interfaces.queries.automation_queries import AutomationQueries
@@ -37,29 +37,29 @@ class PersistenceProvider(Provider):
     """Чтение стороны, границы транзакций и дешёвые чтения дома."""
 
     @provide(scope=APP)
-    def account_queries(self, engine: AsyncEngine) -> AccountQueries:
+    def account_queries(self, session_factory: async_sessionmaker) -> AccountQueries:
         """Собирает чтения аккаунтов."""
-        return SqlAccountQueries(engine)
+        return SqlAccountQueries(session_factory)
 
     @provide(scope=APP)
-    def device_queries(self, engine: AsyncEngine) -> DeviceQueries:
+    def device_queries(self, session_factory: async_sessionmaker) -> DeviceQueries:
         """Собирает чтения настройки устройств."""
-        return SqlDeviceQueries(engine)
+        return SqlDeviceQueries(session_factory)
 
     @provide(scope=APP)
-    def automation_queries(self, engine: AsyncEngine) -> AutomationQueries:
+    def automation_queries(self, session_factory: async_sessionmaker) -> AutomationQueries:
         """Собирает чтения настройки автоматизации."""
-        return SqlAutomationQueries(engine)
+        return SqlAutomationQueries(session_factory)
 
     @provide(scope=APP)
-    def scenario_queries(self, engine: AsyncEngine) -> ScenarioQueries:
+    def scenario_queries(self, session_factory: async_sessionmaker) -> ScenarioQueries:
         """Собирает чтения сценариев."""
-        return SqlScenarioQueries(engine)
+        return SqlScenarioQueries(session_factory)
 
     @provide(scope=APP)
-    def board_queries(self, engine: AsyncEngine) -> BoardQueries:
+    def board_queries(self, session_factory: async_sessionmaker) -> BoardQueries:
         """Собирает чтения плат."""
-        return SqlBoardQueries(engine)
+        return SqlBoardQueries(session_factory)
 
     @provide(scope=APP)
     def account_uow(self, session_factory: async_sessionmaker) -> AccountUnitOfWorkFactory:
@@ -79,6 +79,6 @@ class PersistenceProvider(Provider):
         return make_board_onboarding_unit_of_work(session_factory)
 
     @provide(scope=APP)
-    def home_directory(self, engine: AsyncEngine) -> HomeDeviceDirectory:
+    def home_directory(self, session_factory: async_sessionmaker) -> HomeDeviceDirectory:
         """Собирает дешёвые чтения, которыми переводят сообщения платы."""
-        return SqlHomeDeviceDirectory(engine)
+        return SqlHomeDeviceDirectory(session_factory)

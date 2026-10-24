@@ -1,8 +1,8 @@
 /**
- * Страница устройств: по редактору на каждое логическое устройство.
+ * Devices page: one editor per logical device.
  *
- * Свободный канал здесь выбирают по списку, который вернул сервер: придумывать
- * нумерацию реле интерфейс не берётся, их число знает железо.
+ * Free channels are selected from the list returned by the server: do not invent relay numbering, the interface does not handle it, the number of channels is known by the hardware.
+
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -14,7 +14,7 @@ import { needsReload } from "../features/home/reducer";
 import * as api from "../services/api";
 import type { Capability, Device, DeviceKind } from "../services/types";
 
-/** Число каналов реле одной платы: больше шести устройств плата не потянет. */
+/** Number of relay channels per board: a board cannot handle more than six devices. */
 const CHANNELS = [1, 2, 3, 4, 5, 6];
 
 export function DevicesPage() {
@@ -26,7 +26,7 @@ export function DevicesPage() {
       setDevices(await api.fetchDevices());
       setError(null);
     } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "Не удалось загрузить устройства");
+      setError(exc instanceof Error ? exc.message : "Failed to load devices");
     }
   }, []);
 
@@ -46,19 +46,19 @@ export function DevicesPage() {
   const taken = devices.map((device) => device.channel);
 
   /**
-   * Заводит устройство на первом свободном канале.
+   * Creates a device on the first free channel.
    *
-   * @returns Ничего: список перечитывается после ответа сервера.
+   * @returns Nothing: the list is reloaded after the server response.
    */
   async function create(): Promise<void> {
     const free = CHANNELS.find((channel) => !taken.includes(channel));
     if (free === undefined) {
-      setError("Свободных каналов не осталось");
+      setError("No free channels left");
       return;
     }
     try {
       await api.createDevice({
-        name: `Устройство ${free}`,
+        name: `Device ${free}`,
         kind: "OTHER" as DeviceKind,
         channel: free,
         capabilities: ["ON", "OFF"] as Capability[],
@@ -66,7 +66,7 @@ export function DevicesPage() {
       });
       await load();
     } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "Не удалось создать устройство");
+      setError(exc instanceof Error ? exc.message : "Failed to create device");
     }
   }
 
@@ -74,17 +74,17 @@ export function DevicesPage() {
     <div className="page">
       <header className="page__head">
         <div>
-          <h1 className="page__title">Устройства</h1>
-          <p className="page__subtitle">Логические устройства поверх релейных каналов</p>
+          <h1 className="page__title">Devices</h1>
+          <p className="page__subtitle">Logical devices over relay channels</p>
         </div>
         <button className="button button--primary" type="button" onClick={() => void create()}>
-          Добавить устройство
+          Add device
         </button>
       </header>
 
       {error ? <p className="notice notice--bad">{error}</p> : null}
 
-      <Card title="Конфигурация" hint="Название, тип, канал и возможности">
+      <Card title="Configuration" hint="Name, type, channel and capabilities">
         <div className="grid grid--editors">
           {devices.map((device) => (
             <DeviceEditor

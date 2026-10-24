@@ -11,9 +11,11 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any, cast
 
-from sqlalchemy import Table, insert, select
+from sqlalchemy import ColumnElement, Table, insert, select
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.engine import CursorResult, Result
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
@@ -39,16 +41,36 @@ def is_unique_violation(error: IntegrityError) -> bool:
     return getattr(error.orig, "sqlstate", None) == UNIQUE_VIOLATION
 
 
-async def first_row[Row: Base](runner: Runner, model: type[Row], *criteria) -> Row | None:
+async def first_row[Row: Base](
+    runner: Runner, model: type[Row], *criteria: ColumnElement[bool]
+) -> Row | None:
     """Одиночная строка выборки или None."""
     result = await runner.execute(select(model).where(*criteria))
     return result.scalar_one_or_none()
 
 
-async def every_row[Row: Base](runner: Runner, model: type[Row], *criteria) -> list[Row]:
+async def every_row[Row: Base](
+    runner: Runner, model: type[Row], *criteria: ColumnElement[bool]
+) -> list[Row]:
     """Все строки выборки."""
     result = await runner.execute(select(model).where(*criteria))
     return list(result.scalars().all())
+
+
+def affected_rows(result: Result[Any]) -> int:
+    """Возвращает число строк, изменённых командой записи.
+
+    `execute` возвращает широкой `Result`, у которого `rowcount` не объявлен, хотя для
+    команды изменения хранилище всегда отдаёт `CursorResult` с этим числом. Приведение
+    сосредоточено здесь одной строкой, чтобы ни один репозиторий не повторял его.
+
+    Args:
+        result: Результат, вернувшийся после команды изменения.
+
+    Returns:
+        int: Число затронутых строк.
+    """
+    return cast("CursorResult[Any]", result).rowcount
 
 
 async def insert_rows[Row: Base](runner: Runner, table: Table, rows: Sequence[Row]) -> None:

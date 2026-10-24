@@ -23,7 +23,7 @@ from backend.domain.value_objects.devices.device_kind import DeviceKind
 
 WHITESPACE = re.compile(r"\s+")
 NUMBER = re.compile(r"(\d{1,3}(?:[.,]\d+)?)")
-REPEATED_NUMBER = re.compile(r"\d{1,3}\s+")
+REPEATED_NUMBER = re.compile(r"\d{1,3}\s+(?=\d)")
 WORD_NUMBERS: dict[str, int] = {
     "ноль": 0,
     "один": 1,
@@ -128,6 +128,18 @@ def _device_word(text: str) -> str | None:
 
 
 def _first_number(text: str) -> float | None:
+    """Возвращает первое число предложения.
+
+    Подряд идущие числа считаются одним: «10 20 градусов» — просьба про двадцать, а не
+    про десять с лишним словом. Число, за которым идёт слово, стоит последним в такой
+    цепочке и потому остаётся нетронутым.
+
+    Args:
+        text: Приведённое предложение.
+
+    Returns:
+        float | None: Найденное число или None, когда чисел в предложении нет.
+    """
     match = NUMBER.search(REPEATED_NUMBER.sub(" ", text))
     if match is not None:
         return float(match.group(1).replace(",", "."))

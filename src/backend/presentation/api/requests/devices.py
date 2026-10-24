@@ -1,4 +1,4 @@
-"""Тела запросов устройств и перевод их в команды приложения."""
+"""Request bodies for devices and translation to application commands."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from pydantic import Field, field_validator
 
 from backend.application.dto.devices.create_device_command import CreateDeviceCommand
 from backend.application.dto.devices.update_device_command import UpdateDeviceCommand
+from backend.domain.identifiers import EspDeviceId
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_kind import DeviceKind
 from backend.presentation.api.base import StrictModel
@@ -16,18 +17,19 @@ CHANNEL_MAX = 32
 
 
 class DeviceCreateBody(StrictModel):
-    """Описывает устройство, которое человек хочет завести.
+    """Describes a device the user wants to create.
 
-    Назначение и способности приходят строками: словарь домена — единственное место,
-    где они значат что-то, а тело запроса только переносит текст.
+    Kind and capabilities arrive as strings: the domain dictionary is the only place,
+    where they mean something, and the request body only carries the text.
 
     Attributes:
-        name: Имя, показанное человеку.
-        kind: Назначение устройства.
-        channel: Канал реле, к которому устройство подключают.
-        capabilities: Действия, которые устройство умеет.
-        enabled: Разрешено ли устройством управлять вообще.
-        automation_enabled: Участвует ли устройство в автоматизации.
+        name: Name shown to the person.
+        kind: What the device is for.
+        channel: Relay channel the device is connected to.
+        capabilities: Actions the device can perform.
+        enabled: Whether the device can be controlled at all.
+        automation_enabled: Whether the device participates in automation.
+        board_id: Board the channel is on, or None for single-board home.
     """
 
     name: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)
@@ -36,17 +38,18 @@ class DeviceCreateBody(StrictModel):
     capabilities: list[str]
     enabled: bool = True
     automation_enabled: bool = True
+    board_id: str | None = None
 
     @field_validator("kind")
     @classmethod
     def _known_kind(cls, value: str) -> str:
-        """Отвергает назначение, которого домен не знает.
+        """Rejects a kind unknown to the domain.
 
         Args:
-            value: Названное назначение устройства.
+            value: Named device kind.
 
         Returns:
-            str: То же значение, если оно читается перечислением.
+            str: The same value if it can be parsed by the enumeration.
         """
         DeviceKind.parse(value)
         return value
@@ -54,13 +57,13 @@ class DeviceCreateBody(StrictModel):
     @field_validator("capabilities")
     @classmethod
     def _known_capabilities(cls, value: list[str]) -> list[str]:
-        """Отвергает способность, которой нет в словаре домена.
+        """Rejects a capability absent from the domain dictionary.
 
         Args:
-            value: Названные способности.
+            value: Named capabilities.
 
         Returns:
-            list[str]: Те же значения, если каждое читается перечислением.
+            list[str]: The same values if each can be parsed by the enumeration.
         """
         for item in value:
             Capability.parse(item)
@@ -68,15 +71,15 @@ class DeviceCreateBody(StrictModel):
 
 
 class DeviceUpdateBody(StrictModel):
-    """Частичное изменение устройства.
+    """Partial update of a device.
 
     Attributes:
-        name: Новое имя или None.
-        kind: Новое назначение или None.
-        channel: Новый канал реле или None.
-        capabilities: Новые способности или None.
-        enabled: Новый признак доступности или None.
-        automation_enabled: Новый признак автоматизации или None.
+        name: New name or None.
+        kind: New kind or None.
+        channel: New relay channel or None.
+        capabilities: New capabilities or None.
+        enabled: New enabled flag or None.
+        automation_enabled: New automation enabled flag or None.
     """
 
     name: str | None = Field(default=None, min_length=1, max_length=NAME_MAX_LENGTH)
@@ -89,13 +92,13 @@ class DeviceUpdateBody(StrictModel):
     @field_validator("kind")
     @classmethod
     def _known_kind(cls, value: str | None) -> str | None:
-        """Отвергает назначение, которого домен не знает.
+        """Rejects a kind unknown to the domain.
 
         Args:
-            value: Названное назначение или None оставить нынешнее.
+            value: Named device kind or None to keep current.
 
         Returns:
-            str | None: То же значение, если оно читается перечислением.
+            str | None: The same value if it can be parsed by the enumeration.
         """
         if value is not None:
             DeviceKind.parse(value)
@@ -104,13 +107,13 @@ class DeviceUpdateBody(StrictModel):
     @field_validator("capabilities")
     @classmethod
     def _known_capabilities(cls, value: list[str] | None) -> list[str] | None:
-        """Отвергает способность, которой нет в словаре домена.
+        """Rejects a capability absent from the domain dictionary.
 
         Args:
-            value: Названные способности или None оставить нынешние.
+            value: Named capabilities or None to keep current.
 
         Returns:
-            list[str] | None: Те же значения, если каждое читается перечислением.
+            list[str] | None: The same values if each can be parsed by the enumeration.
         """
         if value is not None:
             for item in value:
@@ -119,13 +122,13 @@ class DeviceUpdateBody(StrictModel):
 
 
 def create_command(body: DeviceCreateBody) -> CreateDeviceCommand:
-    """Возвращает команду создания устройства.
+    """Returns a create device command.
 
     Args:
-        body: Описывает заводимое устройство.
+        body: Describes the device to be created.
 
     Returns:
-        CreateDeviceCommand: Команда, понятная сценарию приложения.
+        CreateDeviceCommand: Command understandable by the application scenario.
     """
     return CreateDeviceCommand(
         name=body.name,
@@ -134,17 +137,18 @@ def create_command(body: DeviceCreateBody) -> CreateDeviceCommand:
         capabilities=frozenset(Capability.parse(item) for item in body.capabilities),
         enabled=body.enabled,
         automation_enabled=body.automation_enabled,
+        board_id=None if body.board_id is None else EspDeviceId.parse(body.board_id),
     )
 
 
 def update_command(body: DeviceUpdateBody) -> UpdateDeviceCommand:
-    """Возвращает команду частичного изменения устройства.
+    """Returns a update device command.
 
     Args:
-        body: Поля, которые нужно изменить.
+        body: Fields to be changed.
 
     Returns:
-        UpdateDeviceCommand: Команда, понятная сценарию приложения.
+        UpdateDeviceCommand: Command understandable by the application scenario.
     """
     return UpdateDeviceCommand(
         name=body.name,

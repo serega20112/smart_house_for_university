@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from backend.application.dto.views.automation_view import AutomationView
 from backend.domain.identifiers import UserId
-from backend.domain.value_objects.automation.automation_view import AutomationView
 
 
 class AutomationQueries(Protocol):

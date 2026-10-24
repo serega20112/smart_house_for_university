@@ -1,4 +1,4 @@
-"""Частичное изменение устройства."""
+"""Data transfer object for updating a device."""
 
 from __future__ import annotations
 
@@ -10,18 +10,16 @@ from backend.domain.value_objects.devices.device_kind import DeviceKind
 
 @dataclass(frozen=True, slots=True)
 class UpdateDeviceCommand:
-    """Поля устройства, которые человек хочет изменить.
-
-    Каждое поле необязательное, а None означает «оставить», поэтому сценарию
-    приложения не нужно пересобирать агрегат из бесформенного словаря.
+    """Fields of a device that the user wants to update.
 
     Attributes:
-        name: Новое имя или None.
-        kind: Новое назначение или None.
-        channel: Новый канал реле или None.
-        capabilities: Новые способности или None.
-        enabled: Новый признак доступности или None.
-        automation_enabled: Новый признак автоматизации или None.
+        name: New name or None to keep current.
+        kind: New kind or None to keep current.
+        channel: New relay channel or None to keep current.
+        capabilities: New capabilities or None to keep current.
+        enabled: New enabled flag or None to keep current.
+        automation_enabled: New automation enabled flag or None to keep current.
+    
     """
 
     name: str | None = None

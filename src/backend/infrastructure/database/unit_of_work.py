@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Protocol, Self, cast
+from typing import Protocol, Self
 
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncSessionTransaction, async_sessionmaker
 
@@ -102,9 +102,12 @@ class SqlUnitOfWork:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Заканчивает транзакцию и отпускает сессию.
+        """Откатывает при ошибке и отпускает сессию, но не коммитит молча.
 
-        Исключение, если оно было, продолжается после отката.
+        Сохраняет только `commit()`, вызванный внутри блока; без него изменения не
+        фиксируются, а чистый выход лишь закрывает сессию (незакоммиченная транзакция
+        при закрытии откатится сама). При ошибке — явный откат. Соединение возвращает
+        в пул закрытие сессии.
 
         Args:
             exc_type: Тип поднятого исключения или None.
@@ -112,9 +115,7 @@ class SqlUnitOfWork:
             exc_tb: Его traceback или None.
         """
         try:
-            if exc_type is None:
-                await self.commit()
-            else:
+            if exc_type is not None:
                 await self.rollback()
         finally:
             if self._session is not None:
@@ -150,6 +151,10 @@ class SqlUnitOfWork:
     def repository[Bound: SessionBound](self, model: type[Bound]) -> Bound:
         """Возвращает единственный экземпляр хранилища, который даёт эта граница.
 
+        Кеш хранит разнородные хранилища под общим типом, поэтому попадание в кеш
+        проверяется `isinstance`: это и сужает тип до запрашиваемого хранилища, и
+        честно защищает от случая, когда под ключом лежит не то, что просят.
+
         Args:
             model: Класс хранилища, который надо вернуть.
 
@@ -159,13 +164,14 @@ class SqlUnitOfWork:
         Raises:
             RuntimeError: Когда границу используют вне её блока.
         """
+        cached = self._repositories.get(model)
+        if isinstance(cached, model):
+            return cached
         if self._session is None:
             raise RuntimeError("the unit of work is used outside of its block")
-        cached = self._repositories.get(model)
-        if cached is None:
-            cached = model(self._session)
-            self._repositories[model] = cached
-        return cast("Bound", cached)
+        created = model(self._session)
+        self._repositories[model] = created
+        return created
 
 
 class SqlAccountUnitOfWork(SqlUnitOfWork, AccountUnitOfWork):

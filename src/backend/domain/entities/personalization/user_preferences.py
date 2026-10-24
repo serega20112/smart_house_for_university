@@ -41,7 +41,7 @@ class UserPreferences:
         theme: Theme | None = None,
         language: InterfaceLanguage | None = None,
         show_command_chat: bool | None = None,
-    ) -> Self:
+    ) -> UserPreferences:
         """Возвращает настройки с изменёнными указанными полями.
 
         Каждое поле необязательное, а None означает «оставить»: частичное изменение
@@ -54,7 +54,7 @@ class UserPreferences:
             show_command_chat: Новый признак показа или None оставить нынешний.
 
         Returns:
-            Self: Изменённые настройки.
+            UserPreferences: Изменённые настройки.
         """
         return UserPreferences(
             user_id=self.user_id,

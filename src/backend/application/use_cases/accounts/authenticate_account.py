@@ -13,8 +13,6 @@ from backend.application.interfaces.services.security.password_hasher import Pas
 from backend.application.interfaces.services.security.session_token_issuer import SessionTokenIssuer
 from backend.application.use_cases.accounts.result import AuthenticatedSession
 from backend.domain.exceptions import InvalidEmailError
-from backend.domain.identifiers import UserId
-from backend.domain.value_objects.account.account_profile import AccountProfile
 from backend.domain.value_objects.account.email import Email
 
 
@@ -57,18 +55,12 @@ class AuthenticateAccountUseCase:
             email = Email.parse(command.email)
         except InvalidEmailError as error:
             raise InvalidCredentialsError() from error
-        stored = await self._queries.get_credentials(email.value)
-        if stored is None or not self._hasher.verify(command.password, stored.password_hash):
+        record = await self._queries.get_auth_record(email.value)
+        if record is None or not self._hasher.verify(command.password, record.password_hash):
             raise InvalidCredentialsError()
-        session = self._tokens.issue(stored.user_id)
+        session = self._tokens.issue(record.user_id)
         return AuthenticatedSession(
-            profile=await self._profile_of(stored.user_id),
+            profile=record.profile(),
             token=session.token,
             expires_at=session.expires_at,
         )
-
-    async def _profile_of(self, user_id: UserId) -> AccountProfile:
-        profile = await self._queries.get_profile(user_id)
-        if profile is None:
-            raise InvalidCredentialsError()
-        return profile

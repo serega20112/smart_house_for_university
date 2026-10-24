@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from backend.application.errors import (
     ConcurrentModificationError,
 )
+from backend.application.interfaces.repositories.scenario_repository import ScenarioRepository
 from backend.domain.aggregates.scenario.scenario import Scenario
 from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.identifiers import (
@@ -33,6 +34,7 @@ from backend.infrastructure.database.models import (
     ScenarioModel,
 )
 from backend.infrastructure.database.repositories.base import (
+    affected_rows,
     every_row,
     first_row,
     insert_rows,
@@ -43,7 +45,7 @@ UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
 
 
-class SqlScenarioRepository:
+class SqlScenarioRepository(ScenarioRepository):
     """Хранение временных сценариев одного аккаунта.
 
     Attributes:
@@ -74,14 +76,14 @@ class SqlScenarioRepository:
         )
         return [await self._restore(row) for row in result.scalars().all()]
 
-    async def list_holding_priority(self, user_id: UserId) -> Sequence[Scenario]:
+    async def list_holding_priority(self, user_id: UserId) -> list[Scenario]:
         """Возвращает сценарии, которые ещё ставят себя выше автоматики.
 
         Args:
             user_id: Владелец сценариев.
 
         Returns:
-            Sequence[Scenario]: Ожидающие и идущие сценарии.
+            list[Scenario]: Ожидающие и идущие сценарии.
         """
         holding = (ScenarioStatus.PENDING.value, ScenarioStatus.RUNNING.value)
         result = await self._session.execute(
@@ -156,7 +158,7 @@ class SqlScenarioRepository:
             )
         )
         await self._session.flush()
-        if not result.rowcount:
+        if not affected_rows(result):
             raise ConcurrentModificationError("scenario", scenario.id)
         scenario.version += 1
         await self._session.execute(

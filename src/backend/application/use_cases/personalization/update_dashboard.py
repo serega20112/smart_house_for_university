@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from backend.application.dto.personalization.dashboard_patch import DashboardPatch
+from backend.application.dto.views.dashboard_view import DashboardView
 from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.domain.aggregates.dashboard.dashboard_state import DashboardState
 from backend.domain.identifiers import UserId
-from backend.domain.value_objects.personalization.dashboard_view import DashboardView
 
 
 class UpdateDashboardUseCase:
@@ -40,4 +40,5 @@ class UpdateDashboardUseCase:
             devices = await uow.devices.list_all(user_id)
             state = state.rearranged(patch.widgets, frozenset(device.id for device in devices))
             await uow.dashboard.save(state)
+            await uow.commit()
         return DashboardView(widgets=state.widgets)

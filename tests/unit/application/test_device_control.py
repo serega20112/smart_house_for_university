@@ -48,7 +48,7 @@ class FakeBoardGateway(BoardGateway):
         self.commands: list[tuple[int, bool]] = []
         self.board_id = EspDeviceId.generate()
 
-    def board_for(self, user_id: UserId) -> EspDeviceId | None:
+    async def board_for(self, user_id: UserId) -> EspDeviceId | None:
         del user_id
         return self.board_id
 
@@ -67,7 +67,7 @@ class FakeBoardGateway(BoardGateway):
     ) -> BoardCommandResult:
         return BoardCommandResult(accepted=True)
 
-    def is_connected(self, user_id: UserId, board_id: DeviceId) -> bool:
+    async def is_connected(self, user_id: UserId, board_id: DeviceId) -> bool:
         return True
 
 
@@ -132,7 +132,8 @@ class RecordingHomeUnitOfWork:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         self.is_open = False
-        self._journal.append("uow_commit" if exc_type is None else "uow_rollback")
+        if exc_type is not None:
+            self._journal.append("uow_rollback")
 
     async def commit(self) -> None:
         self._journal.append("uow_commit")
@@ -253,7 +254,6 @@ async def test_apply_to_device_commits_before_publishing_and_dispatching() -> No
     assert view.status.value == "ACTIVE"
     assert journal == [
         "uow_open",
-        "uow_commit",
         "board",
         "state_record_command",
         "uow_open",
@@ -279,7 +279,7 @@ async def test_apply_to_device_asks_the_board_outside_a_transaction() -> None:
         openness.extend(unit.is_open for unit in factory.units)
         return await original_set_relay(user_id, board_id, channel, energized)
 
-    boards.set_relay = set_relay  # type: ignore[method-assign]
+    boards.set_relay = set_relay
     service = DeviceControlService(
         home_uow=factory,
         boards=boards,

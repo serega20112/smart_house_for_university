@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from backend.application.errors import (
     ConcurrentModificationError,
 )
+from backend.application.interfaces.repositories.automation_repository import AutomationRepository
 from backend.domain.aggregates.automation.automation_settings import AutomationSettings
 from backend.domain.identifiers import (
     UserId,
@@ -23,6 +24,7 @@ from backend.infrastructure.database.models import (
     AutomationParticipantModel,
 )
 from backend.infrastructure.database.repositories.base import (
+    affected_rows,
     first_row,
     insert_rows,
     row_values,
@@ -34,7 +36,7 @@ UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
 
 
-class SqlAutomationRepository:
+class SqlAutomationRepository(AutomationRepository):
     """Хранение настройки автоматизации одного аккаунта.
 
     Attributes:
@@ -96,7 +98,7 @@ class SqlAutomationRepository:
             )
         )
         await self._session.flush()
-        if not result.rowcount:
+        if not affected_rows(result):
             raise ConcurrentModificationError("automation", settings.user_id)
         settings.version += 1
         await self._session.execute(

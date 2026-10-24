@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from backend.domain.aggregates.device.device import Device
-from backend.domain.identifiers import DeviceId, UserId
+from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_kind import DeviceKind
 from backend.domain.value_objects.devices.relay_channel import RelayChannel
@@ -21,6 +21,7 @@ def device_to_row(device: Device) -> DeviceModel:
         name=device.name,
         kind=device.kind.value,
         channel=int(device.channel),
+        board_id=None if device.board_id is None else device.board_id.value,
         enabled=device.enabled,
         automation_enabled=device.automation_enabled,
         version=device.version,
@@ -39,6 +40,7 @@ def device_from_row(row: DeviceModel, capabilities: frozenset[Capability]) -> De
         name=row.name,
         kind=DeviceKind.parse(row.kind),
         channel=RelayChannel(row.channel),
+        board_id=None if row.board_id is None else EspDeviceId.parse(row.board_id),
         capabilities=capabilities,
         enabled=row.enabled,
         automation_enabled=row.automation_enabled,

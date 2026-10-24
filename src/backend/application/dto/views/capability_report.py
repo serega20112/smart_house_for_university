@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from backend.application.dto.views.device_view import DeviceView
 from backend.domain.value_objects.devices.capability import Capability
-from backend.domain.value_objects.devices.device_view import DeviceView
 
 
 @dataclass(frozen=True, slots=True)

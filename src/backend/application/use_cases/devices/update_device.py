@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from backend.application.dto.devices.update_device_command import UpdateDeviceCommand
+from backend.application.dto.views.device_view import DeviceView
 from backend.application.errors import (
     ConcurrentModificationError,
     DeviceNotFoundError,
@@ -16,7 +17,6 @@ from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFacto
 from backend.domain.aggregates.device.device import Device
 from backend.domain.events import EventName
 from backend.domain.identifiers import DeviceId, UserId
-from backend.domain.value_objects.devices.device_view import DeviceView
 from backend.domain.value_objects.devices.relay_channel import RelayChannel
 
 
@@ -69,16 +69,7 @@ class UpdateDeviceUseCase:
             ChannelConflictError: Когда новый канал уже занят.
             ConcurrentModificationError: Когда гонку продолжают выигрывать другие.
         """
-        stored: Device | ConcurrentModificationError = await self._attempt(
-            user_id, device_id, command
-        )
-        for _ in range(self._refresh_attempts - 1):
-            if not isinstance(stored, ConcurrentModificationError):
-                break
-            stored = await self._attempt(user_id, device_id, command)
-        if isinstance(stored, ConcurrentModificationError):
-            raise stored
-        device = stored
+        device = await self._apply_repeated(user_id, device_id, command)
         await self._realtime.publish(
             user_id, EventName.DEVICES_UPDATED, {"updated": str(device_id)}
         )
@@ -86,9 +77,37 @@ class UpdateDeviceUseCase:
         state = await self._state_store.read(user_id)
         return DeviceView.of(device, state.status_of(device))
 
-    async def _attempt(
+    async def _apply_repeated(
         self, user_id: UserId, device_id: DeviceId, command: UpdateDeviceCommand
-    ) -> Device | ConcurrentModificationError:
+    ) -> Device:
+        """Повторяет изменение по свежему снимку, пока гонку не удастся выиграть.
+
+        Каждое повторение — отдельная короткая транзакция: проиграв запись, сценарий
+        откатывает её и перечитывает устройство заново, а не перетирает то, что успел
+        изменить другой. Исчерпав попытки, бросает честную ошибку с настоящим
+        идентификатором устройства.
+
+        Args:
+            user_id: Владелец, разрешённый из сессии.
+            device_id: Идентификатор устройства.
+            command: Поля, которые нужно изменить.
+
+        Returns:
+            Device: Обновлённое устройство.
+
+        Raises:
+            ConcurrentModificationError: Когда гонку продолжают выигрывать другие.
+        """
+        for _ in range(max(1, self._refresh_attempts)):
+            try:
+                return await self._apply_once(user_id, device_id, command)
+            except ConcurrentModificationError:
+                continue
+        raise ConcurrentModificationError("device", device_id)
+
+    async def _apply_once(
+        self, user_id: UserId, device_id: DeviceId, command: UpdateDeviceCommand
+    ) -> Device:
         """Заявляет изменение один раз на снимке, который читает транзакция.
 
         Args:
@@ -97,24 +116,25 @@ class UpdateDeviceUseCase:
             command: Поля, которые нужно изменить.
 
         Returns:
-            Device | ConcurrentModificationError: Обновлённое устройство или гонка,
-            которую эта попытка проиграла.
+            Device: Обновлённое устройство.
+
+        Raises:
+            DeviceNotFoundError: Когда такого устройства у аккаунта нет.
+            ConcurrentModificationError: Когда запись проиграла гонку.
         """
         async with self._home_uow() as uow:
             device = await uow.devices.get(user_id, device_id)
             if device is None:
                 raise DeviceNotFoundError(device_id)
-            try:
-                device.reconfigure(
-                    name=command.name,
-                    kind=command.kind,
-                    channel=(None if command.channel is None else RelayChannel(command.channel)),
-                    capabilities=command.capabilities,
-                    enabled=command.enabled,
-                    automation_enabled=command.automation_enabled,
-                )
-                device.record_change()
-                await uow.devices.update(device)
-            except ConcurrentModificationError as lost:
-                return lost
+            device.reconfigure(
+                name=command.name,
+                kind=command.kind,
+                channel=(None if command.channel is None else RelayChannel(command.channel)),
+                capabilities=command.capabilities,
+                enabled=command.enabled,
+                automation_enabled=command.automation_enabled,
+            )
+            device.record_change()
+            await uow.devices.update(device)
+            await uow.commit()
             return device

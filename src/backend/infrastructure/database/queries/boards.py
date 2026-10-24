@@ -6,15 +6,15 @@
 from __future__ import annotations
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend.application.dto.views.board_claim_view import BoardClaimView
+from backend.application.dto.views.board_view import BoardView
 from backend.domain.identifiers import (
     EspClaimId,
     EspDeviceId,
     UserId,
 )
-from backend.domain.value_objects.boards.board_claim_view import BoardClaimView
-from backend.domain.value_objects.boards.board_view import BoardView
 from backend.infrastructure.database.mappers.base import as_utc
 from backend.infrastructure.database.models import (
     EspClaimModel,
@@ -23,19 +23,23 @@ from backend.infrastructure.database.models import (
 
 
 class SqlBoardQueries:
-    """Чтения плат без транзакции.
+    """Чтения плат без явной транзакции.
+
+    Чтения идут через сессию, а не через голое соединение: только сессия гидратирует
+    ORM-сущности, и потому `select(EspDeviceModel)` отдаёт строку-плату, а не первый
+    столбец.
 
     Attributes:
-        engine: Движок, на котором выполняют чтения.
+        session_factory: Фабрика сессий, на которой выполняют чтения.
     """
 
-    def __init__(self, engine: AsyncEngine) -> None:
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         """Инициализирует чтения.
 
         Args:
-            engine: Движок, из которого читают.
+            session_factory: Фабрика сессий, из которой читают.
         """
-        self._engine = engine
+        self._session_factory = session_factory
 
     async def list_all(self, user_id: UserId) -> list[BoardView]:
         """Возвращает все платы аккаунта.
@@ -46,8 +50,8 @@ class SqlBoardQueries:
         Returns:
             list[BoardView]: Платы, приготовленные для показа.
         """
-        async with self._engine.connect() as connection:
-            result = await connection.execute(
+        async with self._session_factory() as session:
+            result = await session.execute(
                 select(EspDeviceModel)
                 .where(EspDeviceModel.user_id == user_id.value)
                 .order_by(EspDeviceModel.created_at, EspDeviceModel.id)
@@ -63,8 +67,8 @@ class SqlBoardQueries:
         Returns:
             list[BoardClaimView]: Открытые предложения.
         """
-        async with self._engine.connect() as connection:
-            result = await connection.execute(
+        async with self._session_factory() as session:
+            result = await session.execute(
                 select(EspClaimModel)
                 .where(EspClaimModel.claimed_by.is_(None))
                 .order_by(EspClaimModel.announced_at.desc(), EspClaimModel.id)

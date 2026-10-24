@@ -10,7 +10,8 @@
 платы и разбор её сообщений из прикладного слоя.
 
 Чужой путь закрывается кодом `4404`, отказ в допуске — `4401`, плата, ждущая хозяина,
-— `4403`. Коды остаются механикой сокета, их причину прикладной слой называет словом.
+— `4403`, а таймаут рукопожатия — `4408`: ключа ещё не прозвучало, врать про него
+нельзя. Коды остаются механикой сокета, их причину прикладной слой называет словом.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from backend.application.use_cases.boards.admit_board import AdmitBoardUseCase
 from backend.application.use_cases.boards.route_board_message import RouteBoardMessageUseCase
 from backend.domain.identifiers import EspDeviceId, UserId
 from backend.domain.value_objects.boards.network_profile import NetworkProfile
+from backend.infrastructure.brokers.board_presence import RedisBoardPresence
 from backend.infrastructure.esp import protocol, wire
 from backend.infrastructure.esp.session import (
     ACK_TIMEOUT_REASON,
@@ -42,6 +44,7 @@ log = get_logger("esp.connection")
 CLOSE_WRONG_PATH = 4404
 CLOSE_UNKNOWN_KEY = 4401
 CLOSE_AWAITING_OWNER = 4403
+CLOSE_HANDSHAKE_TIMEOUT = 4408
 
 
 class EspConnection:
@@ -58,6 +61,7 @@ class EspConnection:
         handshake_timeout_sec: Сколько секунд ждётся первый кадр платы.
         ping_interval_sec: Интервал служебных кадров поддержки соединения.
         ping_timeout_sec: Сколько секунд ждётся ответ на такой кадр.
+        presence: Разделённый реестр подключённых плат, который транспорт обновляет.
     """
 
     def __init__(
@@ -72,6 +76,7 @@ class EspConnection:
         handshake_timeout_sec: float,
         ping_interval_sec: int,
         ping_timeout_sec: int,
+        presence: RedisBoardPresence | None = None,
     ) -> None:
         """Инициализирует транспорт."""
         self._report = report
@@ -84,6 +89,7 @@ class EspConnection:
         self._handshake_timeout = handshake_timeout_sec
         self._ping_interval = ping_interval_sec
         self._ping_timeout = ping_timeout_sec
+        self._presence = presence
         self._registry = BoardRegistry()
         self._server: Server | None = None
 
@@ -270,6 +276,7 @@ class EspConnection:
         """
         session = self._registry.open(user_id, board_id, connection)
         await self._report.on_connected(user_id, board_id)
+        await self._mark_online(user_id, board_id)
         await self.confirm_ownership(user_id, board_id)
         await self.request_state(user_id, board_id)
         log.info("esp.board_connected", user=str(user_id), board=str(board_id))
@@ -283,6 +290,7 @@ class EspConnection:
                         size=len(raw),
                     )
                     continue
+                await self._refresh(user_id, board_id)
                 message = wire.read_message(raw)
                 if isinstance(message, BoardAck):
                     session.resolve_ack(message.command_id)
@@ -298,8 +306,30 @@ class EspConnection:
         finally:
             self._registry.close(session)
             session.cancel_pending()
+            await self._mark_offline(user_id, board_id)
             await self._report.on_disconnected(user_id, board_id)
             log.info("esp.board_disconnected", user=str(user_id), board=str(board_id))
+
+    async def _mark_online(self, user_id: UserId, board_id: EspDeviceId) -> None:
+        """Заносит плату в общий реестр, не превращая отказ реестра в аварию сокета."""
+        if self._presence is None:
+            return
+        with suppress(Exception):
+            await self._presence.mark_online(user_id, board_id)
+
+    async def _refresh(self, user_id: UserId, board_id: EspDeviceId) -> None:
+        """Продлевает присутствие платы по признаку жизни её соединения."""
+        if self._presence is None:
+            return
+        with suppress(Exception):
+            await self._presence.refresh(user_id, board_id)
+
+    async def _mark_offline(self, user_id: UserId, board_id: EspDeviceId) -> None:
+        """Убирает плату из общего реестра при уходе её соединения."""
+        if self._presence is None:
+            return
+        with suppress(Exception):
+            await self._presence.mark_offline(user_id, board_id)
 
     async def _await_owner(self, connection: ServerConnection, label: str, ttl_sec: int) -> None:
         """Сообщает плате без хозяина, что её узнали, и закрывает соединение.
@@ -335,7 +365,7 @@ class EspConnection:
             raw = await asyncio.wait_for(connection.recv(), timeout=self._handshake_timeout)
         except TimeoutError:
             log.warning("esp.handshake_timeout")
-            await connection.close(code=CLOSE_UNKNOWN_KEY, reason="handshake timeout")
+            await connection.close(code=CLOSE_HANDSHAKE_TIMEOUT, reason="handshake timeout")
             return None
         except Exception as error:
             log.warning("esp.handshake_failed", error=str(error))

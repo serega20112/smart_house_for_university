@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from backend.domain.value_objects.boards.board_view import BoardView
+from backend.application.dto.views.board_view import BoardView
 
 
 @dataclass(frozen=True, slots=True)

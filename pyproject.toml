@@ -9,12 +9,14 @@ dependencies = [
     "uvicorn[standard]>=0.30",
     "pydantic>=2.9",
     "pydantic-settings>=2.5",
+    "python-dotenv>=1.0",
     "sqlalchemy[asyncio]>=2.0.36",
     "asyncpg>=0.30",
     "alembic>=1.14",
     "pgvector>=0.3.6",
     "redis>=5.2",
     "arq>=0.26",
+    "prometheus-client>=0.20",
     "dishka>=1.4",
     "pyjwt>=2.9",
     "structlog>=24.4",
@@ -43,7 +45,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["backend"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["backend*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
@@ -75,6 +80,33 @@ known-first-party = ["backend"]
 
 [tool.ruff.format]
 quote-style = "double"
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+packages = ["backend"]
+no_implicit_optional = true
+check_untyped_defs = true
+disallow_incomplete_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["sentence_transformers.*", "pgvector.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["backend"]
+
+[tool.coverage.report]
+fail_under = 70
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
 
 [tool.importlinter]
 root_packages = ["backend"]

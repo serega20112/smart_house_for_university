@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from backend.domain.value_objects.personalization.dashboard_view import DashboardView
-from backend.domain.value_objects.personalization.preferences_view import PreferencesView
+from backend.application.dto.views.dashboard_view import DashboardView
+from backend.application.dto.views.preferences_view import PreferencesView
 from backend.presentation.api.responses.common import StrictModel
 
 

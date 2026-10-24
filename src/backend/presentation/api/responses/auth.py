@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from backend.application.dto.views.account_profile import AccountProfile
 from backend.application.use_cases.accounts.result import AuthenticatedSession
-from backend.domain.value_objects.account.account_profile import AccountProfile
 from backend.presentation.api.responses.common import StrictModel
 
 
@@ -39,6 +39,18 @@ class SessionResponse(StrictModel):
     token_type: str = "bearer"
     expires_at: datetime
     user: UserResponse
+
+
+class RealtimeTicketResponse(StrictModel):
+    """Одноразовый билет, которым интерфейс откроет WebSocket.
+
+    Attributes:
+        ticket: Строка билета, годная ровно на один обмен на сессию.
+        expires_in_sec: Сколько секунд билет остаётся годным.
+    """
+
+    ticket: str
+    expires_in_sec: int
 
 
 def session_of(session: AuthenticatedSession) -> SessionResponse:

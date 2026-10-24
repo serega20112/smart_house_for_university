@@ -1,10 +1,10 @@
 """События протокола через Redis Pub/Sub.
 
 Событие доходит до одного аккаунта через его собственный канал, а факт, который ни к
-кому конкретно не обращён, — через общий канал. Подписчики читают оба потока блокирующим
-клиентом, поэтому :class:`RedisSubscriber` владеет собственным синхронным соединением, а
-не одалживает асинхронное: ``pubsub.listen`` блокирует, и блокировать цикл событий
-запросом было бы хуже второго соединения.
+кому конкретно не обращён, — через общий канал. Подписчик читает оба потока
+асинхронным клиентом `redis.asyncio`: каждое сообщение приходит в цикл событий без
+единого потока и без блокирующего `pubsub.listen`, поэтому одно соединение не утаскивает
+за собой другое и не занимает общий пул потоков.
 
 Здесь никто не знает про сокеты. Асинхронный итерируемый поток потребляет концентратор
 вебсокетов презентационного слоя и раздаёт события куда ему угодно.
@@ -12,16 +12,12 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
-import threading
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from queue import Queue
 from typing import Any
 
-import redis
 from redis.asyncio import Redis as AsyncRedis
 
 from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
@@ -30,8 +26,6 @@ from backend.infrastructure.brokers import keys
 from backend.infrastructure.system.logging import get_logger
 
 log = get_logger("redis.event_broker")
-
-CLOSING = object()
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,32 +90,34 @@ class RedisEventBroker(RealtimePublisher):
 
 
 class RedisSubscriber:
-    """Блокирующий подписчик, представленный как асинхронный итерируемый поток.
+    """Асинхронный подписчик, представленный итерируемым потоком событий.
 
-    Цикл блокирующего ``pubsub.listen`` крутится на собственном потоке и передаёт
-    каждое сообщение в цикл событий через неограниченную очередь, поэтому потребитель
-    может просто писать ``async for`` по потоку из обработчика запроса.
+    Каждое обращение к :meth:`stream` открывает собственную подписку поверх общего
+    асинхронного соединения: ``redis.asyncio`` берёт для pub/sub отдельное соединение из
+    пула и возвращает его обратно при закрытии, поэтому число одновременно живущих
+    подписок ограничено размером пула и не разрастается фоновыми потоками.
 
     Attributes:
-        url: Адрес подключения синхронного клиента Redis.
-        password: Пароль подключения или None, когда соединение открытое.
+        redis: Асинхронное соединение, из которого берутся подписки.
         key_prefix: Пространство имён, с которого начинается каждый канал адаптера.
     """
 
-    def __init__(self, url: str, password: str | None, key_prefix: str) -> None:
+    def __init__(self, redis: AsyncRedis, key_prefix: str) -> None:
         """Инициализирует подписчика.
 
         Args:
-            url: Адрес подключения синхронного клиента Redis.
-            password: Пароль подключения или None, когда соединение открытое.
+            redis: Асинхронное соединение, из которого берутся подписки.
             key_prefix: Пространство имён, с которого начинается каждый канал адаптера.
         """
-        self._url = url
-        self._password = password
+        self._redis = redis
         self._prefix = key_prefix
 
     async def stream(self, user_id: UserId | None = None) -> AsyncIterator[PublishedEvent]:
         """Отдаёт всякое событие, адресованное аккаунту и всем сразу.
+
+        Подписка закрывается и соединение возвращается в пул, когда потребитель
+        выходит из потока или отменяет его: ни одна подписка не переживает того, кто
+        её открыл.
 
         Args:
             user_id: Владелец, на чей канал подписываются, или None, чтобы подписаться
@@ -131,33 +127,19 @@ class RedisSubscriber:
             PublishedEvent: События по мере прихода, в порядке прихода.
         """
         channels = self._channels(user_id)
-        client = redis.Redis.from_url(self._url, password=self._password)
-        pubsub = client.pubsub(ignore_subscribe_messages=True)
-        incoming: Queue[PublishedEvent | object] = Queue()
-
-        def pump() -> None:
-            try:
-                for message in pubsub.listen():
-                    received = _decode(message)
-                    if received is not None:
-                        incoming.put(received)
-            except Exception as error:
-                log.error("redis.subscription_failed", error=str(error))
-            finally:
-                incoming.put(CLOSING)
-
-        thread = threading.Thread(target=pump, name="redis-subscriber", daemon=True)
-        pubsub.subscribe(*channels)
-        thread.start()
+        pubsub = self._redis.pubsub(ignore_subscribe_messages=True)
+        await pubsub.subscribe(*channels)
         try:
             while True:
-                message = await _next(incoming)
-                if message is CLOSING:
-                    return
-                if isinstance(message, PublishedEvent):
-                    yield message
+                message = await pubsub.get_message(timeout=1.0)
+                if message is None:
+                    continue
+                received = _decode(message)
+                if received is not None:
+                    yield received
         finally:
-            pubsub.close()
+            await pubsub.unsubscribe(*channels)
+            await pubsub.aclose()
 
     def _channels(self, user_id: UserId | None) -> tuple[str, ...]:
         """Возвращает каналы, на которые нужно подписаться."""
@@ -165,10 +147,6 @@ class RedisSubscriber:
         if user_id is None:
             return (subscribed,)
         return (keys.user_channel(self._prefix, user_id), subscribed)
-
-
-async def _next(incoming: Queue[PublishedEvent | object]) -> PublishedEvent | object:
-    return await asyncio.to_thread(incoming.get)
 
 
 def _encode(user_id: UserId | None, event: str, payload: dict[str, Any]) -> str:

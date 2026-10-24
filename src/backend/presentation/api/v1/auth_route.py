@@ -12,10 +12,14 @@ from fastapi import APIRouter, status
 
 from backend.application.errors import AccountNotFoundError
 from backend.application.interfaces.queries.account_queries import AccountQueries
+from backend.application.interfaces.services.security.realtime_ticket_store import (
+    RealtimeTicketStore,
+)
 from backend.application.use_cases.accounts.authenticate_account import (
     AuthenticateAccountUseCase,
 )
 from backend.application.use_cases.accounts.register_account import RegisterAccountUseCase
+from backend.config.settings import Settings
 from backend.presentation.api.requests.auth import (
     LoginBody,
     RegisterBody,
@@ -23,6 +27,7 @@ from backend.presentation.api.requests.auth import (
     register_command,
 )
 from backend.presentation.api.responses.auth import (
+    RealtimeTicketResponse,
     SessionResponse,
     UserResponse,
     profile_of,
@@ -104,3 +109,27 @@ async def read_session(user_id: CurrentUserId, queries: FromDishka[AccountQuerie
     if profile is None:
         raise AccountNotFoundError(user_id)
     return profile_of(profile)
+
+
+@router.post("/realtime-ticket", response_model=RealtimeTicketResponse)
+async def realtime_ticket(
+    user_id: CurrentUserId,
+    tickets: FromDishka[RealtimeTicketStore],
+    settings: FromDishka[Settings],
+) -> RealtimeTicketResponse:
+    """Выдаёт одноразовый билет, которым интерфейс откроет WebSocket.
+
+    Держать токен сессии в строке запроса соединения нельзя: адрес попадает в логи и
+    историю. Поэтому под текущей сессией выдаётся короткий билет, который WebSocket
+    обменяет на аккаунт ровно один раз.
+
+    Args:
+        user_id: Владелец, разрешённый из bearer-токена.
+        tickets: Хранилище одноразовых билетов.
+        settings: Конфигурация, задающая срок жизни билета.
+
+    Returns:
+        RealtimeTicketResponse: Билет и число секунд его жизни.
+    """
+    ticket = await tickets.issue(user_id)
+    return RealtimeTicketResponse(ticket=ticket, expires_in_sec=settings.realtime_ticket_ttl_sec)

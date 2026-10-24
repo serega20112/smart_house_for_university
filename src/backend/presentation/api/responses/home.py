@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from backend.domain.value_objects.home.home_snapshot_view import HomeSnapshotView
+from backend.application.dto.views.home_snapshot_view import HomeSnapshotView
 from backend.presentation.api.responses.automation import AutomationResponse, automation_of
 from backend.presentation.api.responses.common import StrictModel
 from backend.presentation.api.responses.devices import DeviceResponse, device_of

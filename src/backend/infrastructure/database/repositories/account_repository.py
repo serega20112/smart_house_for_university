@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from backend.application.errors import (
     EmailAlreadyTakenError,
 )
+from backend.application.interfaces.repositories.account_repository import AccountRepository
 from backend.domain.aggregates.user.user import User
 from backend.domain.identifiers import (
     UserId,
@@ -27,7 +28,7 @@ UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
 
 
-class SqlAccountRepository:
+class SqlAccountRepository(AccountRepository):
     """Хранение аккаунтов системы.
 
     Attributes:

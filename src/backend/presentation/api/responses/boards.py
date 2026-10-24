@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from backend.application.dto.views.board_claim_view import BoardClaimView
+from backend.application.dto.views.board_network_view import BoardNetworkView
+from backend.application.dto.views.board_view import BoardView
 from backend.application.use_cases.boards.result import PairedBoard
-from backend.domain.value_objects.boards.board_claim_view import BoardClaimView
-from backend.domain.value_objects.boards.board_network_view import BoardNetworkView
-from backend.domain.value_objects.boards.board_view import BoardView
 from backend.presentation.api.responses.common import StrictModel
 
 

@@ -31,3 +31,12 @@ def auth_session_lifetime_minutes() -> int:
         int: Минуты жизни сессии.
     """
     return int(os.getenv("AUTH_SESSION_LIFETIME_MINUTES", "720"))
+
+
+def realtime_ticket_ttl_sec() -> int:
+    """Сколько секунд живёт одноразовый билет, которым WebSocket меняется на сессию.
+
+    Returns:
+        int: Секунды жизни билета; по умолчанию достаточно, чтобы открыть соединение.
+    """
+    return int(os.getenv("REALTIME_TICKET_TTL_SEC", "30"))

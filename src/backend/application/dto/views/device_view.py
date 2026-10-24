@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
-from backend.domain.identifiers import DeviceId
+from backend.domain.identifiers import DeviceId, EspDeviceId
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_kind import DeviceKind
 from backend.domain.value_objects.devices.device_status import DeviceStatus
@@ -27,6 +27,7 @@ class DeviceView:
         enabled: Можно ли устройством управлять в принципе.
         automation_enabled: Участвует ли устройство в автоматизации.
         status: Что устройство делает прямо сейчас.
+        board_id: Плата, на которой стоит канал, или None, когда она не закреплена.
     """
 
     id: DeviceId
@@ -37,6 +38,7 @@ class DeviceView:
     enabled: bool
     automation_enabled: bool
     status: DeviceStatus
+    board_id: EspDeviceId | None = None
 
     @classmethod
     def of(cls, device: Device, status: DeviceStatus) -> DeviceView:
@@ -62,6 +64,7 @@ class DeviceView:
             enabled=device.enabled,
             automation_enabled=device.automation_enabled,
             status=status,
+            board_id=device.board_id,
         )
 
     def with_status(self, status: DeviceStatus) -> DeviceView:

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from backend.application.dto.views.device_view import DeviceView
 from backend.application.interfaces.queries.device_queries import DeviceQueries
 from backend.application.interfaces.services.state.home_state_store import HomeStateStore
 from backend.domain.identifiers import UserId
-from backend.domain.value_objects.devices.device_view import DeviceView
 
 
 class ListDevicesUseCase:

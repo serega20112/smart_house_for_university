@@ -21,7 +21,8 @@ def test_parse_inbound_reads_a_hello_frame() -> None:
 
     assert isinstance(frame, protocol.HelloFrame)
     assert frame.label == "smart relay"
-    assert frame.pairing_key is None
+    assert frame.pairing_key == ""
+    assert frame.protocol_version == protocol.PROTOCOL_VERSION
 
 
 def test_parse_inbound_reads_a_state_frame() -> None:

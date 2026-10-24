@@ -3,8 +3,8 @@
 ## Транспорт
 
 * WebSocket. ESP8266 — **клиент**, backend — **сервер**
-  (`ws://<backend-host>:8765/ws/board`; адрес задаётся `BOARD_SOCKET_PORT` и
-  `BOARD_SOCKET_PATH`).
+  (`ws://<backend-host>:8001/ws/board`; адрес задаётся `BOARD_SOCKET_PORT` и
+  `BOARD_SOCKET_PATH`, по умолчанию — порт 8001 и путь `/ws/board`).
 * Каждое сообщение — один JSON-объект в текстовом кадре. С обеих сторон кадр строит и
   читает ArduinoJson: на плате — документом на стеке, на сервере — моделью Pydantic.
 * Версия протокола и **ключ платы** передаются ESP в первом сообщении `HELLO`
@@ -158,7 +158,7 @@ ESP отвечает `STATE`.
   "password": "пароль",
   "host": "192.168.1.10",
   "server_port": 8000,
-  "socket_port": 8765,
+  "socket_port": 8001,
   "socket_path": "/ws/board"
 }
 ```
@@ -170,8 +170,8 @@ ESP отвечает `STATE`.
 | `password` | string | Пароль сети, пустая строка для открытой сети |
 | `host` | string | Числовой адрес сервера |
 | `server_port` | int | Порт обычного интерфейса сервера |
-| `socket_port` | int | Порт доски на сервере |
-| `socket_path` | string | Путь доски на сервере |
+| `socket_port` | int | Порт WebSocket-сервера плат на сервере |
+| `socket_path` | string | Путь WebSocket-сервера плат на сервере |
 
 Плата записывает значения в EEPROM, отвечает `ACK` с тем же `command_id`,
 переходит в новую сеть и переподключается к серверу по новому адресу.

@@ -12,6 +12,7 @@ from __future__ import annotations
 from backend.application.dto.boards.announce_board_command import AnnounceBoardCommand
 from backend.application.dto.boards.claim_board_command import ClaimBoardCommand
 from backend.application.dto.boards.pair_board_command import PairBoardCommand
+from backend.application.dto.views.board_view import BoardView
 from backend.application.errors import (
     BoardAlreadyClaimedError,
     BoardNotFoundError,
@@ -29,7 +30,6 @@ from backend.domain.aggregates.esp_device.esp_device import EspDevice
 from backend.domain.entities.esp_claim.esp_claim import EspClaim
 from backend.domain.events import EventName
 from backend.domain.identifiers import EspDeviceId, UserId
-from backend.domain.value_objects.boards.board_view import BoardView
 from backend.domain.value_objects.boards.pairing_key import PairingKey
 
 
@@ -84,6 +84,7 @@ class BoardOnboardingService:
             label = command.label or EspClaim.label_from_key(key)
             offer = EspClaim.announce(key, label, now, self._claim_ttl_sec)
             await uow.claims.add(offer)
+            await uow.commit()
         await self._realtime.broadcast(
             EventName.BOARD_ANNOUNCEMENT_PUBLISHED,
             {
@@ -129,6 +130,7 @@ class BoardOnboardingService:
                 paired_at=now,
             )
             await uow.boards.add(board)
+            await uow.commit()
         await self._realtime.publish(
             user_id,
             EventName.BOARD_PAIRED,
@@ -162,6 +164,7 @@ class BoardOnboardingService:
                 paired_at=self._clock.now(),
             )
             await uow.boards.add(board)
+            await uow.commit()
         return PairedBoard(
             board=BoardView(id=board.id, name=board.name, online=False, last_seen_at=None),
             pairing_key=key.value,
@@ -179,6 +182,8 @@ class BoardOnboardingService:
         """
         async with self._uow() as uow:
             removed = await uow.boards.delete(user_id, board_id)
+            if removed:
+                await uow.commit()
         if not removed:
             raise BoardNotFoundError(board_id)
 
@@ -192,4 +197,7 @@ class BoardOnboardingService:
             int: Число убранных предложений.
         """
         async with self._uow() as uow:
-            return await uow.claims.delete_expired(self._clock.now())
+            removed = await uow.claims.delete_expired(self._clock.now())
+            if removed:
+                await uow.commit()
+        return removed

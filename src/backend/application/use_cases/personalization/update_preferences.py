@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from backend.application.dto.personalization.preferences_patch import PreferencesPatch
+from backend.application.dto.views.preferences_view import PreferencesView
 from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.domain.entities.personalization.user_preferences import UserPreferences
 from backend.domain.identifiers import UserId
-from backend.domain.value_objects.personalization.preferences_view import PreferencesView
 
 
 class UpdatePreferencesUseCase:
@@ -40,6 +40,7 @@ class UpdatePreferencesUseCase:
                 show_command_chat=patch.show_command_chat,
             )
             await uow.preferences.save(preferences)
+            await uow.commit()
         return PreferencesView(
             temperature_unit=preferences.temperature_unit,
             theme=preferences.theme,

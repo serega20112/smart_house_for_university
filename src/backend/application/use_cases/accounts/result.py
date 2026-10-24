@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from backend.domain.value_objects.account.account_profile import AccountProfile
+from backend.application.dto.views.account_profile import AccountProfile
 
 
 @dataclass(frozen=True, slots=True)

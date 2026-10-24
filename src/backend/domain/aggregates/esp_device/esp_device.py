@@ -85,7 +85,7 @@ class EspDevice:
             created_at=paired_at,
         )
 
-    def seen(self, at: datetime, ssid: str | None) -> Self:
+    def seen(self, at: datetime, ssid: str | None) -> EspDevice:
         """Возвращает плату такой, какой её видели в последний раз.
 
         Args:
@@ -93,7 +93,7 @@ class EspDevice:
             ssid: Сеть, о которой сообщила плата, или None.
 
         Returns:
-            Self: Плата с тем, что она сообщила.
+            EspDevice: Плата с тем, что она сообщила.
         """
         return EspDevice(
             id=self.id,

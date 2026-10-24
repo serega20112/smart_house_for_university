@@ -5,14 +5,14 @@
 
 from __future__ import annotations
 
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend.application.dto.views.automation_view import AutomationView
 from backend.domain.aggregates.automation.automation_settings import AutomationSettings
 from backend.domain.identifiers import (
     DeviceId,
     UserId,
 )
-from backend.domain.value_objects.automation.automation_view import AutomationView
 from backend.infrastructure.database.mappers.automation import automation_from_row
 from backend.infrastructure.database.models import (
     AutomationModel,
@@ -24,19 +24,23 @@ from backend.infrastructure.database.repositories.child_rows import (
 
 
 class SqlAutomationQueries:
-    """Чтения настройки автоматизации без транзакции.
+    """Чтения настройки автоматизации без явной транзакции.
+
+    Чтения идут через сессию, а не через голое соединение: только сессия гидратирует
+    ORM-сущности, и потому `select(AutomationModel)` отдаёт строку-настройку, а не
+    первый столбец.
 
     Attributes:
-        engine: Движок, на котором выполняют чтения.
+        session_factory: Фабрика сессий, на которой выполняют чтения.
     """
 
-    def __init__(self, engine: AsyncEngine) -> None:
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         """Инициализирует чтения.
 
         Args:
-            engine: Движок, из которого читают.
+            session_factory: Фабрика сессий, из которой читают.
         """
-        self._engine = engine
+        self._session_factory = session_factory
 
     async def get(self, user_id: UserId) -> AutomationView:
         """Возвращает настройку автоматизации аккаунта.
@@ -51,11 +55,11 @@ class SqlAutomationQueries:
         Returns:
             AutomationView: Настройка, приготовленная для показа.
         """
-        async with self._engine.connect() as connection:
+        async with self._session_factory() as session:
             row = await first_row(
-                connection, AutomationModel, AutomationModel.user_id == user_id.value
+                session, AutomationModel, AutomationModel.user_id == user_id.value
             )
-            participants = await participants_of(connection, user_id)
+            participants = await participants_of(session, user_id)
         if row is None:
             return automation_view_of(AutomationSettings.create(user_id), frozenset())
         return automation_view_of(automation_from_row(row, participants), participants)

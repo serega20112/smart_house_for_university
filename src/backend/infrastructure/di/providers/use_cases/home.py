@@ -7,6 +7,7 @@ from dishka import Provider, Scope, alias, provide
 from backend.application.interfaces.queries.automation_queries import AutomationQueries
 from backend.application.interfaces.queries.device_queries import DeviceQueries
 from backend.application.interfaces.queries.scenario_queries import ScenarioQueries
+from backend.application.interfaces.services.boards.board_availability import BoardAvailability
 from backend.application.interfaces.services.boards.board_gateway import BoardGateway
 from backend.application.interfaces.services.boards.board_report import BoardReport
 from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
@@ -22,6 +23,7 @@ from backend.application.interfaces.services.state.home_state_store import HomeS
 from backend.application.interfaces.services.system.clock import Clock
 from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.device_control import DeviceControlService
+from backend.application.services.home_overview import HomeOverviewQuery
 from backend.application.services.home_provisioning import HomeProvisioning
 from backend.application.services.home_state_service import HomeStateService
 from backend.application.services.manual_override_reaction import ManualOverrideReaction
@@ -49,6 +51,7 @@ class HomeUseCaseProvider(Provider):
         notifications: NotificationFactory,
         clock: Clock,
         devices_of_home: HomeDeviceDirectory,
+        availability: BoardAvailability,
     ) -> HomeStateService:
         """Собирает приёмник всех входящих сообщений плат."""
         return HomeStateService(
@@ -58,6 +61,7 @@ class HomeUseCaseProvider(Provider):
             notifications=notifications,
             clock=clock,
             devices_of_home=devices_of_home,
+            availability=availability,
         )
 
     @provide(scope=APP)
@@ -105,16 +109,31 @@ class HomeUseCaseProvider(Provider):
             DeviceSelector(),
         )
 
-    @provide(scope=REQUEST)
-    def home_snapshot(
+    @provide(scope=APP)
+    def home_overview(
         self,
         state_store: HomeStateStore,
         device_queries: DeviceQueries,
         scenario_queries: ScenarioQueries,
         automation_queries: AutomationQueries,
         clock: Clock,
-    ) -> ReadHomeSnapshotUseCase:
-        """Собирает снимок дома для главного экрана."""
-        return ReadHomeSnapshotUseCase(
-            state_store, device_queries, scenario_queries, automation_queries, clock
+        availability: BoardAvailability,
+    ) -> HomeOverviewQuery:
+        """Собирает единый сборщик читающей проекции дома.
+
+        Один и тот же объект питает и главный экран, и текстовую команду о состоянии
+        дома, чтобы эти два потребителя не собирали проекцию каждый по-своему.
+        """
+        return HomeOverviewQuery(
+            state_store,
+            device_queries,
+            scenario_queries,
+            automation_queries,
+            clock,
+            availability,
         )
+
+    @provide(scope=REQUEST)
+    def home_snapshot(self, overview: HomeOverviewQuery) -> ReadHomeSnapshotUseCase:
+        """Собирает снимок дома для главного экрана."""
+        return ReadHomeSnapshotUseCase(overview)

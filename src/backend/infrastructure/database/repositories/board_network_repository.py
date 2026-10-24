@@ -6,6 +6,7 @@ from sqlalchemy import delete
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from backend.application.interfaces.repositories.board_repository import BoardNetworkRepository
 from backend.domain.entities.boards.board_network import BoardNetwork
 from backend.domain.identifiers import (
     EspDeviceId,
@@ -15,6 +16,7 @@ from backend.infrastructure.database.models import (
     BoardNetworkModel,
 )
 from backend.infrastructure.database.repositories.base import (
+    affected_rows,
     first_row,
     row_values,
     upsert_columns,
@@ -24,7 +26,7 @@ UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
 
 
-class SqlBoardNetworkRepository:
+class SqlBoardNetworkRepository(BoardNetworkRepository):
     """Хранение сети, которую предписано использовать каждой плате.
 
     Attributes:
@@ -86,4 +88,4 @@ class SqlBoardNetworkRepository:
         result = await self._session.execute(
             delete(BoardNetworkModel).where(BoardNetworkModel.board_id == board_id.value)
         )
-        return bool(result.rowcount)
+        return affected_rows(result) > 0

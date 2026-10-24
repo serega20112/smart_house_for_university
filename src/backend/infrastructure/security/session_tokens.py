@@ -4,8 +4,10 @@
 разлогинивает всех: именно это ждёт свежее развёртывание и именно это должно
 случиться при ротации утечки.
 
-Ключ не придумывается в момент запуска: конфигурация без ключа отвергается до
-того, как процесс обслужит первый запрос.
+Ключ не придумывается в момент запуска: конфигурация без ключа или с слишком коротким
+ключом отвергается до того, как процесс обслужит первый запрос. Поэтому адаптер
+получает уже проверенное значение и сам длину не перепроверяет — иначе порог жил бы в
+двух местах и расходился при его смене.
 """
 
 from __future__ import annotations
@@ -19,11 +21,10 @@ from backend.domain.identifiers import UserId
 from backend.infrastructure.security import jwt_tokens
 
 TOKEN_KIND = "session"
-MINIMUM_SECRET_LENGTH = 32
 
 
 class MissingSigningSecretError(RuntimeError):
-    """Ключа подписи нет, либо он короче, чем можно подписывать.
+    """Ключа подписи нет там, где адаптер обязан его найти.
 
     Args:
         message: Причина человеческими словами.
@@ -35,22 +36,16 @@ class MissingSigningSecretError(RuntimeError):
         Args:
             message: Причина человеческими словами, если вызывающий знает её точнее.
         """
-        super().__init__(
-            message
-            or f"AUTH_TOKEN_SECRET must be set and be at least {MINIMUM_SECRET_LENGTH} characters"
-        )
+        super().__init__(message or "no signing secret is available to this adapter")
 
 
 class JwtSessionTokenIssuer(SessionTokenIssuer):
     """Выдаёт и разбирает токены сессии на HS256.
 
     Args:
-        secret: Ключ подписи.
+        secret: Ключ подписи, уже проверенный конфигурацией на длину.
         lifetime_minutes: Срок только что выданной сессии.
         leeway_seconds: Расхождение часов, которое ещё принимается при проверке.
-
-    Raises:
-        MissingSigningSecretError: Когда ключа нет или он короче допустимого.
     """
 
     def __init__(self, secret: str, lifetime_minutes: int, leeway_seconds: int = 0) -> None:
@@ -60,12 +55,7 @@ class JwtSessionTokenIssuer(SessionTokenIssuer):
             secret: Ключ подписи.
             lifetime_minutes: Срок только что выданной сессии.
             leeway_seconds: Расхождение часов, которое ещё принимается при проверке.
-
-        Raises:
-            MissingSigningSecretError: Когда ключа нет или он короче допустимого.
         """
-        if len(secret) < MINIMUM_SECRET_LENGTH:
-            raise MissingSigningSecretError()
         self._secret = secret
         self._lifetime = timedelta(minutes=lifetime_minutes)
         self._leeway = leeway_seconds

@@ -8,6 +8,9 @@
 Модуль нарочно простые данные. Слова сравнивают по первым символам, а не степпером:
 русский склоняет и существительные, и глаголы, и устойчивым остаётся четырёхсимвольная
 приставка — та самая, которая сквозит во всех формах, которыми человек реально пользуется.
+
+Вопрос о показаниях узнают по обороту, а не по одному слову: «сколько градусов» — это
+вопрос, а «поставь двадцать два градуса» — просьба поменять дом.
 """
 
 from __future__ import annotations
@@ -19,6 +22,8 @@ from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_kind import DeviceKind
 
 PREFIX_LENGTH: Final = 4
+
+SHORTEST_SHARED_WORD: Final = 3
 
 ON_WORDS: Final[tuple[str, ...]] = (
     "включи",
@@ -140,6 +145,19 @@ HUMIDITY_MARKERS: Final[tuple[str, ...]] = (
     "влажн",
     "процент",
     "%",
+)
+
+TEMPERATURE_QUESTIONS: Final[tuple[str, ...]] = (
+    "какая температура",
+    "сколько градусов",
+    "сколько тепло",
+    "сколько холодно",
+)
+
+HUMIDITY_QUESTIONS: Final[tuple[str, ...]] = (
+    "какая влажность",
+    "сколько процентов",
+    "сухо или мокро",
 )
 
 AREA_WORDS: Final[tuple[str, ...]] = (
@@ -299,6 +317,10 @@ def reference_pairs() -> tuple[tuple[str, str], ...]:
 def shares_prefix(word: str, keyword: str) -> bool:
     """Сообщает, одно ли это русское слово в разных падежах.
 
+    Приставка короче трёх букв ничего не значит: предлог «у» совпал бы началом с
+    «убери», и просьба покрасить стену стала бы отменой сценария. Поэтому обрубок
+    считается словом только тогда, когда совпал целиком.
+
     Args:
         word: Слово, взятое из предложения.
         keyword: Слово, которое знает этот словарь.
@@ -306,8 +328,10 @@ def shares_prefix(word: str, keyword: str) -> bool:
     Returns:
         bool: True, когда оба слова совпадают началом.
     """
+    if word == keyword:
+        return True
     length = min(len(word), len(keyword), PREFIX_LENGTH)
-    return length > 0 and word[:length] == keyword[:length]
+    return length >= SHORTEST_SHARED_WORD and word[:length] == keyword[:length]
 
 
 def mentions(text: str, words: tuple[str, ...]) -> bool:

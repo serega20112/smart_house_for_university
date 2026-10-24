@@ -2,13 +2,14 @@
 
 Плата сообщает положения реле несколько раз в секунду. Превращать каждое такое
 сообщение в транзакцию значило бы тратить пул соединений на шум железа, поэтому
-этот адаптер отвечает обычным select'ом прямо из движка: единица работы не
-открывается, и агрегат не пересобирается дальше того, что читателю нужно.
+этот адаптер отвечает обычным select'ом через короткую сессию: явная граница
+единицы работы не открывается, и агрегат не пересобирается дальше того, что читателю
+нужно. Сессия, а не голое соединение, — потому что только она гидратирует ORM-сущности.
 """
 
 from __future__ import annotations
 
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.application.interfaces.services.state.home_device_directory import HomeDeviceDirectory
 from backend.domain.aggregates.device.device import Device
@@ -20,19 +21,19 @@ from backend.infrastructure.database.repositories.child_rows import capabilities
 
 
 class SqlHomeDeviceDirectory(HomeDeviceDirectory):
-    """Чтения устройств одного дома, отвечаемые без транзакции.
+    """Чтения устройств одного дома, отвечаемые без явной транзакции.
 
     Args:
-        engine: Движок, на котором чтения выполняются.
+        session_factory: Фабрика сессий, на которой чтения выполняются.
     """
 
-    def __init__(self, engine: AsyncEngine) -> None:
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         """Инициализирует справочник дома.
 
         Args:
-            engine: Движок, из которого читают.
+            session_factory: Фабрика сессий, из которой читают.
         """
-        self._engine = engine
+        self._session_factory = session_factory
 
     async def all_of(self, user_id: UserId) -> list[Device]:
         """Возвращает каждое устройство дома.
@@ -43,9 +44,9 @@ class SqlHomeDeviceDirectory(HomeDeviceDirectory):
         Returns:
             list[Device]: Настроенные устройства.
         """
-        async with self._engine.connect() as connection:
-            rows = await every_row(connection, DeviceModel, DeviceModel.user_id == user_id.value)
-            stored = await capabilities_of(connection, [row.id for row in rows])
+        async with self._session_factory() as session:
+            rows = await every_row(session, DeviceModel, DeviceModel.user_id == user_id.value)
+            stored = await capabilities_of(session, [row.id for row in rows])
         return [device_from_row(row, stored.get(row.id, frozenset())) for row in rows]
 
     async def by_channel(self, user_id: UserId) -> dict[int, Device]:

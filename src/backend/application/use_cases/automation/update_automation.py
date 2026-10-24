@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from backend.application.dto.automation.automation_patch import AutomationPatch
+from backend.application.dto.views.automation_view import AutomationView
 from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
     DomainEventDispatcher,
 )
@@ -16,7 +17,6 @@ from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFacto
 from backend.domain.aggregates.automation.automation_settings import AutomationSettings
 from backend.domain.events import EventName
 from backend.domain.identifiers import UserId
-from backend.domain.value_objects.automation.automation_view import AutomationView
 
 
 class UpdateAutomationUseCase:
@@ -55,6 +55,7 @@ class UpdateAutomationUseCase:
                 settings = AutomationSettings.create(user_id)
             _apply(settings, patch)
             await uow.automation.save(settings)
+            await uow.commit()
         await self._realtime.publish(user_id, EventName.AUTOMATION_UPDATED, {"updated": True})
         await self._dispatcher.dispatch(settings.pull_events())
         return _view_of(settings)

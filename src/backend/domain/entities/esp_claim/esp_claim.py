@@ -59,14 +59,14 @@ class EspClaim:
         """
         return self.is_open and moment < self.expires_at
 
-    def taken_by(self, user_id: UserId) -> Self:
+    def taken_by(self, user_id: UserId) -> EspClaim:
         """Возвращает то же предложение, ставя его владельцем аккаунт.
 
         Args:
             user_id: Аккаунт, который забирает плату.
 
         Returns:
-            Self: Забранное предложение.
+            EspClaim: Забранное предложение.
 
         Raises:
             ClaimAlreadyTakenError: Когда до этого её забрал кто-то другой.

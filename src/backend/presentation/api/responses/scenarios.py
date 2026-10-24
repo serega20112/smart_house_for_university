@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from backend.domain.value_objects.scenario.scenario_view import ScenarioView
+from backend.application.dto.views.scenario_view import ScenarioView
 from backend.presentation.api.responses.common import StrictModel
 
 

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from datetime import datetime
 
 from sqlalchemy import delete, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from backend.application.interfaces.repositories.board_repository import ClaimRepository
 from backend.domain.entities.esp_claim.esp_claim import EspClaim
 from backend.domain.identifiers import (
     EspClaimId,
@@ -17,13 +17,17 @@ from backend.infrastructure.database.mappers.boards import claim_from_row, claim
 from backend.infrastructure.database.models import (
     EspClaimModel,
 )
-from backend.infrastructure.database.repositories.base import first_row, row_values
+from backend.infrastructure.database.repositories.base import (
+    affected_rows,
+    first_row,
+    row_values,
+)
 
 UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
 
 
-class SqlClaimRepository:
+class SqlClaimRepository(ClaimRepository):
     """Хранение плат, которые объявились и ждут хозяина.
 
     Attributes:
@@ -83,14 +87,14 @@ class SqlClaimRepository:
         )
         return None if row is None else claim_from_row(row)
 
-    async def all_open(self) -> Sequence[EspClaim]:
+    async def all_open(self) -> list[EspClaim]:
         """Возвращает всякое предложение, которое ещё никто не забрал.
 
         Это простое чтение: оно ничего не удаляет, даже уже просроченное. Чисткой
         устаревших заведует отдельная команда.
 
         Returns:
-            Sequence[EspClaim]: Открытые предложения.
+            list[EspClaim]: Открытые предложения.
         """
         result = await self._session.execute(
             select(EspClaimModel)
@@ -119,7 +123,7 @@ class SqlClaimRepository:
             .values(claimed_by=user_id.value)
         )
         await self._session.flush()
-        return bool(result.rowcount)
+        return affected_rows(result) > 0
 
     async def delete_expired(self, before: datetime) -> int:
         """Убирает предложения, которые перестали быть действительными.
@@ -135,4 +139,4 @@ class SqlClaimRepository:
         result = await self._session.execute(
             delete(EspClaimModel).where(EspClaimModel.expires_at < before)
         )
-        return int(result.rowcount or 0)
+        return affected_rows(result)

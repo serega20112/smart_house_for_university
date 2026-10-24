@@ -26,17 +26,16 @@ from backend.presentation.web.frontend import mount_frontend
 from backend.presentation.websockets.router import router as websocket_router
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings) -> FastAPI:
     """Собирает FastAPI-приложение.
 
     Args:
-        settings: Конфигурация, из которой строится граф; по умолчанию — та, что
-            читает окружение.
+        settings: Конфигурация, из которой строится граф; её передаёт композиционный
+            корень, а не читает окружение само модуль сборки.
 
     Returns:
         FastAPI: Собранное приложение.
     """
-    settings = settings or Settings()
     configure_logging(settings.app_log_level)
 
     container = build_dishka_container(

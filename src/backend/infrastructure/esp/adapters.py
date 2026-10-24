@@ -6,27 +6,45 @@
 
 from __future__ import annotations
 
+import time
+
 from backend.application.dto.boards.board_command_result import BoardCommandResult
 from backend.application.interfaces.services.boards.board_gateway import BoardGateway
 from backend.domain.identifiers import EspDeviceId, UserId
 from backend.domain.value_objects.boards.network_profile import NetworkProfile
+from backend.infrastructure.brokers.board_presence import RedisBoardPresence
 from backend.infrastructure.esp.connection import EspConnection
+from backend.infrastructure.system import metrics
+
+
+def _outcome(accepted: bool, reason: str | None) -> str:
+    """Возвращает меточную надпись итога команды для счётчика."""
+    if accepted:
+        return "accepted"
+    return reason or "rejected"
 
 
 class BoardGatewayAdapter(BoardGateway):
-    """Водит каналами реле плат через соединение с платами.
+    """Водит каналами реле плат через соединение с этим процессом.
+
+    Переключение и смена сети идут прямо в транспорт, держящий WebSocket, а доступность
+    читается из общего реестра присутствия: решение «какой платой командовать» должно
+    видеть то же, что и рабочий, а не только словарь этого процесса.
 
     Attributes:
         connection: Соединение с платами на уровне транспорта.
+        presence: Разделённый между процессами реестр подключённых плат.
     """
 
-    def __init__(self, connection: EspConnection) -> None:
+    def __init__(self, connection: EspConnection, presence: RedisBoardPresence) -> None:
         """Инициализирует адаптер.
 
         Args:
             connection: Соединение с платами на уровне транспорта.
+            presence: Разделённый между процессами реестр подключённых плат.
         """
         self._connection = connection
+        self._presence = presence
 
     async def set_relay(
         self, user_id: UserId, board_id: EspDeviceId, channel: int, energized: bool
@@ -42,7 +60,9 @@ class BoardGatewayAdapter(BoardGateway):
         Returns:
             BoardCommandResult: Ответ платы.
         """
+        started = time.perf_counter()
         accepted, reason = await self._connection.set_relay(user_id, board_id, channel, energized)
+        metrics.record_board_command(_outcome(accepted, reason), time.perf_counter() - started)
         return BoardCommandResult(accepted=accepted, reason=reason)
 
     async def request_state(self, user_id: UserId, board_id: EspDeviceId) -> None:
@@ -70,7 +90,7 @@ class BoardGatewayAdapter(BoardGateway):
         accepted, reason = await self._connection.set_network(user_id, board_id, profile)
         return BoardCommandResult(accepted=accepted, reason=reason)
 
-    def is_connected(self, user_id: UserId, board_id: EspDeviceId) -> bool:
+    async def is_connected(self, user_id: UserId, board_id: EspDeviceId) -> bool:
         """Сообщает, держит ли плата соединение сейчас.
 
         Args:
@@ -80,9 +100,9 @@ class BoardGatewayAdapter(BoardGateway):
         Returns:
             bool: True, когда плата подключена в этот момент.
         """
-        return self._connection.is_connected(user_id, board_id)
+        return await self._presence.is_connected(user_id, board_id)
 
-    def board_for(self, user_id: UserId) -> EspDeviceId | None:
+    async def board_for(self, user_id: UserId) -> EspDeviceId | None:
         """Возвращает единственную подключённую плату аккаунта.
 
         Args:
@@ -92,4 +112,4 @@ class BoardGatewayAdapter(BoardGateway):
             EspDeviceId | None: Идентификатор платы, которой приказывать, или None,
             когда у аккаунта не ровно одна подключённая плата.
         """
-        return self._connection.board_for(user_id)
+        return await self._presence.board_for(user_id)

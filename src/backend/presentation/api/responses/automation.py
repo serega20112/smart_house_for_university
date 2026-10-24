@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from backend.domain.value_objects.automation.automation_view import AutomationView
+from backend.application.dto.views.automation_view import AutomationView
 from backend.presentation.api.responses.common import StrictModel
 
 

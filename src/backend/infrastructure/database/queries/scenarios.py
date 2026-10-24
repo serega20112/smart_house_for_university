@@ -6,8 +6,9 @@
 from __future__ import annotations
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend.application.dto.views.scenario_view import ScenarioView
 from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.identifiers import (
     DeviceId,
@@ -16,7 +17,6 @@ from backend.domain.identifiers import (
 )
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.scenario.scenario_status import ScenarioStatus
-from backend.domain.value_objects.scenario.scenario_view import ScenarioView
 from backend.infrastructure.database.mappers.scenario import (
     action_from_row,
     captured_status_from_row,
@@ -33,19 +33,23 @@ HOLDING_STAGES = (ScenarioStatus.PENDING.value, ScenarioStatus.RUNNING.value)
 
 
 class SqlScenarioQueries:
-    """Чтения временных сценариев без транзакции.
+    """Чтения временных сценариев без явной транзакции.
+
+    Чтения идут через сессию, а не через голое соединение: только сессия гидратирует
+    ORM-сущности, и потому `select(ScenarioModel)` отдаёт строку-сценарий, а не первый
+    столбец.
 
     Attributes:
-        engine: Движок, на котором выполняют чтения.
+        session_factory: Фабрика сессий, на которой выполняют чтения.
     """
 
-    def __init__(self, engine: AsyncEngine) -> None:
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         """Инициализирует чтения.
 
         Args:
-            engine: Движок, из которого читают.
+            session_factory: Фабрика сессий, из которой читают.
         """
-        self._engine = engine
+        self._session_factory = session_factory
 
     async def list_all(self, user_id: UserId) -> list[ScenarioView]:
         """Возвращает все сценарии аккаунта.
@@ -56,14 +60,14 @@ class SqlScenarioQueries:
         Returns:
             list[ScenarioView]: Сценарии, приготовленные для показа.
         """
-        async with self._engine.connect() as connection:
-            result = await connection.execute(
+        async with self._session_factory() as session:
+            result = await session.execute(
                 select(ScenarioModel)
                 .where(ScenarioModel.user_id == user_id.value)
                 .order_by(ScenarioModel.created_at.desc(), ScenarioModel.id)
             )
             rows = result.scalars().all()
-            return [await scenario_view_of(connection, row) for row in rows]
+            return [await scenario_view_of(session, row) for row in rows]
 
     async def list_holding_priority(self, user_id: UserId) -> list[ScenarioView]:
         """Возвращает сценарии, которые ещё ставят себя выше автоматики.
@@ -86,16 +90,16 @@ class SqlScenarioQueries:
         Returns:
             ScenarioView | None: Сценарий или None, когда у аккаунта такого нет.
         """
-        async with self._engine.connect() as connection:
+        async with self._session_factory() as session:
             row = await first_row(
-                connection,
+                session,
                 ScenarioModel,
                 ScenarioModel.id == scenario_id.value,
                 ScenarioModel.user_id == user_id.value,
             )
             if row is None:
                 return None
-            return await scenario_view_of(connection, row)
+            return await scenario_view_of(session, row)
 
     async def latest_holding_priority(self, user_id: UserId) -> ScenarioView | None:
         """Возвращает самый свежий сценарий, всё ещё держащий приоритет.
@@ -110,8 +114,8 @@ class SqlScenarioQueries:
         Returns:
             ScenarioView | None: Подходящий сценарий или None, когда его нет.
         """
-        async with self._engine.connect() as connection:
-            result = await connection.execute(
+        async with self._session_factory() as session:
+            result = await session.execute(
                 select(ScenarioModel)
                 .where(
                     ScenarioModel.user_id == user_id.value,
@@ -120,10 +124,10 @@ class SqlScenarioQueries:
                 .order_by(ScenarioModel.created_at.desc(), ScenarioModel.id)
                 .limit(1)
             )
-            row = result.scalar_one_or_none()
+            row = result.scalars().first()
             if row is None:
                 return None
-            return await scenario_view_of(connection, row)
+            return await scenario_view_of(session, row)
 
     async def _holding(self, user_id: UserId) -> list[ScenarioView]:
         """Возвращает сценарии аккаунта, которые ещё выше автоматики.
@@ -134,8 +138,8 @@ class SqlScenarioQueries:
         Returns:
             list[ScenarioView]: Ожидающие и идущие сценарии, свежайшие в начале.
         """
-        async with self._engine.connect() as connection:
-            result = await connection.execute(
+        async with self._session_factory() as session:
+            result = await session.execute(
                 select(ScenarioModel)
                 .where(
                     ScenarioModel.user_id == user_id.value,
@@ -144,14 +148,14 @@ class SqlScenarioQueries:
                 .order_by(ScenarioModel.created_at.desc(), ScenarioModel.id)
             )
             rows = result.scalars().all()
-            return [await scenario_view_of(connection, row) for row in rows]
+            return [await scenario_view_of(session, row) for row in rows]
 
 
-async def scenario_view_of(connection: AsyncConnection, row: ScenarioModel) -> ScenarioView:
+async def scenario_view_of(session: AsyncSession, row: ScenarioModel) -> ScenarioView:
     """Возвращает модель чтения одного сохранённого сценария.
 
     Args:
-        connection: Соединение, на котором выполняют чтение.
+        session: Сессия, на котором выполняют чтение.
         row: Строка, которую превращают в образ.
 
     Returns:
@@ -159,8 +163,8 @@ async def scenario_view_of(connection: AsyncConnection, row: ScenarioModel) -> S
     """
     scenario = scenario_from_row(
         row,
-        await scenario_actions_of(connection, row),
-        await captured_statuses_of(connection, row),
+        await scenario_actions_of(session, row),
+        await captured_statuses_of(session, row),
     )
     return ScenarioView(
         id=scenario.id,
@@ -175,19 +179,19 @@ async def scenario_view_of(connection: AsyncConnection, row: ScenarioModel) -> S
 
 
 async def scenario_actions_of(
-    connection: AsyncConnection, row: ScenarioModel
+    session: AsyncSession, row: ScenarioModel
 ) -> tuple[ScenarioAction, ...]:
     """Возвращает действия сохранённого сценария в объявленном им порядке.
 
     Args:
-        connection: Соединение, на котором выполняют чтение.
+        session: Сессия, на котором выполняют чтение.
         row: Строка, называющая сценарий.
 
     Returns:
         tuple[ScenarioAction, ...]: Действия сценария.
     """
     stored = await every_row(
-        connection,
+        session,
         ScenarioActionModel,
         ScenarioActionModel.scenario_id == row.id,
     )
@@ -196,12 +200,12 @@ async def scenario_actions_of(
 
 
 async def captured_statuses_of(
-    connection: AsyncConnection, row: ScenarioModel
+    session: AsyncSession, row: ScenarioModel
 ) -> dict[DeviceId, DeviceStatus]:
     """Возвращает состояния устройств, снятые до начала одного сценария.
 
     Args:
-        connection: Соединение, на котором выполняют чтение.
+        session: Сессия, на котором выполняют чтение.
         row: Строка, называющая сценарий.
 
     Returns:
@@ -209,7 +213,7 @@ async def captured_statuses_of(
         в котором они были.
     """
     stored = await every_row(
-        connection,
+        session,
         ScenarioCapturedStatusModel,
         ScenarioCapturedStatusModel.scenario_id == row.id,
     )

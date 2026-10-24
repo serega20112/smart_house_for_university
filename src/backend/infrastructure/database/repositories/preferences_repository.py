@@ -5,6 +5,9 @@ from __future__ import annotations
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from backend.application.interfaces.repositories.preferences_repository import (
+    PreferencesRepository,
+)
 from backend.domain.entities.personalization.user_preferences import UserPreferences
 from backend.domain.identifiers import (
     UserId,
@@ -22,7 +25,7 @@ UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
 
 
-class SqlPreferencesRepository:
+class SqlPreferencesRepository(PreferencesRepository):
     """Хранение настроек интерфейса одного аккаунта.
 
     Attributes:

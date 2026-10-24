@@ -1,8 +1,8 @@
-"""Назначения логических устройств.
+"""Device designations.
 
-Назначение говорит, для чего устройство. О том, как назвать его на каком-либо
-языке, оно не знает ничего: распознать слово «лампа» — дело конвейера понимания
-речи, а не модели.
+A designation tells what a device is for. It does not know how to name it
+in any particular language: recognizing the word "lamp" is the job of the
+speech understanding pipeline, not the model.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from enum import StrEnum
 
 
 class DeviceKind(StrEnum):
-    """Для чего служит логическое устройство."""
+    """What a logical device serves for."""
 
     LIGHT = "LIGHT"
     FAN = "FAN"
@@ -24,20 +24,20 @@ class DeviceKind(StrEnum):
 
     @classmethod
     def parse(cls, raw: object) -> DeviceKind:
-        """Читает назначение из значения, пришедшего извне.
+        """Read a designation from an external value.
 
-        Неизвестное имя отвергается, а не заменяется OTHER: OTHER означает, что
-        человек сам завёл устройство непонятного назначения, а не то, что в запросе
-        опечатка.
+        Unknown names are rejected, not replaced with OTHER: OTHER means
+        the person manually created a device of unknown designation, not
+        that a typo was received in the request.
 
         Args:
-            raw: Имя назначения или его член перечисления.
+            raw: Name of designation or its enum member.
 
         Returns:
-            DeviceKind: Прочитанное назначение.
+            DeviceKind: Read designation.
 
         Raises:
-            ValueError: Когда значение не называет назначение.
+            ValueError: When the value does not name a designation.
         """
         if isinstance(raw, cls):
             return raw

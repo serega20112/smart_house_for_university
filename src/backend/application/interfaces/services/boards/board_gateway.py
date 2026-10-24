@@ -29,9 +29,9 @@ class BoardGateway(ABC):
         """Сообщает плате сеть, которую та должна использовать."""
 
     @abstractmethod
-    def is_connected(self, user_id: UserId, board_id: EspDeviceId) -> bool:
+    async def is_connected(self, user_id: UserId, board_id: EspDeviceId) -> bool:
         """Подключена ли плата прямо сейчас."""
 
     @abstractmethod
-    def board_for(self, user_id: UserId) -> EspDeviceId | None:
+    async def board_for(self, user_id: UserId) -> EspDeviceId | None:
         """Плата, которой адресовать команду дома с одной подключённой платой."""

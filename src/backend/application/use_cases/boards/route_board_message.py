@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 from backend.application.dto.boards.board_message import (
-    BoardAck,
     BoardFailure,
     BoardFrameUnreadable,
     BoardMessage,
@@ -42,8 +41,6 @@ class RouteBoardMessageUseCase:
             message: Прочитанное сообщение.
         """
         match message:
-            case BoardAck():
-                return
             case BoardStateReport(relays=relays, reading=reading):
                 if relays:
                     await self._report.on_relay_states(user_id, board_id, list(relays))

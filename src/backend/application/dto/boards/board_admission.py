@@ -24,6 +24,11 @@ class BoardGreeting:
         ssid: Сеть, в которой плата сейчас, или None, если она вне сети.
         provisioned: Знает ли плата вообще какую-нибудь сеть.
         claims_owned: Считает ли плата, что хозяин у неё уже есть.
+        server_host: Адрес сервера, которому плата докладывает, или None, если она
+            его не сообщила.
+        server_port: Порт интерфейса этого сервера; 0, если не сообщён.
+        socket_port: Порт сокета плат этого сервера; 0, если не сообщён.
+        socket_path: Путь сокета плат этого сервера, или None, если не сообщён.
     """
 
     pairing_key: str | None
@@ -32,6 +37,10 @@ class BoardGreeting:
     ssid: str | None = None
     provisioned: bool = False
     claims_owned: bool = False
+    server_host: str | None = None
+    server_port: int = 0
+    socket_port: int = 0
+    socket_path: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

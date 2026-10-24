@@ -18,7 +18,6 @@ def user_to_row(user: User) -> UserModel:
         display_name=user.display_name.value,
         password_hash=user.password_hash,
         created_at=user.created_at,
-        version=user.version,
     )
 
 
@@ -30,5 +29,4 @@ def user_from_row(row: UserModel) -> User:
         display_name=DisplayName.parse(row.display_name),
         password_hash=row.password_hash,
         created_at=as_utc(row.created_at),
-        version=row.version,
     )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from backend.application.dto.scenario.schedule_scenario_command import ScheduleScenarioCommand
+from backend.application.dto.views.scenario_view import ScenarioView
 from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
     DomainEventDispatcher,
 )
@@ -13,7 +14,6 @@ from backend.application.services.scenarios.details import scenario_payload, sce
 from backend.domain.aggregates.scenario.scenario import Scenario
 from backend.domain.events import EventName
 from backend.domain.identifiers import UserId
-from backend.domain.value_objects.scenario.scenario_view import ScenarioView
 
 
 class ScheduleScenarioUseCase:
@@ -60,6 +60,7 @@ class ScheduleScenarioUseCase:
                 duration_minutes=command.duration_minutes,
             )
             await uow.scenarios.add(scenario)
+            await uow.commit()
         await self._realtime.publish(
             user_id, EventName.SCENARIO_SCHEDULED, scenario_payload(scenario)
         )

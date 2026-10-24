@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from backend.application.dto.views.device_view import DeviceView
 from backend.domain.identifiers import DeviceId, UserId
-from backend.domain.value_objects.devices.device_view import DeviceView
 
 
 class DeviceQueries(Protocol):

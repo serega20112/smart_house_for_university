@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+from backend.application.dto.views.scenario_view import ScenarioView
 from backend.application.errors import ScenarioNotFoundError
 from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.scenarios.details import scenario_view
 from backend.application.services.scenarios.settling import ScenarioSettler
 from backend.domain.identifiers import ScenarioId, UserId
 from backend.domain.value_objects.scenario.finish_reason import FinishReason
-from backend.domain.value_objects.scenario.scenario_view import ScenarioView
 
 
 class CancelScenarioUseCase:
@@ -49,5 +49,6 @@ class CancelScenarioUseCase:
             devices = list(await uow.devices.list_all(user_id))
             scenario.cancel()
             await uow.scenarios.update(scenario)
+            await uow.commit()
         await self._settler.settle(scenario, devices, FinishReason.CANCELLED_BY_USER)
         return scenario_view(scenario)

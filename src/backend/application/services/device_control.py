@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from backend.application.dto.views.capability_report import CapabilityReport
+from backend.application.dto.views.device_view import DeviceView
 from backend.application.errors import (
     BoardUnreachableError,
     DeviceNotFoundError,
@@ -37,9 +39,7 @@ from backend.domain.events import EventName
 from backend.domain.identifiers import DeviceId, UserId
 from backend.domain.policies.device_selector import DeviceSelector
 from backend.domain.value_objects.devices.capability import Capability
-from backend.domain.value_objects.devices.capability_report import CapabilityReport
 from backend.domain.value_objects.devices.device_status import DeviceStatus
-from backend.domain.value_objects.devices.device_view import DeviceView
 
 
 class DeviceControlService:
@@ -231,7 +231,9 @@ class DeviceControlService:
             BoardUnreachableError: Когда плата не подтвердила выполнение.
         """
         device.require_capability(capability)
-        board_id = self._boards.board_for(user_id)
+        board_id = device.board_id
+        if board_id is None:
+            board_id = await self._boards.board_for(user_id)
         if board_id is None:
             raise BoardUnreachableError("esp_offline")
         status = device.drive(capability, source_is_manual=manual)
@@ -255,6 +257,7 @@ class DeviceControlService:
         async with self._home_uow() as uow:
             for device in devices:
                 await uow.devices.update(device)
+            await uow.commit()
 
     async def _announce(self, user_id: UserId, device: Device, status: DeviceStatus) -> None:
         """Публикует факт, когда он закоммичен.

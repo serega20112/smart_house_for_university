@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from datetime import datetime
 
 from backend.domain.aggregates.device.device import Device
@@ -34,7 +35,7 @@ class HomeStateStore(ABC):
 
     @abstractmethod
     async def record_relay_report(
-        self, user_id: UserId, states: list[bool], changed_at: datetime
+        self, user_id: UserId, states: Sequence[bool], changed_at: datetime
     ) -> tuple[int, ...]:
         """Применяет положения реле и возвращает сдвинувшиеся каналы."""
 

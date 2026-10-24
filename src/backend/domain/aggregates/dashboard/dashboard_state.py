@@ -43,11 +43,41 @@ class DashboardState:
         if len(self.widgets) > MAX_WIDGETS:
             raise InvalidDashboardLayoutError(f"at most {MAX_WIDGETS} widgets are allowed")
 
+    def covering(self, device_ids: tuple[DeviceId, ...]) -> DashboardState:
+        """Возвращает раскладку, в которой есть карточка на каждое устройство.
+
+        Карточка, чьё устройство удалили, уходит: нарисовать её нечем. Устройство,
+        которого в раскладке ещё нет, дописывают в конец, потому что иначе заведённое
+        человеком устройство не попало бы на единственный экран, где им пользуются.
+        Порядок и личные заголовки сохранённых карточек при этом не меняются.
+
+        Args:
+            device_ids: Устройства, которыми аккаунт владеет сейчас.
+
+        Returns:
+            DashboardState: Раскладка, покрывающая текущий набор устройств.
+        """
+        owned = frozenset(device_ids)
+        widgets = [
+            widget
+            for widget in self.widgets
+            if widget.kind is not WidgetKind.DEVICE or widget.device_id in owned
+        ]
+        shown = {widget.device_id for widget in widgets if widget.kind is WidgetKind.DEVICE}
+        for device_id in device_ids:
+            if len(widgets) >= MAX_WIDGETS:
+                break
+            if device_id in shown:
+                continue
+            widgets.append(DashboardWidget(kind=WidgetKind.DEVICE, device_id=device_id))
+            shown.add(device_id)
+        return DashboardState(user_id=self.user_id, widgets=tuple(widgets))
+
     def rearranged(
         self,
         widgets: tuple[DashboardWidget, ...],
         owned_device_ids: frozenset[DeviceId],
-    ) -> Self:
+    ) -> DashboardState:
         """Возвращает раскладку, переставленную на новый список карточек.
 
         Проверка владельца живёт здесь, потому что это неизменяемое условие
@@ -58,7 +88,7 @@ class DashboardState:
             owned_device_ids: Устройства, которыми аккаунт действительно владеет.
 
         Returns:
-            Self: Обновлённая раскладка.
+            DashboardState: Обновлённая раскладка.
 
         Raises:
             DashboardAccessDeniedError: Когда карточка указывает на чужое устройство.

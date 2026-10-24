@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from backend.application.errors import (
     ConcurrentModificationError,
 )
+from backend.application.interfaces.repositories.device_repository import DeviceRepository
 from backend.domain.aggregates.device.device import Device
 from backend.domain.exceptions import ChannelConflictError
 from backend.domain.identifiers import (
@@ -27,6 +28,7 @@ from backend.infrastructure.database.models import (
     DeviceModel,
 )
 from backend.infrastructure.database.repositories.base import (
+    affected_rows,
     every_row,
     first_row,
     insert_rows,
@@ -39,7 +41,7 @@ UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
 
 
-class SqlDeviceRepository:
+class SqlDeviceRepository(DeviceRepository):
     """Хранение логических устройств одного аккаунта.
 
     Attributes:
@@ -157,7 +159,7 @@ class SqlDeviceRepository:
             if not is_unique_violation(error):
                 raise
             raise ChannelConflictError(int(device.channel)) from error
-        if not result.rowcount:
+        if not affected_rows(result):
             raise ConcurrentModificationError("device", device.id)
         device.version += 1
         await self._session.execute(
@@ -169,9 +171,10 @@ class SqlDeviceRepository:
     async def delete(self, user_id: UserId, device_id: DeviceId) -> bool:
         """Убирает устройство аккаунта.
 
-        Способности, участие в автоматизации и карточки панели, смотревшие на это
-        устройство, снимают каскадные внешние ключи хранилища, поэтому ни одна строка
-        не выживает, описывая то, чего больше нет.
+        Способности и участие в автоматизации снимают каскадные внешние ключи
+        хранилища. Карточка панели, смотревшая на это устройство, теряет ссылку, но
+        остаётся строкой: раскладка — отдельный агрегат, и проекция экрана не рисует
+        карточку без устройства.
 
         Args:
             user_id: Владелец устройства.
@@ -185,4 +188,4 @@ class SqlDeviceRepository:
                 DeviceModel.id == device_id.value, DeviceModel.user_id == user_id.value
             )
         )
-        return bool(result.rowcount)
+        return affected_rows(result) > 0

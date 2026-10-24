@@ -73,7 +73,7 @@ class SelectiveBoardGateway(BoardGateway):
         self.driven: list[int] = []
         self.board_id = EspDeviceId.generate()
 
-    def board_for(self, user_id: UserId) -> EspDeviceId | None:
+    async def board_for(self, user_id: UserId) -> EspDeviceId | None:
         del user_id
         return self.board_id
 
@@ -125,7 +125,7 @@ class SelectiveBoardGateway(BoardGateway):
         del user_id, board_id, profile
         return BoardCommandResult(accepted=True)
 
-    def is_connected(self, user_id: UserId, board_id: DeviceId) -> bool:
+    async def is_connected(self, user_id: UserId, board_id: DeviceId) -> bool:
         """Report every board reachable.
 
         Args:

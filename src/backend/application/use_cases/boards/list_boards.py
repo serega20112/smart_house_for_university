@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from backend.application.dto.views.board_view import BoardView
 from backend.application.interfaces.queries.board_queries import BoardQueries
 from backend.application.interfaces.services.boards.board_gateway import BoardGateway
 from backend.domain.identifiers import UserId
-from backend.domain.value_objects.boards.board_view import BoardView
 
 
 class ListBoardsUseCase:
@@ -37,5 +37,6 @@ class ListBoardsUseCase:
         """
         boards = await self._queries.list_all(user_id)
         return [
-            replace(board, online=self._gateway.is_connected(user_id, board.id)) for board in boards
+            replace(board, online=await self._gateway.is_connected(user_id, board.id))
+            for board in boards
         ]

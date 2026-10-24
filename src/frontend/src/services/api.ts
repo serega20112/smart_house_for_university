@@ -1,9 +1,9 @@
 /**
- * Типизированный доступ к REST API бэкенда.
+ * Typed access to the REST API backend.
  *
- * Клиент знает только пути и формы: он кладёт токен в заголовок, разбирает ответ
- * и превращает отказ сервера в ошибку с человеческими словами. Никакого решения
- * о том, что разрешено и что из этого следует, здесь нет — этим занимается бэкенд.
+ * The client knows only paths and forms: it puts the token in the header
+ * and turns server refusal into an error with human-friendly words. No logic
+ * o what is allowed and what follows from it here — that is the backend's job.
  */
 
 import type {
@@ -45,7 +45,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     throw new Error(await errorText(response));
   }
-  // Ответ без тела — законный исход: удаление или выход. Читать у него нечего.
+  // Response without body is a valid outcome: deletion or logout. Nothing to read.
   if (response.status === NO_CONTENT) {
     return undefined as T;
   }
@@ -55,17 +55,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 async function errorText(response: Response): Promise<string> {
   try {
     const payload = (await response.json()) as { detail?: string };
-    return payload.detail ?? `Запрос завершился с кодом ${response.status}`;
+    return payload.detail ?? `Request completed with code ${response.status}`;
   } catch {
-    return `Запрос завершился с кодом ${response.status}`;
+    return `Request completed with code ${response.status}`;
   }
 }
 
 /**
- * Создаёт аккаунт и открывает для него сессию.
+ * Creates an account and opens a session for it.
  *
- * @param payload Электронная почта, пароль и имя для интерфейса.
- * @returns Токен сессии и профиль нового аккаунта.
+ * @param payload Email, password and display name for the interface.
+ * @returns Session token and new account profile.
  */
 export function register(payload: {
   email: string;
@@ -79,10 +79,10 @@ export function register(payload: {
 }
 
 /**
- * Авторизует аккаунт и выдаёт токен сессии.
+ * Authorizes an account and issues a session token.
  *
- * @param payload Электронная почта и пароль.
- * @returns Токен сессии и профиль вошедшего аккаунта.
+ * @param payload Email and password.
+ * @returns Session token and logged-in account profile.
  */
 export function login(payload: { email: string; password: string }): Promise<Session> {
   return request<Session>("/auth/login", {
@@ -92,47 +92,61 @@ export function login(payload: { email: string; password: string }): Promise<Ses
 }
 
 /**
- * Закрывает текущую сессию.
+ * Closes the current session.
  *
- * @returns Подтверждение выхода.
+ * @returns Logout confirmation.
  */
 export function logout(): Promise<OperationResult> {
   return request<OperationResult>("/auth/logout", { method: "POST" });
 }
 
 /**
- * Возвращает аккаунт текущей сессии.
+ * Returns the account of the current session.
  *
- * @returns Профиль вошедшего аккаунта.
+ * @returns Logged-in account profile.
  */
 export function fetchProfile(): Promise<UserProfile> {
   return request<UserProfile>("/auth/me");
 }
 
 /**
- * Возвращает весь главный экран одним снимком.
+ * Requests a one-time ticket to open the event stream WebSocket.
  *
- * @returns Снимок дома текущего аккаунта.
+ * Session token does not travel in the socket address: REST over the current session issues a short ticket,
+ * which the server exchanges for an account exactly once.
+ *
+ * @returns Ticket and its lifetime in seconds.
+ */
+export function fetchRealtimeTicket(): Promise<{ ticket: string; expires_in_sec: number }> {
+  return request<{ ticket: string; expires_in_sec: number }>("/auth/realtime-ticket", {
+    method: "POST",
+  });
+}
+
+/**
+ * Returns the whole home screen in one snapshot.
+ *
+ * @returns Snapshot of the current account home.
  */
 export function fetchHomeState(): Promise<HomeState> {
   return request<HomeState>("/state");
 }
 
 /**
- * Возвращает настроенные устройства с их текущим состоянием.
+ * Returns configured devices with their current state.
  *
- * @returns Устройства аккаунта.
+ * @returns Account devices.
  */
 export function fetchDevices(): Promise<Device[]> {
   return request<Device[]>("/devices");
 }
 
 /**
- * Просит устройство выполнить способность.
+ * Asks a device to perform a capability.
  *
- * @param deviceId Идентификатор устройства.
- * @param capability Способность, которую нужно выполнить.
- * @returns Устройство в состоянии, которого оно достигло.
+ * @param deviceId Device identifier.
+ * @param capability Capability to perform.
+ * @returns Device in the state it reached.
  */
 export function performCapability(
   deviceId: string,
@@ -144,10 +158,10 @@ export function performCapability(
 }
 
 /**
- * Регистрирует новое логическое устройство.
+ * Registers a new logical device.
  *
- * @param payload Описание устройства.
- * @returns Созданное устройство.
+ * @param payload Device description.
+ * @returns Created device.
  */
 export function createDevice(payload: {
   name: string;
@@ -161,11 +175,11 @@ export function createDevice(payload: {
 }
 
 /**
- * Применяет частичное изменение устройства.
+ * Applies a partial device change.
  *
- * @param deviceId Идентификатор устройства.
- * @param payload Поля, которые нужно изменить.
- * @returns Обновлённое устройство.
+ * @param deviceId Device identifier.
+ * @param payload Fields to change.
+ * @returns Updated device.
  */
 export function updateDevice(
   deviceId: string,
@@ -185,29 +199,29 @@ export function updateDevice(
 }
 
 /**
- * Удаляет устройство.
+ * Deletes a device.
  *
- * @param deviceId Идентификатор устройства.
- * @returns Ничего: отказ сервера приходит исключением.
+ * @param deviceId Device identifier.
+ * @returns Nothing: server refusal arrives as an exception.
  */
 export function deleteDevice(deviceId: string): Promise<void> {
   return request<void>(`/devices/${deviceId}`, { method: "DELETE" });
 }
 
 /**
- * Возвращает настройку автоматизации текущего аккаунта.
+ * Returns the automation settings of the current account.
  *
- * @returns Настройка аккаунта.
+ * @returns Account settings.
  */
 export function fetchAutomation(): Promise<Automation> {
   return request<Automation>("/automation");
 }
 
 /**
- * Применяет частичное изменение настройки автоматизации.
+ * Applies a partial change to automation settings.
  *
- * @param payload Поля, которые нужно изменить.
- * @returns Настройка такой, какой она стала.
+ * @param payload Fields to change.
+ * @returns Settings as they became.
  */
 export function updateAutomation(payload: Partial<{
   enabled: boolean;
@@ -224,38 +238,38 @@ export function updateAutomation(payload: Partial<{
 }
 
 /**
- * Возвращает все сценарии текущего аккаунта.
+ * Returns all scenarios of the current account.
  *
- * @returns Сценарии аккаунта.
+ * @returns Account scenarios.
  */
 export function fetchScenarios(): Promise<Scenario[]> {
   return request<Scenario[]>("/scenarios");
 }
 
 /**
- * Отменяет сценарий.
+ * Cancels a scenario.
  *
- * @param scenarioId Идентификатор сценария.
- * @returns Отменённый сценарий.
+ * @param scenarioId Scenario identifier.
+ * @returns Cancelled scenario.
  */
 export function cancelScenario(scenarioId: string): Promise<Scenario> {
   return request<Scenario>(`/scenarios/${scenarioId}`, { method: "DELETE" });
 }
 
 /**
- * Возвращает настройки интерфейса вошедшего аккаунта.
+ * Returns the interface settings of the logged-in account.
  *
- * @returns Настройки такие, какие сохранены.
+ * @returns Settings as saved.
  */
 export function fetchPreferences(): Promise<Preferences> {
   return request<Preferences>("/preferences");
 }
 
 /**
- * Применяет частичное изменение настроек интерфейса.
+ * Applies a partial change to interface settings.
  *
- * @param payload Поля, которые человек хочет изменить.
- * @returns Настройки такими, какими они стали.
+ * @param payload Fields the person wants to change.
+ * @returns Settings as they became.
  */
 export function updatePreferences(payload: Partial<Preferences>): Promise<Preferences> {
   return request<Preferences>("/preferences", {
@@ -265,19 +279,19 @@ export function updatePreferences(payload: Partial<Preferences>): Promise<Prefer
 }
 
 /**
- * Возвращает раскладку главного экрана вошедшего аккаунта.
+ * Returns the dashboard layout of the logged-in account.
  *
- * @returns Виджеты в порядке вывода.
+ * @returns Widgets in display order.
  */
 export function fetchDashboard(): Promise<Dashboard> {
   return request<Dashboard>("/dashboard");
 }
 
 /**
- * Заменяет раскладку главного экрана целиком.
+ * Replaces the dashboard layout entirely.
  *
- * @param widgets Виджеты в новом порядке.
- * @returns Сохранённая раскладка.
+ * @param widgets Widgets in new order.
+ * @returns Saved layout.
  */
 export function updateDashboard(widgets: Widget[]): Promise<Dashboard> {
   return request<Dashboard>("/dashboard", {
@@ -287,19 +301,19 @@ export function updateDashboard(widgets: Widget[]): Promise<Dashboard> {
 }
 
 /**
- * Возвращает платы, сопряжённые с текущим аккаунтом.
+ * Returns boards paired with the current account.
  *
- * @returns Платы аккаунта с живой доступностью.
+ * @returns Account boards with live availability.
  */
 export function fetchBoards(): Promise<Board[]> {
   return request<Board[]>("/esp-devices");
 }
 
 /**
- * Сопрягает плату и один раз показывает её ключ.
+ * Pairs a board and shows its key once.
  *
- * @param payload Имя платы и, возможно, выбранный человеком ключ.
- * @returns Сопряжённая плата вместе с её ключом.
+ * @param payload Board name and, possibly, a key chosen by the person.
+ * @returns Paired board together with its key.
  */
 export function pairBoard(payload: {
   name: string;
@@ -312,19 +326,19 @@ export function pairBoard(payload: {
 }
 
 /**
- * Возвращает платы, которые ждут, что их заберут.
+ * Returns boards waiting to be claimed.
  *
- * @returns Предложения с токеном, кодом и сроком.
+ * @returns Offers with token, code and expiry.
  */
 export function fetchBoardClaims(): Promise<BoardClaim[]> {
   return request<BoardClaim[]>("/esp-devices/claims");
 }
 
 /**
- * Забирает объявленную плату за текущим аккаунтом.
+ * Claims a declared board for the current account.
  *
- * @param payload Токен предложения и выбранное имя платы.
- * @returns Плата, которая теперь сопряжена.
+ * @param payload Offer token and chosen board name.
+ * @returns Board that is now paired.
  */
 export function claimBoard(payload: {
   claim_token: string;
@@ -337,31 +351,31 @@ export function claimBoard(payload: {
 }
 
 /**
- * Убирает плату из текущего аккаунта.
+ * Removes a board from the current account.
  *
- * @param boardId Идентификатор платы.
- * @returns Ничего: плата удалена, и показывать там нечего.
+ * @param boardId Board identifier.
+ * @returns Nothing: board is removed, nothing to show.
  */
 export function revokeBoard(boardId: string): Promise<void> {
   return request<void>(`/esp-devices/${boardId}`, { method: "DELETE" });
 }
 
 /**
- * Возвращает сеть, которую предписано использовать плате.
+ * Returns the network the board is prescribed to use.
  *
- * @param boardId Идентификатор платы.
- * @returns Сеть платы.
+ * @param boardId Board identifier.
+ * @returns Board network.
  */
 export function fetchBoardNetwork(boardId: string): Promise<BoardNetwork> {
   return request<BoardNetwork>(`/esp-devices/${boardId}/network`);
 }
 
 /**
- * Сообщает плате сеть, которую та должна использовать.
+ * Tells the board the network it should use.
  *
- * @param boardId Идентификатор платы.
- * @param payload Сеть, которую должна использовать плата.
- * @returns Сеть такой, какой она сохранена.
+ * @param boardId Board identifier.
+ * @param payload Network the board should use.
+ * @returns Network as saved.
  */
 export function updateBoardNetwork(
   boardId: string,
@@ -381,10 +395,10 @@ export function updateBoardNetwork(
 }
 
 /**
- * Отправляет написанную команду и возвращает то, что она дала.
+ * Sends a written command and returns what it produced.
  *
- * @param text Предложение таким, каким его ввели.
- * @returns Ответ на команду.
+ * @param text Sentence as entered.
+ * @returns Command response.
  */
 export function sendCommand(text: string): Promise<CommandResult> {
   return request<CommandResult>("/commands", { method: "POST", body: JSON.stringify({ text }) });

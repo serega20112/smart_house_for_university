@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.application.dto.views.scenario_view import ScenarioView
 from backend.application.errors import (
     BoardUnreachableError,
     NoDeviceForCapabilityError,
@@ -10,7 +11,6 @@ from backend.domain.aggregates.scenario.scenario import Scenario
 from backend.domain.identifiers import DeviceId
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.scenario.finish_reason import FinishReason
-from backend.domain.value_objects.scenario.scenario_view import ScenarioView
 
 EXPECTED_REFUSALS: tuple[type[Exception], ...] = (
     NoDeviceForCapabilityError,

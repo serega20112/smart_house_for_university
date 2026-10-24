@@ -1,10 +1,10 @@
 name: smart-home
 
-# One stack: the relational store with pgvector, the volatile state store, a
-# one-shot migration, the API and the background worker. The API and the worker
-# share one image with different commands, so a deployment cannot run an old
-# worker next to a new API. The warning threshold of every healthcheck keeps a
-# cold start of Postgres from killing the container that waits for it.
+# One stack: the relational store with pgvector, the volatile state store, the
+# API and the background worker. The API and the worker share one image with
+# different commands, so a deployment cannot run an old worker next to a new API.
+# The warning threshold of every healthcheck keeps a cold start of Postgres from
+# killing the container that waits for it.
 
 services:
   postgres:
@@ -31,18 +31,6 @@ services:
       retries: 30
     restart: unless-stopped
 
-  migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["alembic", "-c", "build/migrations/alembic.ini", "upgrade", "head"]
-    environment:
-      DATABASE_URL: postgresql+asyncpg://backend:backend@postgres:5432/backend
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
-
   backend:
     build:
       context: .
@@ -65,10 +53,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/ready')"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -89,8 +75,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,redis;r=redis.Redis.from_url(os.environ['REDIS_URL']);assert r.ping()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
 
 volumes:

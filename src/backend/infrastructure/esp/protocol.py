@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
 PROTOCOL_VERSION = 4
 """Версия, которую описывают и прошивка, и документация протокола."""
@@ -46,22 +46,61 @@ class _Inbound(BaseModel):
 class HelloFrame(_Inbound):
     """Handshake платы, которая только что дозвонилась.
 
+    Контракт объявляет ровно те поля, которые отправляет прошивка, и запретил лишнее:
+    кадр, пришедший от прошивки с неоговорённым полем или другой версии протокола,
+    отвергается здесь, а не превращается в набор молчаливых None дальше по системе.
+
     Attributes:
         type: Разделитель объединения.
-        pairing_key: Секрет, который предъявляет плата; отсутствует у переподключившейся
+        firmware_version: Версия прошивки, которую сообщила плата.
+        protocol_version: Версия протокола, которую исповедует плата; обязана совпасть
+            с версией бэкенда, иначе кадр отвергается.
+        pairing_key: Секрет, который предъявляет плата; пустой у переподключившейся
             платы, чей хозяин ей уже известен.
         label: Короткий код, который плата сообщила о себе.
-        firmware_version: Версия прошивки, которую сообщила плата.
-        ssid: Имя сети, в которой находится плата; отсутствует вне сети.
+        claim: Просит ли плата записать её предложение (сигнал «я тут, заберите меня»).
+        relays: Положения контактов, какие плата знает на момент handshake.
+        ssid: Имя сети, в которой находится плата; пустое вне сети.
         provisioned: Есть ли у платы уже собственная сеть.
+        server_host: Адрес сервера, которому плата докладывает; пустой у прошивки,
+            которая его не сообщает.
+        server_port: Порт обычного интерфейса этого сервера; 0, если не сообщён.
+        socket_port: Порт WebSocket-сервера плат; 0, если не сообщён.
+        socket_path: Путь WebSocket-сервера плат; пустой, если не сообщён.
     """
 
+    model_config = ConfigDict(extra="forbid", populate_by_name=True, frozen=True)
+
     type: Literal["HELLO"] = "HELLO"
-    pairing_key: str | None = None
-    label: str = ""
     firmware_version: str = ""
-    ssid: str | None = None
+    protocol_version: int = PROTOCOL_VERSION
+    pairing_key: str = ""
+    label: str = ""
+    claim: bool = False
+    relays: list[bool] = Field(default_factory=list)
+    ssid: str = ""
     provisioned: bool = False
+    server_host: str = ""
+    server_port: int = 0
+    socket_port: int = 0
+    socket_path: str = ""
+
+    @model_validator(mode="after")
+    def _check_protocol(self) -> HelloFrame:
+        """Отвергает handshake платы, говорящей не по этой версии протокола.
+
+        Returns:
+            HelloFrame: Проверенный кадр handshake.
+
+        Raises:
+            ValueError: Когда версия протокола платы не совпадает с версией бэкенда.
+        """
+        if self.protocol_version != PROTOCOL_VERSION:
+            raise ValueError(
+                f"unsupported protocol version {self.protocol_version}, "
+                f"backend speaks {PROTOCOL_VERSION}"
+            )
+        return self
 
 
 class StateFrame(_Inbound):
@@ -227,8 +266,8 @@ class SetNetworkFrame(OutboundFrame):
         password: Пароль этой сети; пустой, когда сеть открыта.
         host: Адрес сервера, которому плата докладывается.
         server_port: Порт обычного интерфейса этого сервера.
-        socket_port: Порт доски этого сервера.
-        socket_path: Путь доски этого сервера.
+        socket_port: Порт WebSocket-сервера плат на этом сервере.
+        socket_path: Путь WebSocket-сервера плат на этом сервере.
     """
 
     type: Literal["SET_NETWORK"] = "SET_NETWORK"

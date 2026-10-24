@@ -28,6 +28,7 @@ __all__ = [
     "DeviceNotFoundError",
     "EmailAlreadyTakenError",
     "InvalidCredentialsError",
+    "LanguageModelUnavailable",
     "NoDeviceForCapabilityError",
     "RemoteUnderstandingUnavailable",
     "ScenarioNotFoundError",
@@ -86,14 +87,20 @@ class DeviceNotFoundError(ApplicationError):
 
 
 class ScenarioNotFoundError(ApplicationError):
-    """У аккаунта нет сценария с таким идентификатором.
+    """У аккаунта нет сценария с таким идентификатором, а иногда и вовсе нет активного.
 
     Args:
-        scenario_id: Идентификатор, который не удалось разрешить.
+        scenario_id: Идентификатор, который не удалось разрешить, или None, когда
+            отменять нечего (отменули без указания конкретного сценария).
     """
 
-    def __init__(self, scenario_id: ScenarioId) -> None:
-        super().__init__(f"scenario {scenario_id} does not exist")
+    def __init__(self, scenario_id: ScenarioId | None = None) -> None:
+        detail = (
+            f"scenario {scenario_id} does not exist"
+            if scenario_id is not None
+            else "there is no active scenario to cancel"
+        )
+        super().__init__(detail)
         self.scenario_id = scenario_id
 
 
@@ -177,6 +184,25 @@ class BoardAlreadyClaimedError(ApplicationError):
 
     def __init__(self) -> None:
         super().__init__("this board is already owned by another account")
+
+
+class LanguageModelUnavailable(ApplicationError):
+    """Развёртывание не смогло воспользоваться моделью, толкующей фразы.
+
+    Модель — необязательная зависимость, поэтому её отсутствие не валит дом: словарь
+    узнаёт знакомые фразы сам. Отказ нужен тому предложению, для которого модели всё-таки
+    не хватило, чтобы интерфейс сказал об этом человеку, а не выдал аварию.
+
+    Args:
+        model_name: Название модели, которую просили.
+        reason: О чём сообщил загрузчик или сама модель.
+    """
+
+    def __init__(self, model_name: str, reason: str) -> None:
+        """Инициализирует отказ."""
+        super().__init__(f"cannot use the language model {model_name!r}: {reason}")
+        self.model_name = model_name
+        self.reason = reason
 
 
 class RemoteUnderstandingUnavailable(ApplicationError):

@@ -6,9 +6,14 @@
 по одному свежнему набору сценариев из области запроса.
 """
 
-from backend.infrastructure.di.dishka_container import Container, build_dishka_container
+from backend.infrastructure.di.dishka_container import (
+    Container,
+    ProcessRole,
+    build_dishka_container,
+)
 
 __all__ = [
     "Container",
+    "ProcessRole",
     "build_dishka_container",
 ]

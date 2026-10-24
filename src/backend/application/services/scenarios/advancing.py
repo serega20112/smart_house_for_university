@@ -165,6 +165,7 @@ class ScenarioAdvancer:
         async with self._home_uow() as uow:
             scenario.start(captured)
             await uow.scenarios.update(scenario)
+            await uow.commit()
         await self._realtime.publish(
             scenario.user_id, EventName.SCENARIO_STARTED, scenario_payload(scenario)
         )
@@ -224,6 +225,7 @@ class ScenarioAdvancer:
         async with self._home_uow() as uow:
             scenario.complete(reason.value)
             await uow.scenarios.update(scenario)
+            await uow.commit()
         await self._settler.settle(scenario, devices, reason)
 
     async def _fail(
@@ -246,6 +248,7 @@ class ScenarioAdvancer:
             return
         async with self._home_uow() as uow:
             await uow.scenarios.update(scenario)
+            await uow.commit()
         await self._settler.settle(scenario, devices, reason, failed=True)
 
     async def _report_progress(self, scenario: Scenario, temperature: Temperature | None) -> None:

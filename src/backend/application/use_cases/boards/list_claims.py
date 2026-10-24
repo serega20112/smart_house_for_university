@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from backend.application.dto.views.board_claim_view import BoardClaimView
 from backend.application.interfaces.queries.board_queries import BoardQueries
-from backend.domain.value_objects.boards.board_claim_view import BoardClaimView
 
 
 class ListBoardClaimsUseCase:

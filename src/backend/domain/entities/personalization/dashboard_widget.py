@@ -8,7 +8,6 @@ DashboardState она не значит ничего.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Self
 
 from backend.domain.exceptions import InvalidDashboardLayoutError
 from backend.domain.identifiers import DeviceId
@@ -49,13 +48,13 @@ class DashboardWidget:
         if self.kind is WidgetKind.DEVICE and self.device_id is None:
             raise InvalidDashboardLayoutError("a device widget must name a device")
 
-    def rename(self, title: str | None) -> Self:
+    def rename(self, title: str | None) -> DashboardWidget:
         """Возвращает ту же карточку под другим заголовком.
 
         Args:
             title: Новый личный заголовок или None ради значения по умолчанию.
 
         Returns:
-            Self: Карточка с новым заголовком.
+            DashboardWidget: Карточка с новым заголовком.
         """
         return DashboardWidget(kind=self.kind, device_id=self.device_id, title=title)

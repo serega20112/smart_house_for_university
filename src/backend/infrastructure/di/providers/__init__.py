@@ -6,6 +6,8 @@
 там называется `<Фича>UseCaseProvider`.
 """
 
+from backend.infrastructure.di.providers.app.board_coordination import BoardCoordinationProvider
+from backend.infrastructure.di.providers.app.board_remote import BoardRemoteProvider
 from backend.infrastructure.di.providers.app.board_socket import BoardSocketProvider
 from backend.infrastructure.di.providers.app.brokers import BrokersProvider
 from backend.infrastructure.di.providers.app.database import DatabaseProvider
@@ -29,6 +31,8 @@ from backend.infrastructure.di.providers.use_cases.scenarios import ScenariosUse
 __all__ = [
     "AccountsUseCaseProvider",
     "AutomationUseCaseProvider",
+    "BoardCoordinationProvider",
+    "BoardRemoteProvider",
     "BoardSocketProvider",
     "BoardsUseCaseProvider",
     "BrokersProvider",

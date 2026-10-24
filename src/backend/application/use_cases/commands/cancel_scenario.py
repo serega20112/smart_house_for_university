@@ -8,7 +8,7 @@ from backend.application.errors import ScenarioNotFoundError
 from backend.application.interfaces.queries.scenario_queries import ScenarioQueries
 from backend.application.use_cases.commands.result import CommandReply
 from backend.application.use_cases.scenarios.cancel_scenario import CancelScenarioUseCase
-from backend.domain.identifiers import ScenarioId, UserId
+from backend.domain.identifiers import UserId
 
 
 class CancelScenarioCommandUseCase:
@@ -50,8 +50,8 @@ class CancelScenarioCommandUseCase:
         del parsed
         target = await self._queries.latest_holding_priority(user_id)
         if target is None:
-            raise ScenarioNotFoundError(ScenarioId.generate())
-        view = await self._cancel.execute(user_id, ScenarioId.parse(target.id))
+            raise ScenarioNotFoundError()
+        view = await self._cancel.execute(user_id, target.id)
         return CommandReply(
             intent=self.intent,
             answer="",

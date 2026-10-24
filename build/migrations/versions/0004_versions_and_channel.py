@@ -95,8 +95,8 @@ def shift_duplicates(table_name: str, column_name: str) -> None:
         if channel not in used:
             used.add(channel)
             continue
-        free = next(number for number in range(1, CHANNEL_LIMIT + 1) if number not in used)
-        if free > CHANNEL_LIMIT:
+        free = next((number for number in range(1, CHANNEL_LIMIT + 1) if number not in used), None)
+        if free is None:
             raise RuntimeError(f"{table_name}: account {owner} has more devices than channels")
         bind.execute(
             sa.text(f"UPDATE {table_name} SET channel = :channel WHERE id = :id").bindparams(

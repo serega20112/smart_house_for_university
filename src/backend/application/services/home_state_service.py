@@ -11,6 +11,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
+from backend.application.interfaces.services.boards.board_availability import BoardAvailability
 from backend.application.interfaces.services.boards.board_report import BoardReport
 from backend.application.interfaces.services.messaging.notification_factory import (
     NotificationFactory,
@@ -36,6 +39,7 @@ class HomeStateService(BoardReport):
         notifications: NotificationFactory,
         clock: Clock,
         devices_of_home: HomeDeviceDirectory,
+        availability: BoardAvailability,
     ) -> None:
         """Инициализирует сервис.
 
@@ -47,6 +51,7 @@ class HomeStateService(BoardReport):
             clock: Источник текущего времени.
             devices_of_home: Дешёвые чтения конфигурации, чтобы сообщение о реле
                 переводилось в имя устройства.
+            availability: Спрос, в сети ли ещё хоть одна плата дома.
         """
         self._state_store = state_store
         self._realtime = realtime
@@ -54,6 +59,7 @@ class HomeStateService(BoardReport):
         self._notifications = notifications
         self._clock = clock
         self._devices = devices_of_home
+        self._availability = availability
 
     async def on_connected(self, user_id: UserId, board_id: EspDeviceId) -> None:
         """Реагирует на новое соединение платы.
@@ -70,16 +76,23 @@ class HomeStateService(BoardReport):
     async def on_disconnected(self, user_id: UserId, board_id: EspDeviceId) -> None:
         """Реагирует на потерю соединения платы.
 
+        Дом считается без платы только тогда, когда у аккаунта не осталось ни одной
+        подключённой: уход одной платы из нескольких не должен объявлять весь дом
+        недоступным. Проверка идёт по реестру присутствия, где эта плата уже снята.
+
         Args:
             user_id: Владелец платы.
             board_id: Идентификатор платы.
         """
-        await self._state_store.record_board_online(user_id, False, self._clock.now())
+        still_online = await self._availability.is_any_online(user_id)
+        await self._state_store.record_board_online(user_id, still_online, self._clock.now())
+        if still_online:
+            return
         await self._realtime.publish(user_id, EventName.BOARD_OFFLINE, {"board_id": str(board_id)})
         await self._notifier.notify(user_id, self._notifications.board_offline())
 
     async def on_relay_states(
-        self, user_id: UserId, board_id: EspDeviceId, states: list[bool]
+        self, user_id: UserId, board_id: EspDeviceId, states: Sequence[bool]
     ) -> None:
         """Принимает сообщённые положения реле и объявляет изменившиеся устройства.
 

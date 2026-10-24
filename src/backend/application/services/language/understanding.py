@@ -135,10 +135,11 @@ class ReferencePhraseSeeder:
 
     Attributes:
         index: Индекс, в который записывают фразы.
-        embedder: Кодировщик, превращающий фразу в вектор.
+        embedder: Кодировщик, превращающий фразу в вектор, или None, когда
+            развёртывание его не имеет.
     """
 
-    def __init__(self, index: PhraseIndex, embedder: Embedder) -> None:
+    def __init__(self, index: PhraseIndex, embedder: Embedder | None) -> None:
         """Инициализирует заполнитель."""
         self._index = index
         self._embedder = embedder
@@ -146,9 +147,14 @@ class ReferencePhraseSeeder:
     async def seed(self) -> int:
         """Сохраняет каждую отсутствующую опорную фразу словаря.
 
+        Без кодировщика наполнять нечем: фразы в этом развёртывании узнаёт словарь,
+        а не вектор, поэтому шаг молча ничего не делает и старту не мешает.
+
         Returns:
-            int: Число записанных строк.
+            int: Число записанных строк; ноль, когда кодировщика нет.
         """
+        if self._embedder is None:
+            return 0
         pairs = vocabulary.reference_pairs()
         stored = await self._index.stored_pairs()
         missing = [pair for pair in pairs if pair not in stored]

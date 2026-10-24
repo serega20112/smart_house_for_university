@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+from backend.application.dto.views.board_network_view import BoardNetworkView
 from backend.application.errors import BoardNotFoundError
 from backend.application.interfaces.unit_of_work.board_onboarding import (
     BoardOnboardingUnitOfWorkFactory,
 )
 from backend.domain.identifiers import EspDeviceId, UserId
-from backend.domain.value_objects.boards.board_network_view import BoardNetworkView
 
 
 class ReadBoardNetworkUseCase:

@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from backend.application.dto.views.account_profile import AccountProfile
+from backend.application.dto.views.auth_record import AuthRecord
 from backend.domain.identifiers import UserId
-from backend.domain.value_objects.account.account_profile import AccountProfile
-from backend.domain.value_objects.account.stored_credentials import StoredCredentials
 
 
 class AccountQueries(Protocol):
@@ -20,8 +20,8 @@ class AccountQueries(Protocol):
     async def get_profile(self, user_id: UserId) -> AccountProfile | None:
         """Возвращает профиль аккаунта."""
 
-    async def get_credentials(self, email: str) -> StoredCredentials | None:
-        """Возвращает данные входа, к которому относится логин."""
+    async def get_auth_record(self, email: str) -> AuthRecord | None:
+        """Возвращает учётные данные и профиль аккаунта под этим логином."""
 
     async def list_registered_ids(self) -> list[UserId]:
         """Возвращает идентификаторы всех зарегистрированных аккаунтов.

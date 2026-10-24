@@ -3,10 +3,12 @@
 Классификатор сравнивает смыслы, поэтому настоящий смысловой кодировщик ему нужен.
 Хешированный мешок слов не отличит «выключи свет» от «включи свет» ни в каком важном
 направлении, поэтому запасного кодировщика в этом пакете нет: система, молча скатывающаяся
-к бессмысленному сходству, хуже системы, которая отказывается запускаться.
+к бессмысленному сходству, хуже системы, которая отказывается отвечать.
 
 Модель берут из конфигурации, и отсутствующая зависимость поднимает
-:class:`EmbeddingsUnavailableError` до того, как будет обслужен первый запрос.
+:class:`LanguageModelUnavailable` — отказ прикладного слоя, а не аварию: словарь узнаёт
+знакомые фразы и без модели, а непонятое предложение получает честный ответ вместо
+внутренней ошибки.
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Sequence
 
+from backend.application.errors import LanguageModelUnavailable
 from backend.application.interfaces.services.language.embedder import Embedder
 from backend.infrastructure.system.logging import get_logger
 
@@ -25,25 +28,6 @@ INSTALL_HINT = (
 )
 
 
-class EmbeddingsUnavailableError(RuntimeError):
-    """Модель кодирования предложений не удаётся загрузить.
-
-    Args:
-        model_name: Название запрошенной модели.
-        reason: О чём сообщил загрузчик.
-    """
-
-    def __init__(self, model_name: str, reason: str) -> None:
-        """Инициализирует отказ.
-
-        Args:
-            model_name: Название запрошенной модели.
-            reason: О чём сообщил загрузчик.
-        """
-        super().__init__(f"cannot load the embedding model {model_name!r}: {reason}")
-        self.model_name = model_name
-
-
 class SentenceTransformerEmbedder(Embedder):
     """Кодировщик на многоязычной модели sentence transformers.
 
@@ -53,7 +37,7 @@ class SentenceTransformerEmbedder(Embedder):
         dimensions: Ожидаемая длина полученного вектора.
 
     Raises:
-        EmbeddingsUnavailableError: Когда библиотеку или модель не удалось загрузить.
+        LanguageModelUnavailable: Когда библиотеку или модель не удалось загрузить.
     """
 
     def __init__(self, model_name: str, device: str, dimensions: int) -> None:
@@ -65,17 +49,17 @@ class SentenceTransformerEmbedder(Embedder):
             dimensions: Ожидаемая длина полученного вектора.
 
         Raises:
-            EmbeddingsUnavailableError: Когда библиотеку или модель не удалось
+            LanguageModelUnavailable: Когда библиотеку или модель не удалось
                 загрузить.
         """
         try:
             from sentence_transformers import SentenceTransformer
         except ImportError as error:
-            raise EmbeddingsUnavailableError(model_name, INSTALL_HINT) from error
+            raise LanguageModelUnavailable(model_name, INSTALL_HINT) from error
         try:
             self._model = SentenceTransformer(model_name, device=device)
         except Exception as error:
-            raise EmbeddingsUnavailableError(model_name, str(error)) from error
+            raise LanguageModelUnavailable(model_name, str(error)) from error
         self._dimensions = dimensions
         self._name = model_name
         log.info(
@@ -95,7 +79,7 @@ class SentenceTransformerEmbedder(Embedder):
             list[list[float]]: По одному нормированному вектору на фразу.
 
         Raises:
-            EmbeddingsUnavailableError: Когда модель дала вектор неожиданной длины —
+            LanguageModelUnavailable: Когда модель дала вектор неожиданной длины —
                 иначе каждая выдача молча портилась бы.
         """
         if not texts:
@@ -106,7 +90,7 @@ class SentenceTransformerEmbedder(Embedder):
         encoded = [[float(value) for value in vector] for vector in vectors]
         for vector in encoded:
             if len(vector) != self._dimensions:
-                raise EmbeddingsUnavailableError(
+                raise LanguageModelUnavailable(
                     self._name,
                     f"the model produced {len(vector)} dimensions instead of {self._dimensions}",
                 )
@@ -136,6 +120,6 @@ def load_embedder(model_name: str, device: str, dimensions: int) -> Embedder:
         Embedder: Загруженный кодировщик.
 
     Raises:
-        EmbeddingsUnavailableError: Когда библиотеку или модель не удалось загрузить.
+        LanguageModelUnavailable: Когда библиотеку или модель не удалось загрузить.
     """
     return SentenceTransformerEmbedder(model_name, device, dimensions)

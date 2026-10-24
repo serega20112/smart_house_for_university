@@ -35,6 +35,7 @@ from backend.presentation.messages import (
     INVALID_PAIRING_KEY,
     INVALID_RELAY_CHANNEL,
     INVALID_TEMPERATURE,
+    LANGUAGE_MODEL_UNAVAILABLE,
     MALFORMED_IDENTIFIER,
     SCENARIO_ALREADY_FINISHED,
     SCENARIO_MISSING,
@@ -57,6 +58,14 @@ APPLICATION_STATUSES: dict[type[BaseException], tuple[int, str]] = {
     errors.BoardAlreadyClaimedError: (status.HTTP_409_CONFLICT, CLAIM_TAKEN),
     errors.BoardUnreachableError: (status.HTTP_502_BAD_GATEWAY, BOARD_UNREACHABLE),
     errors.CommandNotUnderstoodError: (UNPROCESSABLE, COMMAND_NOT_UNDERSTOOD),
+    errors.LanguageModelUnavailable: (
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        LANGUAGE_MODEL_UNAVAILABLE,
+    ),
+    errors.RemoteUnderstandingUnavailable: (
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        LANGUAGE_MODEL_UNAVAILABLE,
+    ),
 }
 
 DOMAIN_STATUSES: dict[type[BaseException], tuple[int, str]] = {

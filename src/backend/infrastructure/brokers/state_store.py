@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Sequence
 from datetime import datetime
 from typing import Any
 
@@ -102,7 +102,7 @@ class RedisHomeStateStore(HomeStateStore):
         )
 
     async def record_relay_report(
-        self, user_id: UserId, states: list[bool], changed_at: datetime
+        self, user_id: UserId, states: Sequence[bool], changed_at: datetime
     ) -> tuple[int, ...]:
         """Применяет положения контактов, о которых сообщила плата.
 

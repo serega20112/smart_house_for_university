@@ -1,8 +1,10 @@
 """WebSocket-ручка, которой интерфейс получает события в реальном времени.
 
-Браузер не может повесить заголовок авторизации на handshake WebSocket, поэтому токен
-приходит параметром строки запроса и разбирается тем же адаптером токенов, которым
-пользуется REST API: соединение без годного токена закрывается до того, как принято.
+Браузер не может повесить заголовок авторизации на handshake WebSocket, поэтому соединение
+приходит с коротким одноразовым билетом в параметре строки запроса: REST выдаёт его по
+текущей сессии, а здесь билет один раз обменивается на аккаунт. Соединение без годного
+билета закрывается до того, как принято; сам токен сессии в адресе не появляется, поэтому
+утёкшая строка запроса не даёт доступа к дому.
 
 Сам концентратор — инфраструктура; здесь только решение, кого пустить и когда сказать
 концентратору о соединении.
@@ -14,8 +16,8 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
-from backend.application.interfaces.services.security.session_token_issuer import (
-    SessionTokenIssuer,
+from backend.application.interfaces.services.security.realtime_ticket_store import (
+    RealtimeTicketStore,
 )
 from backend.infrastructure.system.logging import get_logger
 from backend.infrastructure.websockets.hub import WebSocketHub
@@ -24,7 +26,7 @@ log = get_logger("websockets.router")
 
 router = APIRouter()
 
-TOKEN_PARAMETER = "token"
+TICKET_PARAMETER = "ticket"
 POLICY_VIOLATION_CLOSE = status.WS_1008_POLICY_VIOLATION
 
 
@@ -33,16 +35,16 @@ POLICY_VIOLATION_CLOSE = status.WS_1008_POLICY_VIOLATION
 async def events(
     websocket: WebSocket,
     hub: FromDishka[WebSocketHub],
-    tokens: FromDishka[SessionTokenIssuer],
+    tickets: FromDishka[RealtimeTicketStore],
 ) -> None:
     """Держит клиента подписанным на его собственные события до отключения.
 
     Args:
         websocket: Соединение клиента.
         hub: Концентратор, которому это соединение принадлежит.
-        tokens: Тот, кто разбирает предъявленный токен сессии.
+        tickets: Тот, кто обменивает предъявленный билет на аккаунт.
     """
-    user_id = tokens.resolve(websocket.query_params.get(TOKEN_PARAMETER, ""))
+    user_id = await tickets.redeem(websocket.query_params.get(TICKET_PARAMETER, ""))
     if user_id is None:
         await websocket.close(code=POLICY_VIOLATION_CLOSE)
         return

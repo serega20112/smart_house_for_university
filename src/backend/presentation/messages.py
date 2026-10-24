@@ -27,6 +27,9 @@ CLAIM_MISSING = "Предложение сопряжения не найдено
 CLAIM_EXPIRED = "Срок действия предложения сопряжения истёк."
 CLAIM_TAKEN = "Плату уже сопрягли с другим аккаунтом."
 COMMAND_NOT_UNDERSTOOD = "Не удалось понять команду."
+LANGUAGE_MODEL_UNAVAILABLE = (
+    "Смысловой разбор фраз сейчас недоступен. Переформулируйте просьбу привычными словами."
+)
 LOGGED_OUT = "Вы вышли из аккаунта."
 UNAUTHORIZED = "Требуется авторизация."
 INVALID_DEVICE_NAME = "Некорректное имя устройства."
@@ -200,7 +203,7 @@ class CommandReplyComposer:
                 )
             case Intent.SWITCH_ALL:
                 devices = details.get("devices")
-                if not devices:
+                if not isinstance(devices, (list, tuple)) or not devices:
                     return COMMAND_NOTHING_TO_SWITCH
                 return COMMAND_SWITCHED + ", ".join(str(name) for name in devices) + "."
             case Intent.SET_TEMPERATURE:

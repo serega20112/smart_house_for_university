@@ -12,6 +12,8 @@ from enum import StrEnum
 
 from backend.domain.value_objects.climate.climate_band import ClimateBand
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
+from backend.domain.value_objects.climate.humidity import Humidity
+from backend.domain.value_objects.climate.temperature import Temperature
 from backend.domain.value_objects.devices.capability import Capability
 
 
@@ -40,6 +42,13 @@ DEMAND_CAPABILITIES: dict[ClimateDemand, Capability] = {
     ClimateDemand.DEHUMIDIFY: Capability.DEHUMIDIFY,
 }
 
+GOAL_TOLERANCE_CELSIUS = 0.5
+"""Насколько измерению позволено не дойти до цели, чтобы её считали достигнутой.
+
+Это бизнес-решение лежит рядом с остальными климатическими правилами, а не размазано
+по агрегатам: сценарий и автоматика сходятся к одному порогу «дошли или нет».
+"""
+
 
 class DemandCalculator:
     """Превращает показания и настройку в порождённые ими требования.
@@ -51,8 +60,8 @@ class DemandCalculator:
 
     def demands_for(
         self,
-        temperature_band: ClimateBand[object] | None,
-        humidity_band: ClimateBand[object] | None,
+        temperature_band: ClimateBand[Temperature] | None,
+        humidity_band: ClimateBand[Humidity] | None,
         reading: ClimateReading,
     ) -> tuple[ClimateDemand, ...]:
         """Возвращает всякое требование, которое порождают нынешние показания.

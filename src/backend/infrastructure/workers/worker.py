@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Final
@@ -40,7 +41,9 @@ from backend.application.services.board_onboarding import BoardOnboardingService
 from backend.application.services.scenarios.advancing import ScenarioAdvancer
 from backend.config.settings import Settings
 from backend.domain.identifiers import UserId
-from backend.infrastructure.di import build_dishka_container
+from backend.infrastructure.brokers.board_presence import RedisBoardPresence
+from backend.infrastructure.di import ProcessRole, build_dishka_container
+from backend.infrastructure.system import metrics
 from backend.infrastructure.system.logging import configure_logging, get_logger
 
 log = get_logger("worker")
@@ -120,7 +123,10 @@ def worker_settings(
         type[Any]: Класс, из которого ARQ берёт аргументы рабочего.
     """
     built = _worker_class(settings)
-    setup_dishka(build_dishka_container(settings, notifications=notifications), built)
+    setup_dishka(
+        build_dishka_container(settings, notifications=notifications, role=ProcessRole.WORKER),
+        built,
+    )
     return built
 
 
@@ -198,48 +204,60 @@ async def shutdown(ctx: dict[str, Any]) -> None:
 
 
 async def automation_cycle(ctx: dict[str, Any]) -> None:
-    """Прогоняет один цикл автоматизации для каждого зарегистрированного аккаунта.
+    """Прогоняет один цикл автоматизации для каждого аккаунта с подключённой платой.
 
-    Аккаунты идут параллельно под общим семафором, каждый за своей арендой и со
-    своим таймаутом: два инстанса рабочего по-прежнему выполняют по циклу на
-    аккаунт, а один сломанный дом не останавливает остальные.
+    Аккаунты берутся из реестра присутствия Redis, а не полным сканированием базы: без
+    онлайн-платы автоматизировать нечего, а такт не растёт от числа зарегистрированных.
 
     Args:
         ctx: Контекст рабочего, уже несущий контейнер.
     """
     container = container_of(ctx)
     automation = await container.get(AutomationService)
-    await _per_user(container, automation.run_cycle, AUTOMATION_LOCK)
+    presence = await container.get(RedisBoardPresence)
+    online = await presence.online_user_ids()
+    await _per_user(container, automation.run_cycle, AUTOMATION_LOCK, online)
 
 
 async def scenario_tick(ctx: dict[str, Any]) -> None:
     """Двигает сценарии каждого зарегистрированного аккаунта.
+
+    Здесь список остаётся полным: ожидающий или идущий сценарий надо двигать и когда
+    плата недоступна (иначе он зависнет, а не перейдёт в отказ).
 
     Args:
         ctx: Контекст рабочего, уже несущий контейнер.
     """
     container = container_of(ctx)
     advancer = await container.get(ScenarioAdvancer)
-    await _per_user(container, advancer.advance, SCENARIO_LOCK)
+    await _per_user(container, advancer.advance, SCENARIO_LOCK, await _user_ids(container))
 
 
-async def _per_user(container: AsyncContainer, run: UserJob, lock_name: str) -> None:
-    """Прогоняет одну работу по всем аккаунтам под их арендами.
+async def _per_user(
+    container: AsyncContainer,
+    run: UserJob,
+    lock_name: str,
+    user_ids: Sequence[UserId],
+) -> None:
+    """Прогоняет одну работу по переданным аккаунтам под их арендами.
 
     Args:
         container: Контейнер рабочего процесса.
         run: Работа, выполняемая для одного аккаунта.
         lock_name: Префикс ключа аренды.
+        user_ids: Аккаунты этого периода.
     """
     settings: Settings = await container.get(Settings)
     lock = await container.get(DistributedLock)
+    started = time.perf_counter()
     await run_for_each_user(
-        await _user_ids(container),
+        user_ids,
         run,
         lock,
         lock_name=lock_name,
         limits=WorkerLimits.of(settings),
     )
+    metrics.observe_cycle(lock_name, time.perf_counter() - started)
 
 
 async def purge_board_claims(ctx: dict[str, Any]) -> None:
@@ -307,18 +325,19 @@ async def _run_user(
                 ttl_sec=limits.lock_ttl_sec,
                 refresh_sec=limits.lock_refresh_sec,
             ):
-                await _run_guarded(user_id, run, limits.per_user_timeout_sec)
+                await _run_guarded(user_id, run, limits.per_user_timeout_sec, lock_name)
         except TimeoutError:
             log.info("worker.user_skipped", user=str(user_id), lock=lock_name)
 
 
-async def _run_guarded(user_id: UserId, run: UserJob, timeout_sec: int) -> None:
+async def _run_guarded(user_id: UserId, run: UserJob, timeout_sec: int, cycle: str) -> None:
     """Выполняет работу аккаунта с её таймаутом и полным трейсбеком.
 
     Args:
         user_id: Обслуживаемый аккаунт.
         run: Работа для аккаунта.
         timeout_sec: Секунды, отведённые на работу.
+        cycle: Название цикла — метрика ошибки не тонет в журнале.
     """
     try:
         async with asyncio.timeout(timeout_sec):
@@ -326,6 +345,7 @@ async def _run_guarded(user_id: UserId, run: UserJob, timeout_sec: int) -> None:
     except TimeoutError:
         log.warning("worker.user_timed_out", user=str(user_id), timeout_sec=timeout_sec)
     except Exception:
+        metrics.count_cycle_error(cycle)
         log.exception("worker.user_failed", user=str(user_id))
 
 

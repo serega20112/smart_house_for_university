@@ -40,12 +40,16 @@ def read_greeting(raw: str) -> BoardGreeting | None:
     if not isinstance(frame, protocol.HelloFrame):
         return None
     return BoardGreeting(
-        pairing_key=frame.pairing_key,
+        pairing_key=frame.pairing_key or None,
         label=frame.label,
         firmware=frame.firmware_version,
-        ssid=frame.ssid,
+        ssid=frame.ssid or None,
         provisioned=frame.provisioned,
         claims_owned=frame.claim,
+        server_host=frame.server_host or None,
+        server_port=frame.server_port,
+        socket_port=frame.socket_port,
+        socket_path=frame.socket_path or None,
     )
 
 

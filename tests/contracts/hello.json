@@ -1,0 +1,1 @@
+{"type": "HELLO", "firmware_version": "1.4.0", "protocol_version": 4, "pairing_key": "9F2C7A11", "label": "9F2C7A", "claim": false, "relays": [true, false, false, false, false, false], "ssid": "HomeNet", "provisioned": true, "server_host": "192.168.1.10", "server_port": 8000, "socket_port": 8001, "socket_path": "/ws/board"}

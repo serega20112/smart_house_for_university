@@ -32,7 +32,7 @@ const DEFAULTS: Draft = {
   password: "",
   host: "",
   serverPort: "8000",
-  socketPort: "8765",
+  socketPort: "8001",
   socketPath: "/ws/board",
 };
 

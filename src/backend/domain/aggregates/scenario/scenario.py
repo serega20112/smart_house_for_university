@@ -22,13 +22,14 @@ from backend.domain.exceptions import (
     ScenarioAlreadyFinishedError,
 )
 from backend.domain.identifiers import DeviceId, ScenarioId, UserId
+from backend.domain.policies.climate_policy import GOAL_TOLERANCE_CELSIUS
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.climate.temperature import Temperature
+from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
 from backend.domain.value_objects.scenario.scenario_status import ScenarioStatus
 
-GOAL_TOLERANCE_C = 0.5
 MAX_TARGET_LENGTH = 120
 
 
@@ -116,7 +117,7 @@ class Scenario:
             return False
         return all(
             action.target_temperature is None
-            or measured.distance_to(action.target_temperature) <= GOAL_TOLERANCE_C
+            or measured.distance_to(action.target_temperature) <= GOAL_TOLERANCE_CELSIUS
             for action in self.actions
         )
 
@@ -279,7 +280,7 @@ class Scenario:
 
     @classmethod
     def action_for(
-        cls, capability: object, target_temperature: Temperature | None = None
+        cls, capability: Capability, target_temperature: Temperature | None = None
     ) -> ScenarioAction:
         """Строит единственное действие простого сценария.
 

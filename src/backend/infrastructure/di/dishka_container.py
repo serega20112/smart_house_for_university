@@ -11,7 +11,9 @@
 
 from __future__ import annotations
 
-from dishka import AsyncContainer, make_async_container
+from enum import Enum, auto
+
+from dishka import AsyncContainer, Provider, make_async_container
 
 from backend.application.interfaces.services.messaging.notification_factory import (
     NotificationFactory,
@@ -20,6 +22,8 @@ from backend.config.settings import Settings
 from backend.infrastructure.di.providers import (
     AccountsUseCaseProvider,
     AutomationUseCaseProvider,
+    BoardCoordinationProvider,
+    BoardRemoteProvider,
     BoardSocketProvider,
     BoardsUseCaseProvider,
     BrokersProvider,
@@ -40,7 +44,20 @@ from backend.infrastructure.di.silent_notifications import SilentNotificationFac
 
 Container = AsyncContainer
 
-PROVIDERS = (
+
+class ProcessRole(Enum):
+    """Роль процесса, для которого собирается контейнер.
+
+    Attributes:
+        API: Процесс интерфейса — единственный владелец WebSocket-сервера плат.
+        WORKER: Фоновый процесс — автоматика и сценарии, говорящий с железа через шину.
+    """
+
+    API = auto()
+    WORKER = auto()
+
+
+SHARED_PROVIDERS: tuple[Provider, ...] = (
     RuntimeProvider(),
     DatabaseProvider(),
     PersistenceProvider(),
@@ -49,7 +66,7 @@ PROVIDERS = (
     PhrasesProvider(),
     TelegramProvider(),
     WebSocketsProvider(),
-    BoardSocketProvider(),
+    BoardCoordinationProvider(),
     HomeUseCaseProvider(),
     AutomationUseCaseProvider(),
     ScenariosUseCaseProvider(),
@@ -60,17 +77,32 @@ PROVIDERS = (
     PersonalizationUseCaseProvider(),
 )
 
+ROLE_PROVIDERS: dict[ProcessRole, tuple[Provider, ...]] = {
+    ProcessRole.API: (
+        BoardSocketProvider(),
+    ),
+    ProcessRole.WORKER: (
+        BoardRemoteProvider(),
+    ),
+}
+
 
 def build_dishka_container(
     settings: Settings,
     *,
     notifications: NotificationFactory | None = None,
+    role: ProcessRole = ProcessRole.API,
 ) -> Container:
     """Собирает граф зависимостей одного процесса.
+
+    Разделение провайдеров по ролям — суть исправления P0-2: сервер плат заводится
+    только в процессе API, а рабочий получает удалённый шлюз и не может поднять
+    второй WebSocket-сервер на занятом порту.
 
     Args:
         settings: Конфигурация, из которой строится граф.
         notifications: Строит формулировки каждого сообщения человека.
+        role: Роль процесса, определяющая набор ролевых провайдеров.
 
     Returns:
         Container: Контейнер со всем, что нужно процессу.
@@ -79,4 +111,5 @@ def build_dishka_container(
         Settings: settings,
         NotificationFactory: notifications or SilentNotificationFactory(),
     }
-    return make_async_container(*PROVIDERS, context=context)
+    providers = (*SHARED_PROVIDERS, *ROLE_PROVIDERS[role])
+    return make_async_container(*providers, context=context)

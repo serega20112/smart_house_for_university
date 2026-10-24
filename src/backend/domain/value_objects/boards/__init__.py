@@ -1,7 +1,5 @@
-"""Модели чтения плат."""
+"""Значения платы: сеть и ключ сопряжения.
 
-from backend.domain.value_objects.boards.board_claim_view import BoardClaimView
-from backend.domain.value_objects.boards.board_network_view import BoardNetworkView
-from backend.domain.value_objects.boards.board_view import BoardView
-
-__all__ = ["BoardClaimView", "BoardNetworkView", "BoardView"]
+Барель ничего не переэкспортирует. Модели чтения плат (`BoardView`, `BoardClaimView`,
+`BoardNetworkView`) переехали в прикладной слой — домен не описывает форму экрана.
+"""

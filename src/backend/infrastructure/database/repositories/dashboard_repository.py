@@ -6,6 +6,7 @@ from sqlalchemy import delete
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
+from backend.application.interfaces.repositories.dashboard_repository import DashboardRepository
 from backend.domain.aggregates.dashboard.dashboard_state import DashboardState
 from backend.domain.identifiers import (
     UserId,
@@ -30,7 +31,7 @@ UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
 
 
-class SqlDashboardRepository:
+class SqlDashboardRepository(DashboardRepository):
     """Хранение раскладки главного экрана одного аккаунта.
 
     Attributes:

@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
@@ -51,7 +52,7 @@ class HomeState:
         """
         return self.relay_states.get(channel) is RelayState.ON
 
-    def apply_relay_report(self, states: list[bool], changed_at: datetime) -> tuple[int, ...]:
+    def apply_relay_report(self, states: Sequence[bool], changed_at: datetime) -> tuple[int, ...]:
         """Принимает положения каналов, которые сообщило железо.
 
         Args:
