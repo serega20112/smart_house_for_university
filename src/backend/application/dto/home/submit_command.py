@@ -1,4 +1,4 @@
-"""A free form sentence submitted by a person."""
+"""Предложение, написанное человеком своими словами."""
 
 from __future__ import annotations
 
@@ -7,13 +7,10 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class SubmitCommand:
-    """The sentence the interface was asked to carry out.
+    """Предложение, которое попросили выполнить интерфейс.
 
-    Args:
-        text: Sentence as the interface received it.
-
-    Returns:
-        None.
+    Attributes:
+        text: Предложение таким, каким интерфейс его получил.
     """
 
     text: str

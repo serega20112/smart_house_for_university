@@ -1,13 +1,12 @@
-"""WebSocket hub broadcasting realtime events.
+"""Концентратор, раздающий события интерфейсу в реальном времени.
 
-The application publishes events through Redis, so a process that keeps no
-sockets still delivers them: every instance of the backend swaps messages through
-the broker, and the instance that happens to hold the socket of an account
-forwards them to the browser.
+Прикладной слой публикует события через Redis, поэтому их доставляет и тот
+процесс, где нет ни одного сокета: каждый экземпляр бэкенда обменивается
+сообщениями через брокер, а тот, у которого держится соединение аккаунта,
+отдаёт их браузеру.
 
-Clients are grouped by the account they authenticated as, and an event only ever
-reaches the sockets of its own owner, so one user never observes a change in the
-home of another one.
+Клиенты сгруппированы по аккаунту, под которым они вошли, и событие уходит
+только в сокеты собственного владельца, поэтому один человек не увидит чужой дом.
 """
 
 from __future__ import annotations
@@ -26,23 +25,17 @@ log = get_logger("websocket.hub")
 
 
 class WebSocketHub:
-    """Forwards the events of each account to the sockets of that account.
+    """Отдаёт события каждого аккаунта в сокеты этого аккаунта.
 
     Args:
-        subscriber: Reader of the realtime channels of Redis.
-
-    Returns:
-        None.
+        subscriber: Читатель каналов событий Redis.
     """
 
     def __init__(self, subscriber: RedisSubscriber) -> None:
-        """Initialize an empty hub.
+        """Инициализирует пустой концентратор.
 
         Args:
-            subscriber: Reader of the realtime channels of Redis.
-
-        Returns:
-            None.
+            subscriber: Читатель каналов событий Redis.
         """
         self._subscriber = subscriber
         self._clients: dict[UserId, set[WebSocket]] = defaultdict(set)
@@ -50,14 +43,11 @@ class WebSocketHub:
         self._lock = asyncio.Lock()
 
     async def connect(self, user_id: UserId, websocket: WebSocket) -> None:
-        """Accept a new client connection and make sure events reach it.
+        """Принимает новое соединение и следит, чтобы события в него доходили.
 
         Args:
-            user_id: Account the connection was authorized as.
-            websocket: Client connection.
-
-        Returns:
-            None.
+            user_id: Аккаунт, под которым соединение разрешено.
+            websocket: Соединение клиента.
         """
         await websocket.accept()
         async with self._lock:
@@ -66,20 +56,14 @@ class WebSocketHub:
                 self._readers[user_id] = asyncio.create_task(
                     self._pump(user_id), name=f"events-{user_id}"
                 )
-        log.info(
-            "web client connected",
-            extra={"ctx": {"user": str(user_id), "clients": self._count()}},
-        )
+        log.info("websocket.client_connected", user=str(user_id), clients=self._count())
 
     async def disconnect(self, user_id: UserId, websocket: WebSocket) -> None:
-        """Forget a client connection and stop reading for an empty account.
+        """Забирает соединение и перестаёт читать для опустевшего аккаунта.
 
         Args:
-            user_id: Account the connection was authorized as.
-            websocket: Client connection.
-
-        Returns:
-            None.
+            user_id: Аккаунт, под которым соединение разрешено.
+            websocket: Соединение клиента.
         """
         async with self._lock:
             self._clients[user_id].discard(websocket)
@@ -91,11 +75,7 @@ class WebSocketHub:
             reader.cancel()
 
     async def stop(self) -> None:
-        """Stop every reader of this process.
-
-        Returns:
-            None.
-        """
+        """Останавливает всех читателей этого процесса."""
         async with self._lock:
             readers = list(self._readers.values())
             self._readers.clear()
@@ -107,17 +87,14 @@ class WebSocketHub:
                 await reader
 
     async def _pump(self, user_id: UserId) -> None:
-        """Forward every event of one account to its sockets.
+        """Пересылает каждое событие аккаунта в его сокеты.
 
-        A socket that fails to receive is dropped; a failure of the whole
-        subscription is logged and retried after a pause, because a Redis blip
-        must not permanently silence the interface.
+        Сокет, которому не удалось принять сообщение, отбрасывается; отказ всей
+        подписки записывается в журнал и повторяется после паузы: сбой Redis не
+        должен надолго глушить интерфейс.
 
         Args:
-            user_id: Account the channel belongs to.
-
-        Returns:
-            None.
+            user_id: Аккаунт, чей канал читается.
         """
         while True:
             try:
@@ -126,13 +103,11 @@ class WebSocketHub:
             except asyncio.CancelledError:
                 raise
             except Exception as error:
-                log.warning(
-                    "websocket.reader_failed",
-                    extra={"ctx": {"user": str(user_id), "error": str(error)}},
-                )
+                log.warning("websocket.reader_failed", user=str(user_id), error=str(error))
                 await asyncio.sleep(1.0)
 
     async def _deliver(self, user_id: UserId, event: str, payload: dict) -> None:
+        """Отправляет одно событие всем сокетам аккаунта, отцепив отказавшие."""
         async with self._lock:
             clients = list(self._clients.get(user_id, ()))
         if not clients:
@@ -145,4 +120,5 @@ class WebSocketHub:
                 await self.disconnect(user_id, client)
 
     def _count(self) -> int:
+        """Возвращает число клиентских соединений, которые концентратор держит."""
         return sum(len(clients) for clients in self._clients.values())

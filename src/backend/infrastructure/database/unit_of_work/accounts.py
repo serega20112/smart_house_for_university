@@ -19,43 +19,32 @@ from backend.infrastructure.database.unit_of_work.base import SqlUnitOfWork
 
 
 class SqlAccountUnitOfWork(SqlUnitOfWork, AccountUnitOfWork):
-    """Transaction over the accounts, and over nothing else.
+    """Транзакция над аккаунтами и больше ни над чем.
 
-    Args:
-        session_factory: Factory producing the session of the block.
-
-    Returns:
-        None.
+    Attributes:
+        session_factory: Фабрика, дающая сессию блока.
     """
 
     @property
     def accounts(self) -> AccountRepository:
-        """Return the account repository bound to the current transaction.
-
-        Returns:
-            AccountRepository: Account repository.
-        """
+        """Хранилище аккаунтов нынешней транзакции."""
         return self.repository(SqlAccountRepository)
 
 
 def make_account_unit_of_work(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> AccountUnitOfWorkFactory:
-    """Build the factory producing units of work over the accounts.
+    """Строит фабрику границ транзакции над аккаунтами.
 
     Args:
-        session_factory: Factory producing sessions.
+        session_factory: Фабрика сессий.
 
     Returns:
-        AccountUnitOfWorkFactory: Callable handing out a fresh unit of work.
+        AccountUnitOfWorkFactory: Вызываемый объект, дающий свежую границу.
     """
 
     def factory() -> SqlAccountUnitOfWork:
-        """Create a new unit of work over the accounts.
-
-        Returns:
-            SqlAccountUnitOfWork: Unit of work bound to its own session.
-        """
+        """Создаёт новую границу над аккаунтами."""
         return SqlAccountUnitOfWork(session_factory)
 
     return factory

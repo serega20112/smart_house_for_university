@@ -1,9 +1,9 @@
-"""What the climate of a home is asking for.
+"""О чём просит климат дома.
 
-A demand is a decision of the model, and the capability that satisfies it is part
-of that decision. Humidifying used to be spelled as "switch the humidifier on",
-which quietly made a humidifier with a target level impossible; naming the demand
-and its capability keeps the two apart.
+Требование — решение модели, и способность, которая его удовлетворяет, — часть этого
+решения. Увлажнение раньше писалось как «включить увлажнитель», из-за чего увлажнитель
+с целевым уровнем становился невозможен; отдельное имя требования и его способности
+держит эти два понятия врозь.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from backend.domain.value_objects.devices.capability import Capability
 
 
 class ClimateDemand(StrEnum):
-    """An action required to bring the climate back inside the band."""
+    """Действие, нужное, чтобы вернуть климат в коридор."""
 
     COOL = "COOL"
     HEAT = "HEAT"
@@ -25,10 +25,10 @@ class ClimateDemand(StrEnum):
 
     @property
     def capability(self) -> Capability:
-        """Return the capability that satisfies the demand.
+        """Возвращает способность, которая удовлетворяет требование.
 
         Returns:
-            Capability: Capability to ask a device for.
+            Capability: Способность, которую просят у устройства.
         """
         return DEMAND_CAPABILITIES[self]
 
@@ -42,11 +42,11 @@ DEMAND_CAPABILITIES: dict[ClimateDemand, Capability] = {
 
 
 class DemandCalculator:
-    """Turns a reading and a configuration into the demands it produces.
+    """Превращает показания и настройку в порождённые ими требования.
 
-    The calculator is a domain service rather than a module of functions because
-    it needs both climate bands and both readings to answer, and because a caller
-    should not be able to apply half of the rule.
+    Вычислитель — сервис домена, а не набор функций, потому что для ответа нужны обе
+    полосы климата и оба показания, и потому что вызывающему нельзя применить половину
+    правила.
     """
 
     def demands_for(
@@ -55,21 +55,21 @@ class DemandCalculator:
         humidity_band: ClimateBand[object] | None,
         reading: ClimateReading,
     ) -> tuple[ClimateDemand, ...]:
-        """Return every demand the current reading produces.
+        """Возвращает всякое требование, которое порождают нынешние показания.
 
-        A missing measurement produces no demand rather than a guess, and both
-        dimensions are evaluated even when only one of them is configured.
+        Отсутствующее измерение не порождает требования вместо догадки, и оба размера
+        смотрятся даже когда настроен только один из них.
 
         Args:
-            temperature_band: Acceptable temperature band or None when the
-                temperature is not automated.
-            humidity_band: Acceptable humidity band or None when the humidity is
-                not automated.
-            reading: Current sensor reading.
+            temperature_band: Допустимая полоса температуры или None, когда
+                температуру автоматика не ведёт.
+            humidity_band: Допустимая полоса влажности или None, когда влажность
+                автоматика не ведёт.
+            reading: Текущие показания датчиков.
 
         Returns:
-            tuple[ClimateDemand, ...]: Demands to act on, empty when every
-            measured value already sits inside its band.
+            tuple[ClimateDemand, ...]: Требования к исполнению; пусто, когда каждое
+            измерение уже внутри своей полосы.
         """
         demands: list[ClimateDemand] = []
         temperature = reading.temperature
@@ -89,17 +89,17 @@ class DemandCalculator:
     def capability_towards(
         self, target_celsius: float, current_celsius: float | None
     ) -> Capability:
-        """Return the capability that moves the home towards a target temperature.
+        """Возвращает способность, двигающая дом к целевой температуре.
 
-        Without a measurement the request is taken as cooling, because a person
-        asking for a temperature is normally asking for a cooler room.
+        Без измерения просьбу считают охлаждением: обычно человек, называющий
+        температуру, хочет в комнате прохладнее.
 
         Args:
-            target_celsius: Requested target temperature.
-            current_celsius: Measured temperature or None when unavailable.
+            target_celsius: Запрошенная целевая температура.
+            current_celsius: Измеренная температура или None, когда её нет.
 
         Returns:
-            Capability: Cooling or heating capability.
+            Capability: Охлаждение или нагрев.
         """
         if current_celsius is None or target_celsius < current_celsius:
             return Capability.COOL

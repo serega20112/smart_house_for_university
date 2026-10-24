@@ -1,4 +1,4 @@
-/** Grid of the six device cards. */
+/** Сетка карточек устройств дома. */
 
 import { Card } from "../../components/Card";
 import type { Device } from "../../services/types";

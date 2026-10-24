@@ -21,13 +21,13 @@ from backend.infrastructure.database.tables import (
 
 
 def scenario_to_row(scenario: Scenario) -> ScenarioRow:
-    """Build the row describing a timed scenario.
+    """Строит строку, описывающую отложенный сценарий.
 
     Args:
-        scenario: Scenario to serialize.
+        scenario: Сценарий для сериализации.
 
     Returns:
-        ScenarioRow: New row describing the scenario.
+        ScenarioRow: Новая строка, описывающая сценарий.
     """
     return ScenarioRow(
         id=scenario.id.value,
@@ -47,15 +47,15 @@ def scenario_from_row(
     actions: tuple[ScenarioAction, ...],
     captured_statuses: dict[DeviceId, DeviceStatus],
 ) -> Scenario:
-    """Build the scenario a row and its collection rows describe.
+    """Строит сценарий, описанный его строкой и строками коллекций.
 
     Args:
-        row: Row to deserialize.
-        actions: Actions read from ``scenario_actions``.
-        captured_statuses: States read from ``scenario_captured_statuses``.
+        row: Строка для десериализации.
+        actions: Действия, прочитанные из ``scenario_actions``.
+        captured_statuses: Состояния, прочитанные из ``scenario_captured_statuses``.
 
     Returns:
-        Scenario: Restored scenario.
+        Scenario: Восстановленный сценарий.
     """
     return Scenario(
         id=ScenarioId.parse(row.id),
@@ -73,17 +73,16 @@ def scenario_from_row(
 
 
 def action_rows(scenario: Scenario) -> list[ScenarioActionRow]:
-    """Build one row per action of a scenario.
+    """Строит по строке на каждое действие сценария.
 
-    An action names a capability and a target rather than a relay channel, and it
-    has no identity of its own in the model, so the store assigns one and records
-    the order explicitly.
+    Действие называет способность и цель, а не канал реле, и своей идентичности в модели
+    не имеет, поэтому хранилище выдаёт её само и порядком записывает явно.
 
     Args:
-        scenario: Scenario to serialize.
+        scenario: Сценарий для сериализации.
 
     Returns:
-        list[ScenarioActionRow]: Action rows in the order the scenario declares.
+        list[ScenarioActionRow]: Строки действий в порядке, объявленном сценарием.
     """
     return [
         ScenarioActionRow(
@@ -100,13 +99,13 @@ def action_rows(scenario: Scenario) -> list[ScenarioActionRow]:
 
 
 def action_from_row(row: ScenarioActionRow) -> ScenarioAction:
-    """Build the scenario action a row describes.
+    """Строит действие сценария, описанное строкой.
 
     Args:
-        row: Row to deserialize.
+        row: Строка для десериализации.
 
     Returns:
-        ScenarioAction: Restored action.
+        ScenarioAction: Восстановленное действие.
     """
     return ScenarioAction(
         capability=Capability.parse(row.capability),
@@ -117,13 +116,13 @@ def action_from_row(row: ScenarioActionRow) -> ScenarioAction:
 
 
 def captured_status_rows(scenario: Scenario) -> list[ScenarioCapturedStatusRow]:
-    """Build one row per device state captured before a scenario started.
+    """Строит по строке на каждое состояние, снятое до начала сценария.
 
     Args:
-        scenario: Scenario to serialize.
+        scenario: Сценарий для сериализации.
 
     Returns:
-        list[ScenarioCapturedStatusRow]: Captured state rows of the scenario.
+        list[ScenarioCapturedStatusRow]: Строки снятых состояний сценария.
     """
     return [
         ScenarioCapturedStatusRow(
@@ -136,13 +135,13 @@ def captured_status_rows(scenario: Scenario) -> list[ScenarioCapturedStatusRow]:
 
 
 def captured_status_from_row(row: ScenarioCapturedStatusRow) -> tuple[DeviceId, DeviceStatus]:
-    """Build the captured device state a row describes.
+    """Строит снятое состояние устройства, описанное строкой.
 
     Args:
-        row: Row to deserialize.
+        row: Строка для десериализации.
 
     Returns:
-        tuple[DeviceId, DeviceStatus]: Device the state was captured for and the
-        state itself.
+        tuple[DeviceId, DeviceStatus]: Устройство, чьё состояние снимали, и само
+        состояние.
     """
     return DeviceId.parse(row.device_id), DeviceStatus(row.status)

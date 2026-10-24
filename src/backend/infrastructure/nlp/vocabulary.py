@@ -1,14 +1,13 @@
-"""Every word the pipeline knows, in one place.
+"""Все слова, которые знает конвейер, в одном месте.
 
-Russian is the language this system answers in, so the words a person may say
-live here and nowhere else. The model deliberately knows no vocabulary: reading
-"кондиционер" as a hint about the air conditioner belongs to the adapter that
-knows the language, and the domain only ever compares names it is given.
+Русский — язык, на котором система отвечает, поэтому слова, которые может сказать
+человек, живут здесь и больше нигде. Модель нарочно словаря не знает: прочитать
+«кондиционер» как намёк на нужное устройство — дело адаптера, знающего язык, а домен
+сравнивает только переданные ему имена.
 
-The module is deliberately plain data. Words are matched by their first
-characters rather than by a stemmer, because Russian inflects both nouns and
-verbs and a four character prefix is what stays stable across the forms a person
-actually uses.
+Модуль нарочно простые данные. Слова сравнивают по первым символам, а не степпером:
+русский склоняет и существительные, и глаголы, и устойчивым остаётся четырёхсимвольная
+приставка — та самая, которая сквозит во всех формах, которыми человек реально пользуется.
 """
 
 from __future__ import annotations
@@ -286,11 +285,11 @@ INTENT_REFERENCES: Final[dict[Intent, tuple[str, ...]]] = {
 
 
 def reference_pairs() -> tuple[tuple[str, str], ...]:
-    """Return the reference phrases flattened into intent and phrase pairs.
+    """Возвращает опорные фразы, разложенные на пары «намерение и фраза».
 
     Returns:
-        tuple[tuple[str, str], ...]: Intent names paired with their phrases, in a
-        stable order so a re-seed never rewrites a row it already stored.
+        tuple[tuple[str, str], ...]: Названия намерений со своими фразами, в устойчивом
+        порядке, чтобы повторное наполнение не переписывало уже сохранённую строку.
     """
     return tuple(
         (intent.value, phrase) for intent in Intent for phrase in INTENT_REFERENCES.get(intent, ())
@@ -298,32 +297,32 @@ def reference_pairs() -> tuple[tuple[str, str], ...]:
 
 
 def shares_prefix(word: str, keyword: str) -> bool:
-    """Return whether two Russian words are the same word in different cases.
+    """Сообщает, одно ли это русское слово в разных падежах.
 
     Args:
-        word: Word taken from the sentence.
-        keyword: Word this vocabulary knows.
+        word: Слово, взятое из предложения.
+        keyword: Слово, которое знает этот словарь.
 
     Returns:
-        bool: True when the two share their leading characters.
+        bool: True, когда оба слова совпадают началом.
     """
     length = min(len(word), len(keyword), PREFIX_LENGTH)
     return length > 0 and word[:length] == keyword[:length]
 
 
 def mentions(text: str, words: tuple[str, ...]) -> bool:
-    """Return whether a sentence carries one of the given words.
+    """Сообщает, есть ли в предложении одно из данных слов.
 
-    A keyword containing a space is matched as a phrase; a single word is matched
-    by its prefix, which is what makes "включи", "включить" and "включая" one
-    word to this vocabulary.
+    Ключевое слово с пробелом ищется как фраза целиком, а одиночное слово — по
+    приставке: именно поэтому для этого словаря «включи», «включить» и «включая» —
+    одно слово.
 
     Args:
-        text: Normalized sentence.
-        words: Words this vocabulary knows.
+        text: Приведённое предложение.
+        words: Слова, которые знает этот словарь.
 
     Returns:
-        bool: True when at least one word was found.
+        bool: True, когда хотя бы одно слово нашлось.
     """
     if any(" " in keyword and keyword in text for keyword in words):
         return True
@@ -331,14 +330,14 @@ def mentions(text: str, words: tuple[str, ...]) -> bool:
 
 
 def kinds_in(text: str) -> frozenset[DeviceKind]:
-    """Return the device kinds a sentence could be about.
+    """Возвращает назначения устройств, о которых могло идти речь в предложении.
 
     Args:
-        text: Normalized sentence.
+        text: Приведённое предложение.
 
     Returns:
-        frozenset[DeviceKind]: Kinds the sentence hints at, empty when it names
-        none.
+        frozenset[DeviceKind]: Назначения, на которые предложение намекает; пусто,
+        когда ни одного не названо.
     """
     found = {
         kind
@@ -349,17 +348,16 @@ def kinds_in(text: str) -> frozenset[DeviceKind]:
 
 
 def capability_in(text: str) -> Capability | None:
-    """Return the capability a sentence asks for.
+    """Возвращает способность, о которой просит предложение.
 
-    The negative words win over the positive ones, because "выключи свет"
-    contains no positive verb yet means the very opposite of "включи свет".
+    Отрицающие слова выигрывают у положительных, потому что в «выключи свет»
+    положительного глагола нет, а значит оно ровно противоположное «включи свет».
 
     Args:
-        text: Normalized sentence.
+        text: Приведённое предложение.
 
     Returns:
-        Capability | None: Capability the sentence asks for, or None when it asks
-        for none.
+        Capability | None: Способность, о которой просят, или None, когда ни о какой.
     """
     for capability in (Capability.OFF, Capability.DEHUMIDIFY, Capability.HUMIDIFY):
         if mentions(text, CAPABILITY_WORDS[capability]):
@@ -371,13 +369,13 @@ def capability_in(text: str) -> Capability | None:
 
 
 def duration_in(text: str) -> int | None:
-    """Return the delay a sentence asks for, in minutes.
+    """Возвращает задержку, о которой просит предложение, в минутах.
 
     Args:
-        text: Normalized sentence.
+        text: Приведённое предложение.
 
     Returns:
-        int | None: Delay in minutes, or None when the sentence names no delay.
+        int | None: Задержка в минутах или None, когда предложения о задержке нет.
     """
     if not mentions(text, SCHEDULE_WORDS):
         return None
@@ -389,13 +387,13 @@ def duration_in(text: str) -> int | None:
 
 
 def area_in(text: str) -> str | None:
-    """Return the area a sentence names.
+    """Возвращает место, названное в предложении.
 
     Args:
-        text: Normalized sentence.
+        text: Приведённое предложение.
 
     Returns:
-        str | None: Area name, or None when the sentence names none.
+        str | None: Название места или None, когда места в предложении нет.
     """
     for word in text.split():
         if any(shares_prefix(word, keyword) for keyword in AREA_WORDS):
@@ -404,12 +402,12 @@ def area_in(text: str) -> str | None:
 
 
 def switch_everything(text: str) -> bool:
-    """Return whether a sentence addresses every device of the home.
+    """Сообщает, обращено ли предложение ко всем устройствам дома.
 
     Args:
-        text: Normalized sentence.
+        text: Приведённое предложение.
 
     Returns:
-        bool: True when the sentence names the whole home.
+        bool: True, когда предложение называет весь дом.
     """
     return mentions(text, EVERYTHING_WORDS)

@@ -1,8 +1,7 @@
-"""Authorize an existing account.
+"""Авторизует уже существующий аккаунт.
 
-The read goes through the query port rather than a transaction: authorizing
-somebody is a select, and a select wrapped in a transaction is overhead with no
-purpose.
+Чтение идёт через интерфейс чтения, а не через транзакцию: авторизовать кого-то — это
+select, а select, завёрнутый в транзакцию, — пустая нагрузка.
 """
 
 from __future__ import annotations
@@ -20,7 +19,7 @@ from backend.domain.value_objects.account.email import Email
 
 
 class AuthenticateAccountUseCase:
-    """Checks a login and a password and issues a session token."""
+    """Проверяет логин с паролем и выдаёт токен сессии."""
 
     def __init__(
         self,
@@ -28,34 +27,31 @@ class AuthenticateAccountUseCase:
         hasher: PasswordHasher,
         tokens: SessionTokenIssuer,
     ) -> None:
-        """Initialize the use case.
+        """Инициализирует сценарий.
 
         Args:
-            queries: Cheap reads of the accounts.
-            hasher: Compares a plain password with a stored one.
-            tokens: Issues the session token.
-
-        Returns:
-            None.
+            queries: Дешёвые чтения аккаунтов.
+            hasher: Сверяет пароль в открытом виде с сохранённым.
+            tokens: Выдаёт токен сессии.
         """
         self._queries = queries
         self._hasher = hasher
         self._tokens = tokens
 
     async def execute(self, command: AuthenticateCommand) -> AuthenticatedSession:
-        """Authorize the account and open a session for it.
+        """Авторизует аккаунт и открывает для него сессию.
 
-        An unknown login and a wrong password produce the very same refusal, so the
-        answer never reveals whether an account exists.
+        Неизвестный логин и неверный пароль дают ровно один и тот же отказ, чтобы
+        ответ никогда не выдавал, существует ли аккаунт.
 
         Args:
-            command: Credentials presented at login.
+            command: Учётные данные, предъявленные при входе.
 
         Returns:
-            AuthenticatedSession: Profile and session token.
+            AuthenticatedSession: Профиль и токен сессии.
 
         Raises:
-            InvalidCredentialsError: When the login or the password is wrong.
+            InvalidCredentialsError: Когда логин или пароль неверны.
         """
         try:
             email = Email.parse(command.email)

@@ -1,12 +1,12 @@
-"""Live state of one home, mirrored from its board.
+"""Живое состояние одного дома, снятое с его платы.
 
-The aggregate is deterministic: it never reads the clock. Every method that
-changes the state is told when the change happened, which is what makes the whole
-home reproducible in a test and free of hidden side effects.
+Агрегат детерминирован: часы он не читает. Каждому методу, который что-то меняет,
+говорят, когда изменение случилось, -- поэтому весь дом воспроизводим в тесте и не
+имеет скрытых побочных эффектов.
 
-It is also pure data with behaviour, not a cache: it holds what the board last
-reported and what was commanded to it, and it answers questions about the two
-without knowing about sockets, sessions or storage.
+Это данные с поведением, а не кеш: агрегат держит то, что плата последний раз
+сообщила, и то, что ей приказали, и отвечает про оба, не зная ни про сокеты, ни про
+сессии, ни про хранилище.
 """
 
 from __future__ import annotations
@@ -23,19 +23,16 @@ from backend.domain.value_objects.devices.relay_state import RelayState
 
 @dataclass
 class HomeState:
-    """Everything known about the physical layer of one home.
+    """Всё, что известно о физическом слое одного дома.
 
-    Args:
-        user_id: Owner of the home.
-        relay_states: Position of every relay channel.
-        reading: Last measurement of the climate sensors.
-        board_online: Whether the board is reachable.
-        device_modes: Logical mode commanded to each device.
-        manual_override_until: Moment the manual override window closes.
-        changed_at: Moment of the last change.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец дома.
+        relay_states: Положение каждого канала реле.
+        reading: Последние измерения датчиков климата.
+        board_online: Доступна ли плата.
+        device_modes: Логический режим, приказанный каждому устройству.
+        manual_override_until: Момент, до которого длится ручное управление.
+        changed_at: Момент последнего изменения.
     """
 
     user_id: UserId
@@ -47,25 +44,25 @@ class HomeState:
     changed_at: datetime | None = None
 
     def is_relay_closed(self, channel: int) -> bool:
-        """Return whether a relay contact is energized.
+        """Сообщает, замкнут ли контакт реле.
 
         Args:
-            channel: Relay channel number.
+            channel: Номер канала реле.
 
         Returns:
-            bool: True when the contact is closed.
+            bool: True, когда контакт замкнут.
         """
         return self.relay_states.get(channel) is RelayState.ON
 
     def apply_relay_report(self, states: list[bool], changed_at: datetime) -> tuple[int, ...]:
-        """Apply the relay positions reported by the board.
+        """Принимает положения каналов, которые сообщило железо.
 
         Args:
-            states: Contact positions ordered by channel, starting at one.
-            changed_at: Moment the board reported them.
+            states: Положения контактов по порядку каналов, начиная с первого.
+            changed_at: Момент, когда плата их передала.
 
         Returns:
-            tuple[int, ...]: Channels whose position actually changed.
+            tuple[int, ...]: Каналы, положение которых действительно изменилось.
         """
         changed: list[int] = []
         for index, energized in enumerate(states, start=1):
@@ -77,15 +74,12 @@ class HomeState:
         return tuple(changed)
 
     def apply_command(self, device: Device, status: DeviceStatus, changed_at: datetime) -> None:
-        """Record a command that was confirmed by the board.
+        """Записывает команду, которую плата подтвердила.
 
         Args:
-            device: Affected device.
-            status: State the device was driven into.
-            changed_at: Moment of the confirmation.
-
-        Returns:
-            None.
+            device: Затронутое устройство.
+            status: Состояние, в которое устройство привели.
+            changed_at: Момент подтверждения.
         """
         self.relay_states[int(device.channel)] = (
             RelayState.ON if status.is_active else RelayState.OFF
@@ -94,14 +88,14 @@ class HomeState:
         self.changed_at = changed_at
 
     def apply_reading(self, reading: ClimateReading, changed_at: datetime) -> ClimateReading:
-        """Apply a sensor report, keeping the values it could not measure.
+        """Принимает показания датчиков, сохраняя то, что они не измерили.
 
         Args:
-            reading: Measured values, absent where the sensor did not answer.
-            changed_at: Moment of the report.
+            reading: Измеренные значения; там, где датчик молчал, значения нет.
+            changed_at: Момент сообщения.
 
         Returns:
-            ClimateReading: The values that actually changed.
+            ClimateReading: Значения, которые действительно изменились.
         """
         previous = self.reading
         self.reading = ClimateReading(
@@ -123,14 +117,11 @@ class HomeState:
         )
 
     def set_board_available(self, online: bool, changed_at: datetime) -> None:
-        """Record whether the board is reachable.
+        """Записывает, доступна ли плата.
 
         Args:
-            online: True when the board answered.
-            changed_at: Moment of the transition.
-
-        Returns:
-            None.
+            online: True, когда плата ответила.
+            changed_at: Момент перехода.
         """
         self.board_online = online
         if not online:
@@ -138,25 +129,22 @@ class HomeState:
         self.changed_at = changed_at
 
     def status_of(self, device: Device) -> DeviceStatus:
-        """Return the logical state of a device right now.
-
-        Args:
-            device: Device to inspect.
-
-        Returns:
-            DeviceStatus: State the device is in.
-        """
+        """Возвращает логическое состояние устройства сейчас."""
         return self.status_for(device.id, int(device.channel))
 
     def status_for(self, device_id: DeviceId, channel: int) -> DeviceStatus:
-        """Return the logical state of a device by its identity and its channel.
+        """Возвращает логическое состояние по его идентификатору и каналу.
+
+        Плата молчит -- устройство недоступно; контакт разомкнут -- выключено; иначе
+        берут приказанный режим, а при его отсутствии считают, что устройство просто
+        включено.
 
         Args:
-            device_id: Identifier of the device.
-            channel: Relay channel the device is wired to.
+            device_id: Идентификатор устройства.
+            channel: Канал реле, к которому устройство подключено.
 
         Returns:
-            DeviceStatus: State the device is in.
+            DeviceStatus: Состояние, в котором устройство находится.
         """
         if not self.board_online:
             return DeviceStatus.UNAVAILABLE
@@ -165,54 +153,41 @@ class HomeState:
         return self.device_modes.get(device_id, DeviceStatus.ACTIVE)
 
     def forget_device(self, device_id: DeviceId) -> None:
-        """Drop everything remembered about a device that no longer exists.
+        """Забывает всё, что помнилось об исчезнувшем устройстве.
 
         Args:
-            device_id: Identifier of the removed device.
-
-        Returns:
-            None.
+            device_id: Идентификатор удалённого устройства.
         """
         self.device_modes.pop(device_id, None)
 
     def suspend_automation_until(self, moment: datetime) -> None:
-        """Keep automation away until a moment.
+        """Держит автоматику в стороне до указанного момента.
 
         Args:
-            moment: Moment the override window closes.
-
-        Returns:
-            None.
+            moment: Момент, до которого длится ручное управление.
         """
         self.manual_override_until = moment
 
     def resume_automation(self) -> None:
-        """End the manual override window immediately.
-
-        Returns:
-            None.
-        """
+        """Закрывает окно ручного управления немедленно."""
         self.manual_override_until = None
 
     def is_automation_suspended(self, now: datetime) -> bool:
-        """Return whether automation is currently held back by manual control.
+        """Сообщает, удерживает ли сейчас автоматику ручное управление.
 
         Args:
-            now: Moment to judge at.
+            now: Момент, относительно которого решают.
 
         Returns:
-            bool: True inside the override window.
+            bool: True внутри окна ручного управления.
         """
         return self.manual_override_until is not None and now < self.manual_override_until
 
     def suspend_automation_for(self, now: datetime, minutes: int) -> None:
-        """Hold automation back for a number of minutes.
+        """Удерживает автоматику в стороне на несколько минут.
 
         Args:
-            now: Moment the manual action happened at.
-            minutes: Length of the window.
-
-        Returns:
-            None.
+            now: Момент, когда человек вмешался.
+            minutes: Длину окна.
         """
         self.manual_override_until = now + timedelta(minutes=max(0, minutes))

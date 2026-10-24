@@ -1,7 +1,7 @@
-"""The relay facade of the board transport.
+"""Фасад реле поверх транспорта платы.
 
-:class:`BoardGatewayAdapter` is a thin facade over one WebSocket connection, so
-that the application layer does not have to import the transport module.
+:class:`BoardGatewayAdapter` — тонкий фасад над одним WebSocket-соединением, чтобы
+прикладному слою не приходилось импортировать модуль транспорта.
 """
 
 from __future__ import annotations
@@ -14,91 +14,82 @@ from backend.infrastructure.esp.connection import EspConnection
 
 
 class BoardGatewayAdapter(BoardGateway):
-    """Drives the relay channels of the boards over the board connection.
+    """Водит каналами реле плат через соединение с платами.
 
-    Args:
-        connection: Transport level board connection.
-
-    Returns:
-        None.
+    Attributes:
+        connection: Соединение с платами на уровне транспорта.
     """
 
     def __init__(self, connection: EspConnection) -> None:
-        """Initialize the adapter.
+        """Инициализирует адаптер.
 
         Args:
-            connection: Transport level board connection.
-
-        Returns:
-            None.
+            connection: Соединение с платами на уровне транспорта.
         """
         self._connection = connection
 
     async def set_relay(
         self, user_id: UserId, board_id: EspDeviceId, channel: int, energized: bool
     ) -> BoardCommandResult:
-        """Switch a relay and wait for the confirmation.
+        """Переключает реле и ждёт подтверждения.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
-            channel: Physical relay channel.
-            energized: True to close the contact, False to release it.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
+            channel: Физический канал реле.
+            energized: True замкнуть контакт, False разомкнуть.
 
         Returns:
-            BoardCommandResult: What the board answered.
+            BoardCommandResult: Ответ платы.
         """
         accepted, reason = await self._connection.set_relay(user_id, board_id, channel, energized)
         return BoardCommandResult(accepted=accepted, reason=reason)
 
     async def request_state(self, user_id: UserId, board_id: EspDeviceId) -> None:
-        """Ask a board to resend everything it knows.
+        """Просит плату прислать заново всё, что она знает.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
-
-        Returns:
-            None.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
         """
         await self._connection.request_state(user_id, board_id)
 
     async def set_network(
         self, user_id: UserId, board_id: EspDeviceId, profile: NetworkProfile
     ) -> BoardCommandResult:
-        """Tell a board which network it is to use.
+        """Сообщает плате сеть, которую та должна использовать.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
-            profile: Network the board is to use.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
+            profile: Сеть, которую должна использовать плата.
 
         Returns:
-            BoardCommandResult: What the board answered.
+            BoardCommandResult: Ответ платы.
         """
         accepted, reason = await self._connection.set_network(user_id, board_id, profile)
         return BoardCommandResult(accepted=accepted, reason=reason)
 
     def is_connected(self, user_id: UserId, board_id: EspDeviceId) -> bool:
-        """Return whether a board currently holds a connection.
+        """Сообщает, держит ли плата соединение сейчас.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
 
         Returns:
-            bool: True when the board is connected right now.
+            bool: True, когда плата подключена в этот момент.
         """
         return self._connection.is_connected(user_id, board_id)
 
     def board_for(self, user_id: UserId) -> EspDeviceId | None:
-        """Return the account's single connected board.
+        """Возвращает единственную подключённую плату аккаунта.
 
         Args:
-            user_id: Owner of the boards.
+            user_id: Владелец плат.
 
         Returns:
-            Identifier of the board to command, or None when the account does
-            not have exactly one connected board.
+            EspDeviceId | None: Идентификатор платы, которой приказывать, или None,
+            когда у аккаунта не ровно одна подключённая плата.
         """
         return self._connection.board_for(user_id)

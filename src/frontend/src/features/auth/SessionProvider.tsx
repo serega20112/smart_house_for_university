@@ -1,9 +1,8 @@
 /**
- * Session of the browser.
+ * Сессия браузера.
  *
- * The provider owns exactly one question: who is signed in. Everything the
- * interface renders afterwards comes from the API using that session, which is
- * what keeps one build serving many accounts.
+ * Провайдер отвечает ровно на один вопрос: кто вошёл. Всё остальное интерфейс
+ * получает через API под этой сессией, поэтому одна сборка служит многим аккаунтам.
  */
 
 import {
@@ -32,9 +31,9 @@ export interface SessionStore {
 const SessionContext = createContext<SessionStore | null>(null);
 
 /**
- * Provides the current session to the whole application.
+ * Отдаёт текущую сессию всей программе.
  *
- * @param props.children Rendered subtree.
+ * @param props.children Поддерево, которое видит сессию.
  */
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -95,9 +94,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Reads the session from the context.
+ * Читает сессию из контекста.
  *
- * @returns The session store of the current browser.
+ * @returns Хранилище сессии текущего браузера.
  */
 export function useSession(): SessionStore {
   const store = useContext(SessionContext);

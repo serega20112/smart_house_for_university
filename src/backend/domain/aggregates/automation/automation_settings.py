@@ -1,9 +1,9 @@
-"""Automation configuration of one account.
+"""Настройка автоматизации одного аккаунта.
 
-The settings are an aggregate of their own: they own the target, the tolerance
-around it and the list of devices taking part. Every change goes through a method
-that validates and records the fact, so a use case cannot switch a flag by
-assigning to it and cannot build an unachievable band.
+Это собственный агрегат: он владеет целью, допуском вокруг неё и списком
+участников. Любое изменение идёт через метод, который проверяет значения и
+записывает факт, поэтому сценарий приложения не может ни переключить признак
+присваиванием, ни построить недостижимый коридор.
 """
 
 from __future__ import annotations
@@ -26,21 +26,18 @@ DEFAULT_HUMIDITY_TOLERANCE_PERCENT = 5.0
 
 @dataclass
 class AutomationSettings:
-    """Targets and tolerances the climate automation aims for.
+    """Цели и допуски, к которым стремится климатическая автоматизация.
 
-    Args:
-        user_id: Owner of the configuration.
-        enabled: Whether automation is active.
-        target_temperature: Temperature the home is asked to hold.
-        temperature_tolerance: How far the temperature may drift before a device
-            is driven.
-        target_humidity: Humidity the home is asked to hold.
-        humidity_tolerance: How far the humidity may drift.
-        participating_device_ids: Devices taking part; an empty set means every
-            device that opted in.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец настройки.
+        enabled: Работает ли автоматизация.
+        target_temperature: Температуру, которую велено держать дому.
+        temperature_tolerance: Насколько температуре позволено уйти, прежде чем
+            примутся за устройство.
+        target_humidity: Влажность, которую велено держать дому.
+        humidity_tolerance: Насколько позволено уйти влажности.
+        participating_device_ids: Устройства-участники; пустое множество значит
+            каждое устройство, которое само на это согласилось.
     """
 
     user_id: UserId
@@ -60,79 +57,57 @@ class AutomationSettings:
     )
 
     def __post_init__(self) -> None:
-        """Validate both tolerances so no accessor has to repair them later.
-
-        Returns:
-            None.
+        """Проверяет оба допуска, чтобы потом их не починял каждый читатель.
 
         Raises:
-            InvalidToleranceError: When a tolerance is negative or too large.
+            InvalidToleranceError: Когда допуск отрицательный или слишком большой.
         """
         Tolerance(self.temperature_tolerance)
         Tolerance(self.humidity_tolerance)
 
     @property
     def temperature_band(self) -> ClimateBand[Temperature]:
-        """Return the acceptable temperature band.
-
-        Returns:
-            ClimateBand[Temperature]: Band around the target temperature.
-        """
+        """Возвращает допустимый коридор температуры."""
         return ClimateBand(self.target_temperature, self.temperature_tolerance)
 
     @property
     def humidity_band(self) -> ClimateBand[Humidity]:
-        """Return the acceptable humidity band.
-
-        Returns:
-            ClimateBand[Humidity]: Band around the target humidity.
-        """
+        """Возвращает допустимый коридор влажности."""
         return ClimateBand(self.target_humidity, self.humidity_tolerance)
 
     def device_participates(self, device_id: DeviceId) -> bool:
-        """Return whether automation may drive a device.
+        """Сообщает, вправе ли автоматизация вести это устройство.
 
         Args:
-            device_id: Identifier of the device.
+            device_id: Идентификатор устройства.
 
         Returns:
-            bool: True when the device takes part in automation.
+            bool: True, когда устройство участвует в автоматизации.
         """
         if not self.participating_device_ids:
             return True
         return device_id in self.participating_device_ids
 
     def enable(self) -> None:
-        """Turn automation on.
-
-        Returns:
-            None.
-        """
+        """Включает автоматику."""
         self._set_enabled(True)
 
     def disable(self) -> None:
-        """Turn automation off.
-
-        Returns:
-            None.
-        """
+        """Выключает автоматику."""
         self._set_enabled(False)
 
     def aim_at_temperature(self, target: Temperature, tolerance: float | None = None) -> None:
-        """Change the temperature the home is asked to hold.
+        """Меняет температуру, которую велено держать дому.
 
-        The new values are validated before they are stored, so a refused
-        tolerance leaves the configuration exactly as it was.
+        Новые значения проверяются до записи, поэтому отвергнутый допуск оставляет
+        настройку ровно такой, какой она была.
 
         Args:
-            target: New target temperature.
-            tolerance: New tolerance or None to keep the current one.
-
-        Returns:
-            None.
+            target: Новая целевая температура.
+            tolerance: Новый допуск или None, чтобы оставить прежний.
 
         Raises:
-            InvalidToleranceError: When the new tolerance is negative or too large.
+            InvalidToleranceError: Когда новый допуск отрицательный или велик.
         """
         checked = self._checked_tolerance(tolerance, self.temperature_tolerance)
         self.target_temperature = target
@@ -140,20 +115,17 @@ class AutomationSettings:
         self._record()
 
     def aim_at_humidity(self, target: Humidity, tolerance: float | None = None) -> None:
-        """Change the humidity the home is asked to hold.
+        """Меняет влажность, которую велено держать дому.
 
-        The new values are validated before they are stored, so a refused
-        tolerance leaves the configuration exactly as it was.
+        Новые значения проверяются до записи, поэтому отвергнутый допуск оставляет
+        настройку ровно такой, какой она была.
 
         Args:
-            target: New target humidity.
-            tolerance: New tolerance or None to keep the current one.
-
-        Returns:
-            None.
+            target: Новая целевая влажность.
+            tolerance: Новый допуск или None, чтобы оставить прежний.
 
         Raises:
-            InvalidToleranceError: When the new tolerance is negative or too large.
+            InvalidToleranceError: Когда новый допуск отрицательный или велик.
         """
         checked = self._checked_tolerance(tolerance, self.humidity_tolerance)
         self.target_humidity = target
@@ -161,22 +133,19 @@ class AutomationSettings:
         self._record()
 
     def set_participants(self, device_ids: frozenset[DeviceId]) -> None:
-        """Choose the devices automation is allowed to drive.
+        """Выбирает устройства, которыми автоматизации разрешено управлять.
 
         Args:
-            device_ids: Participants, or an empty set for every opted in device.
-
-        Returns:
-            None.
+            device_ids: Участники или пустое множество ради каждого согласившегося.
         """
         self.participating_device_ids = frozenset(device_ids)
         self._record()
 
     def pull_events(self) -> tuple[AutomationSettingsChanged, ...]:
-        """Return the recorded facts and forget them.
+        """Возвращает записанные факты и забывает их.
 
         Returns:
-            tuple[AutomationSettingsChanged, ...]: Facts recorded since the last call.
+            tuple[AutomationSettingsChanged, ...]: Факты с прошлого обращения.
         """
         recorded = tuple(self._events)
         self._events.clear()
@@ -190,19 +159,17 @@ class AutomationSettings:
 
     @staticmethod
     def _checked_tolerance(requested: float | None, current: float) -> float:
-        """Return a tolerance that is known to be acceptable.
+        """Возвращает заведомо допустимый допуск.
 
         Args:
-            requested: Tolerance the caller asked for, or None to keep the
-                current one.
-            current: Tolerance stored right now.
+            requested: Допуск, о котором просили, или None оставить нынешний.
+            current: Допуск, который сохранён сейчас.
 
         Returns:
-            float: Validated width of the band.
+            float: Проверенная ширина коридора.
 
         Raises:
-            InvalidToleranceError: When the requested tolerance is negative or
-                too large.
+            InvalidToleranceError: Когда запрошенный допуск отрицательный или велик.
         """
         if requested is None:
             return Tolerance(current).value
@@ -213,12 +180,12 @@ class AutomationSettings:
 
     @classmethod
     def create(cls, user_id: UserId) -> Self:
-        """Build the configuration a fresh account starts with.
+        """Строит настройку, с которой начинает свежий аккаунт.
 
         Args:
-            user_id: Owner of the configuration.
+            user_id: Владелец настройки.
 
         Returns:
-            Self: Default configuration with automation switched off.
+            Self: Настройка по умолчанию с выключенной автоматизацией.
         """
         return cls(user_id=user_id)

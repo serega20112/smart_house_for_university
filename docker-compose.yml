@@ -79,7 +79,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["python", "-m", "backend.infrastructure.worker"]
+    command: ["python", "-m", "backend.worker_entry"]
     environment:
       DATABASE_URL: postgresql+asyncpg://backend:backend@postgres:5432/backend
       REDIS_URL: redis://redis:6379/0

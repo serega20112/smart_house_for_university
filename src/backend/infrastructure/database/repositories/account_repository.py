@@ -24,42 +24,32 @@ Runner = AsyncConnection | AsyncSession
 
 
 class SqlAccountRepository:
-    """Storage of the accounts of the system.
+    """Хранение аккаунтов системы.
 
-    Args:
-        session: Session the unit of work opened for this transaction.
-
-    Returns:
-        None.
+    Attributes:
+        session: Сессия, которую открыла для этой транзакции граница.
     """
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize the repository.
+        """Инициализирует хранилище.
 
         Args:
-            session: Session bound to the current transaction.
-
-        Returns:
-            None.
+            session: Сессия, привязанная к нынешней транзакции.
         """
         self._session = session
 
     async def add(self, user: User) -> None:
-        """Store a new account.
+        """Сохраняет новый аккаунт.
 
-        The uniqueness of the login is enforced by the store rather than by a
-        lookup before the write, so two simultaneous registrations cannot both
-        win. The failure is translated into a refusal of the application layer
-        and the rollback is left to the unit of work.
+        Единственность логина сторожит хранилище, а не поиск перед записью, поэтому две
+        одновременные регистрации не выиграть обеим. Отказ превращается в отказ
+        прикладного слоя, а откат оставляет границе транзакции.
 
         Args:
-            user: Account to persist.
-
-        Returns:
-            None.
+            user: Аккаунт для записи.
 
         Raises:
-            EmailAlreadyTakenError: When the login is already registered.
+            EmailAlreadyTakenError: Когда логин уже зарегистрирован.
         """
         values = mappers.row_values(UserRow.__table__, mappers.user_to_row(user))
         try:
@@ -71,13 +61,13 @@ class SqlAccountRepository:
             raise EmailAlreadyTakenError(user.email.value) from error
 
     async def get(self, user_id: UserId) -> User | None:
-        """Return an account by identifier.
+        """Возвращает аккаунт по идентификатору.
 
         Args:
-            user_id: Identifier of the account.
+            user_id: Идентификатор аккаунта.
 
         Returns:
-            User | None: Account, or None when it does not exist.
+            User | None: Аккаунт или None, когда его не существует.
         """
         row = await first_row(self._session, UserRow, UserRow.id == user_id.value)
         return None if row is None else mappers.user_from_row(row)

@@ -1,4 +1,4 @@
-"""Relative humidity value object."""
+"""Объект-значение относительной влажности."""
 
 from __future__ import annotations
 
@@ -13,51 +13,45 @@ MAX_PERCENT = 100.0
 
 @dataclass(frozen=True, slots=True, order=True)
 class Humidity:
-    """A relative humidity in percent.
+    """Относительная влажность в процентах.
 
-    Args:
-        percent: Measured or requested value.
-
-    Returns:
-        None.
+    Attributes:
+        percent: Измеренное или запрошенное значение.
 
     Raises:
-        InvalidHumidityError: When the value is outside the valid range.
+        InvalidHumidityError: Когда значение вне допустимого диапазона.
     """
 
     percent: float
 
     def __post_init__(self) -> None:
-        """Validate the range of the value.
-
-        Returns:
-            None.
+        """Проверяет диапазон значения.
 
         Raises:
-            InvalidHumidityError: When the value is outside the range.
+            InvalidHumidityError: Когда значение вне диапазона.
         """
         if not MIN_PERCENT <= self.percent <= MAX_PERCENT:
             raise InvalidHumidityError(self.percent)
 
     def shifted_by(self, delta: float) -> Self:
-        """Return the humidity a number of percent away, clamped to the range.
+        """Возвращает влажность на несколько процентов дальше, не выходя за границы.
 
         Args:
-            delta: Offset in percent.
+            delta: Смещение в процентах.
 
         Returns:
-            Self: Shifted value.
+            Self: Сдвинутое значение.
         """
         clamped = min(MAX_PERCENT, max(MIN_PERCENT, self.percent + delta))
         return type(self)(clamped)
 
     def distance_to(self, other: Humidity) -> float:
-        """Return how far this value lies from another one.
+        """Возвращает расстояние от этого значения до другого.
 
         Args:
-            other: Value to measure the distance to.
+            other: Значение, до которого меряют расстояние.
 
         Returns:
-            float: Absolute difference in percent.
+            float: Разница в процентах по модулю.
         """
         return abs(self.percent - other.percent)

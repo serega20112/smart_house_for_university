@@ -1,9 +1,8 @@
-"""Change the automation configuration of one account.
+"""Меняет настройку автоматизации одного аккаунта.
 
-The configuration is an aggregate, so every change goes through its own methods
-and the use case only decides which of them to call. The new values are validated
-before they are stored, and a refused change leaves the configuration exactly as
-it was.
+Настройка — агрегат, поэтому каждое изменение идёт через его собственные методы, а
+сценарий приложения лишь решает, какой из них позвать. Новые значения проверяются до
+записи, и отвергнутое изменение оставляет настройку ровно такой, какой она была.
 """
 
 from __future__ import annotations
@@ -19,7 +18,7 @@ from backend.domain.value_objects.automation.automation_view import AutomationVi
 
 
 class UpdateAutomationUseCase:
-    """Applies a partial change to the automation configuration."""
+    """Применяет частичное изменение настройки автоматизации."""
 
     def __init__(
         self,
@@ -27,29 +26,26 @@ class UpdateAutomationUseCase:
         realtime: RealtimePublisher,
         dispatcher: DomainEventDispatcher,
     ) -> None:
-        """Initialize the use case.
+        """Инициализирует сценарий.
 
         Args:
-            home_uow: Factory producing transactions over the configuration.
-            realtime: Publisher of events to the open clients.
-            dispatcher: Announces the fact that the configuration changed.
-
-        Returns:
-            None.
+            home_uow: Фабрика транзакций над конфигурацией.
+            realtime: Издатель событий в открытые соединения.
+            dispatcher: Объявляет факт изменения настройки.
         """
         self._home_uow = home_uow
         self._realtime = realtime
         self._dispatcher = dispatcher
 
     async def execute(self, user_id: UserId, patch: AutomationPatch) -> AutomationView:
-        """Apply a partial change to the automation configuration.
+        """Применяет частичное изменение настройки автоматизации.
 
         Args:
-            user_id: Owner resolved from the session.
-            patch: Fields to change.
+            user_id: Владелец, разрешённый из сессии.
+            patch: Поля, которые нужно изменить.
 
         Returns:
-            AutomationView: The configuration as it is now.
+            AutomationView: Настройка такой, какая она теперь.
         """
         async with self._home_uow() as uow:
             settings = await uow.automation.get(user_id)
@@ -63,14 +59,11 @@ class UpdateAutomationUseCase:
 
 
 def _apply(settings: AutomationSettings, patch: AutomationPatch) -> None:
-    """Apply a partial change to the configuration.
+    """Применяет частичное изменение к настройке.
 
     Args:
-        settings: Configuration to change.
-        patch: Fields to change.
-
-    Returns:
-        None.
+        settings: Настройка, которую меняют.
+        patch: Поля, которые нужно изменить.
     """
     if patch.enabled is not None:
         if patch.enabled:
@@ -94,13 +87,13 @@ def _apply(settings: AutomationSettings, patch: AutomationPatch) -> None:
 
 
 def _view_of(settings: AutomationSettings) -> AutomationView:
-    """Return the configuration as the interface needs it.
+    """Возвращает настройку в том виде, в каком она нужна интерфейсу.
 
     Args:
-        settings: Configuration of the account.
+        settings: Настройка аккаунта.
 
     Returns:
-        AutomationView: Configuration shaped for display.
+        AutomationView: Настройка, приготовленная для показа.
     """
     return AutomationView(
         enabled=settings.enabled,

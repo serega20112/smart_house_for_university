@@ -1,11 +1,10 @@
-"""Infrastructure layer.
+"""Слой инфраструктуры.
 
-Adapters for everything the application talks to: the database, the board, the
-notification channels and the natural language pipeline.
+Адаптеры ко всему, с чем говорит приложение: база данных, плата, каналы уведомлений и
+конвейер понимания речи.
 
-Only the database adapter is re-exported here. The rest of the adapters are
-imported from their own modules, so importing the layer never drags in a
-subsystem a process does not use.
+Отсюда переэкспортирован только адаптер базы. Остальные адаптеры читают из их собственных
+модулей, поэтому импорт слоя ни за чем лишним процесс не тянет.
 """
 
 from backend.infrastructure.database import (

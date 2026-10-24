@@ -1,4 +1,9 @@
-/** System availability strip. */
+/**
+ * Полоска доступности системы.
+ *
+ * Экран показывает плату и поток событий такими, какими их видит бэкенд: «своё»
+ * состояние он держит в сервере и на экране выдумывать не начинает.
+ */
 
 import { Badge } from "../../components/Badge";
 import type { ConnectionState } from "../../services/realtime";
@@ -13,27 +18,28 @@ const LINK_LABELS: Record<ConnectionState, string> = {
 interface SystemBarProps {
   state: HomeState;
   connection: ConnectionState;
-  unit: string;
+  unit: "C" | "F";
   onToggleUnit: () => void;
 }
 
 /**
- * Shows whether the backend, the board and the event stream are reachable.
+ * Показывает, доступны ли плата и поток событий и держит ли паузу автоматизация.
  *
- * @param props.state Live snapshot of the current account.
- * @param props.connection State of the event stream.
- * @param props.unit Temperature unit currently in use.
- * @param props.onToggleUnit Called when the unit has to be switched.
+ * @param props.state Живой снимок текущего аккаунта.
+ * @param props.connection Состояние потока событий.
+ * @param props.unit Единица температуры, которую показывает экран.
+ * @param props.onToggleUnit Вызывается, когда единицу нужно поменять.
  */
 export function SystemBar({ state, connection, unit, onToggleUnit }: SystemBarProps) {
   return (
     <div className="sysbar">
-      <Badge tone="ok" label="Backend: Online" />
       <Badge
-        tone={state.esp_online ? "ok" : "bad"}
-        label={`ESP8266: ${state.esp_online ? "Online" : "Offline"}`}
+        tone={state.board_online ? "ok" : "bad"}
+        label={`Плата: ${state.board_online ? "на связи" : "недоступна"}`}
       />
-      {state.manual_override ? <Badge tone="warn" label="Ручное управление" /> : null}
+      {state.automation_suspended ? (
+        <Badge tone="warn" label="Ручное управление" />
+      ) : null}
       {state.active_scenarios.length > 0 ? (
         <Badge tone="warn" label={`Сценариев: ${state.active_scenarios.length}`} />
       ) : null}

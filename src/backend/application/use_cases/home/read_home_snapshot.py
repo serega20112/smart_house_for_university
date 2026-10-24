@@ -1,9 +1,8 @@
-"""Read the whole home of one account in a single snapshot.
+"""Читает весь дом одного аккаунта одним снимком.
 
-The main screen of the interface shows the climate, the devices, the automation
-and the running scenarios at once. Assembling that from four different readers
-would let the numbers on the screen come from moments that do not belong
-together, so one use case reads them and hands over a single value.
+Главный экран показывает климат, устройства, автоматику и идущие сценарии сразу.
+Собирать это из четырёх разных читателей означало бы пустить на экран числа из моментов,
+которые друг к другу не относятся, поэтому читает один сценарий и отдаёт одно значение.
 """
 
 from __future__ import annotations
@@ -21,7 +20,7 @@ from backend.domain.value_objects.home.reading_view import ReadingView
 
 
 class ReadHomeSnapshotUseCase:
-    """Assembles everything the main screen of the interface shows."""
+    """Собирает всё, что показывает главный экран интерфейса."""
 
     def __init__(
         self,
@@ -31,17 +30,14 @@ class ReadHomeSnapshotUseCase:
         automation_queries: AutomationQueries,
         clock: Clock,
     ) -> None:
-        """Initialize the use case.
+        """Инициализирует сценарий.
 
         Args:
-            state_store: Durable home of the volatile state.
-            device_queries: Reads of the device configuration.
-            scenario_queries: Reads of the scenarios.
-            automation_queries: Reads of the automation configuration.
-            clock: Source of the current time.
-
-        Returns:
-            None.
+            state_store: Надёжный дом изменчивого состояния.
+            device_queries: Чтения конфигурации устройств.
+            scenario_queries: Чтения сценариев.
+            automation_queries: Чтения настройки автоматизации.
+            clock: Источник текущего времени.
         """
         self._state_store = state_store
         self._devices = device_queries
@@ -50,13 +46,13 @@ class ReadHomeSnapshotUseCase:
         self._clock = clock
 
     async def execute(self, user_id: UserId) -> HomeSnapshotView:
-        """Return the snapshot of the home of one account.
+        """Возвращает снимок дома одного аккаунта.
 
         Args:
-            user_id: Owner of the home.
+            user_id: Владелец дома.
 
         Returns:
-            HomeSnapshotView: Everything the interface has to render.
+            HomeSnapshotView: Всё, что интерфейсу надо нарисовать.
         """
         state = await self._state_store.read(user_id)
         devices = await self._devices.list_all(user_id)
@@ -73,13 +69,13 @@ class ReadHomeSnapshotUseCase:
 
 
 def _reading_of(state: HomeState) -> ReadingView:
-    """Return the climate values of a state.
+    """Возвращает значения климата из состояния.
 
     Args:
-        state: Live state of the home.
+        state: Живое состояние дома.
 
     Returns:
-        ReadingView: Climate values as the interface needs them.
+        ReadingView: Значения климата в том виде, в каком они нужны экрану.
     """
     temperature = state.reading.temperature
     humidity = state.reading.humidity
@@ -90,13 +86,13 @@ def _reading_of(state: HomeState) -> ReadingView:
 
 
 def _with_live_status(device: DeviceView, state: HomeState) -> DeviceView:
-    """Return a device carrying the status the live state knows about.
+    """Возвращает устройство с состоянием, которое знает живое состояние дома.
 
     Args:
-        device: Device as it was stored.
-        state: Live state of the home.
+        device: Устройство таким, каким оно сохранено.
+        state: Живое состояние дома.
 
     Returns:
-        DeviceView: Device with the status it is in right now.
+        DeviceView: Устройство с состоянием, в котором оно находится сейчас.
     """
     return device.with_status(state.status_for(device.id, device.channel))

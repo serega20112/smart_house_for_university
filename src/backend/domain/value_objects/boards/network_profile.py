@@ -1,12 +1,12 @@
-"""Network settings a board is told to use.
+"""Сеть, которую плате предписано использовать.
 
-A board that was never set up knows neither the wireless network nor the address
-of the server it has to report to. Both are values a person enters, either on the
-page the board serves from its own access point or in the interface of the
-backend, and both end up in the flash of the chip.
+Плата, которую ни разу не настраивали, не знает ни беспроводной сети, ни адреса
+сервера, которому она должна докладываться. Оба значения вводит человек — на странице,
+которую плата сама отдаёт со своей точки доступа, или в интерфейсе бэкенда, — и оба
+оседают в памяти чипа.
 
-The value object refuses malformed input once, so a typo becomes an error the
-caller can show instead of a board that never dials in.
+Объект-значение один раз отвергает неподходящие значения, поэтому опечатка становится
+видимой вызывающему ошибкой, а не платой, которая никогда не дозвонится.
 """
 
 from __future__ import annotations
@@ -25,22 +25,18 @@ MAX_PORT = 65535
 
 @dataclass(frozen=True, slots=True)
 class NetworkProfile:
-    """The network and the server a board has to reach.
+    """Сеть и сервер, до которых плате надо добраться.
 
-    Args:
-        ssid: Name of the wireless network.
-        password: Password of that network, empty when the network is open.
-        host: Address of the server, a numeric one because the board resolves
-            names unreliably.
-        server_port: Port of the ordinary interface of that server.
-        socket_port: Port of the board socket of that server.
-        socket_path: Path of the board socket of that server.
-
-    Returns:
-        None.
+    Attributes:
+        ssid: Имя беспроводной сети.
+        password: Пароль этой сети; пустой, когда сеть открыта.
+        host: Адрес сервера — числовой, потому что имена плата разрешает ненадёжно.
+        server_port: Порт обычного интерфейса этого сервера.
+        socket_port: Порт доски этого сервера.
+        socket_path: Путь доски этого сервера.
 
     Raises:
-        InvalidNetworkProfileError: When one of the values cannot be used.
+        InvalidNetworkProfileError: Когда одно из значений применить нельзя.
     """
 
     ssid: str
@@ -51,13 +47,10 @@ class NetworkProfile:
     socket_path: str
 
     def __post_init__(self) -> None:
-        """Validate the settings of the network.
-
-        Returns:
-            None.
+        """Проверяет настройки сети.
 
         Raises:
-            InvalidNetworkProfileError: When one of the values cannot be used.
+            InvalidNetworkProfileError: Когда одно из значений применить нельзя.
         """
         ssid = self.ssid.strip()
         if not ssid:

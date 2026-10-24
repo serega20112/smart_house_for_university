@@ -1,13 +1,12 @@
-"""One bot instance, shared by polling and notifications.
+"""Один экземпляр бота, общий для опроса и уведомлений.
 
-Long polling and outgoing notifications used to build their own ``telegram.Bot``,
-which meant two HTTP clients against the same token and no single place that knew
-when the bot was up. The instance is created once here, handed to whoever needs
-it, and started and stopped by the composition root through the async context
-manager.
+Длинный опрос и исходящие уведомления раньше строили каждый своего ``telegram.Bot``,
+что значило два HTTP-клиента против одного токена и ни одного места, знающего, жив ли
+бот. Экземпляр создаётся здесь один раз, отдаётся тому, кому нужен, а запускает и
+останавливает его композиционный корень через асинхронный контекст-менеджер.
 
-No password is ever accepted here. A chat becomes a home through a short lived
-signed link token issued over HTTP by the web interface.
+Пароль здесь не принимают ни какой. Чат становится домом через короткоживущий
+подписанный ссылочный токен, который выдаёт по HTTP веб-интерфейс.
 """
 
 from __future__ import annotations
@@ -28,45 +27,33 @@ MessageAnswer = Callable[[Update, ChatContext], Coroutine[Any, Any, object]]
 
 
 class TelegramUnavailableError(RuntimeError):
-    """The bot is switched off or has no token.
+    """Бот выключен или у него нет токена.
 
     Args:
-        message: Human readable reason.
-
-    Returns:
-        None.
+        message: Причина человеческими словами.
     """
 
     def __init__(self, message: str = "the telegram bot is not configured") -> None:
-        """Initialize the failure.
+        """Инициализирует отказ.
 
         Args:
-            message: Human readable reason.
-
-        Returns:
-            None.
+            message: Причина человеческими словами.
         """
         super().__init__(message)
 
 
 class TelegramBotClient:
-    """The single bot instance of the process, started and stopped once.
+    """Единственный экземпляр бота процесса, запущенный и остановленный один раз.
 
-    Args:
-        token: Telegram bot token, empty when the bot is switched off.
-
-    Returns:
-        None.
+    Attributes:
+        token: Токен телеграм-бота; пустой, когда бот выключен.
     """
 
     def __init__(self, token: str) -> None:
-        """Initialize the client.
+        """Инициализирует клиент.
 
         Args:
-            token: Telegram bot token, empty when the bot is switched off.
-
-        Returns:
-            None.
+            token: Токен телеграм-бота; пустой, когда бот выключен.
         """
         self._token = token
         self._bot: Bot | None = None
@@ -74,22 +61,22 @@ class TelegramBotClient:
 
     @property
     def enabled(self) -> bool:
-        """Return whether the bot may be started at all.
+        """Сообщает, можно ли бота вообще запускать.
 
         Returns:
-            bool: True when a token was configured.
+            bool: True, когда токен настроен.
         """
         return bool(self._token)
 
     @property
     def bot(self) -> Bot:
-        """Return the shared bot instance.
+        """Возвращает общий экземпляр бота.
 
         Returns:
-            Bot: Shared bot instance.
+            Bot: Общий экземпляр бота.
 
         Raises:
-            TelegramUnavailableError: When no token was configured.
+            TelegramUnavailableError: Когда токен не настроен.
         """
         if not self._token:
             raise TelegramUnavailableError()
@@ -98,18 +85,14 @@ class TelegramBotClient:
         return self._bot
 
     async def start(self, handler: MessageAnswer | None = None) -> None:
-        """Start receiving incoming messages.
+        """Начинает принимать входящие сообщения.
 
-        The handler is passed in rather than bound beforehand, which keeps the
-        wiring with whoever owns the wording of an answer and makes the start of
-        the bot a single call.
+        Обработчик передают сюда, а не привязывают заранее: это держит связку с тем,
+        кому принадлежат формулировки ответа, и делает запуск бота одним вызовом.
 
         Args:
-            handler: Coroutine taking the update and the application context, as
-                the library expects it, or None to receive nothing.
-
-        Returns:
-            None.
+            handler: Корутина, принимающая обновление и контекст приложения, как ждёт
+                библиотека, или None, чтобы не принимать ничего.
         """
         if not self.enabled or self._application is not None:
             return
@@ -127,11 +110,7 @@ class TelegramBotClient:
         log.info("telegram.polling_started")
 
     async def stop(self) -> None:
-        """Stop receiving messages and release the bot.
-
-        Returns:
-            None.
-        """
+        """Прекращает приём сообщений и отпускает бота."""
         application = self._application
         self._application = None
         if application is None:
@@ -145,10 +124,10 @@ class TelegramBotClient:
         log.info("telegram.polling_stopped")
 
     async def __aenter__(self) -> Self:
-        """Start the bot.
+        """Запускает бота.
 
         Returns:
-            Self: Started client.
+            Self: Запущенный клиент.
         """
         await self.start()
         return self
@@ -159,13 +138,13 @@ class TelegramBotClient:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Stop the bot.
+        """Останавливает бота.
 
-        A failure of the caller keeps propagating after the client stopped.
+        Отказ вызывающего продолжается после того, как клиент остановлен.
 
         Args:
-            exc_type: Raised exception type or None.
-            exc_val: Raised exception value or None.
-            exc_tb: Raised exception traceback or None.
+            exc_type: Тип поднятого исключения или None.
+            exc_val: Само исключение или None.
+            exc_tb: Его traceback или None.
         """
         await self.stop()

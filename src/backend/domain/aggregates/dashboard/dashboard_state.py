@@ -1,13 +1,12 @@
-"""Personalized dashboard layout.
+"""Персональная раскладка главного экрана.
 
-The dashboard is data, not markup: it names which generic component has to be
-rendered, which device feeds it and in which order. That is what turns one
-frontend build into a personalized projection of the application for every
-account.
+Дашборд — данные, а не разметка: он называет, какой готовый компонент нарисовать,
+каким устройством его питать и в каком порядке. Именно это превращает одну сборку
+интерфейса в персональную проекцию приложения для каждого аккаунта.
 
-The aggregate owns its limits and the rule that a widget may only point at a
-device the account owns, so a use case cannot store a layout the interface is
-unable to draw.
+Агрегат владеет своими границами и правилом «виджет указывает только на своё
+устройство», поэтому сценарий приложения не может сохранить раскладку, которую
+интерфейс не в силах нарисовать.
 """
 
 from __future__ import annotations
@@ -25,27 +24,21 @@ MAX_WIDGETS = 40
 
 @dataclass(frozen=True, slots=True)
 class DashboardState:
-    """The ordered widget list of one account.
+    """Упорядоченный список карточек одного аккаунта.
 
-    Args:
-        user_id: Owner of the layout.
-        widgets: Widgets in the order they have to be rendered.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец раскладки.
+        widgets: Карточки в порядке вывода.
     """
 
     user_id: UserId
     widgets: tuple[DashboardWidget, ...] = ()
 
     def __post_init__(self) -> None:
-        """Validate the number of widgets.
-
-        Returns:
-            None.
+        """Проверяет число карточек.
 
         Raises:
-            InvalidDashboardLayoutError: When the layout carries too many widgets.
+            InvalidDashboardLayoutError: Когда раскладка несёт слишком много карточек.
         """
         if len(self.widgets) > MAX_WIDGETS:
             raise InvalidDashboardLayoutError(f"at most {MAX_WIDGETS} widgets are allowed")
@@ -55,21 +48,21 @@ class DashboardState:
         widgets: tuple[DashboardWidget, ...],
         owned_device_ids: frozenset[DeviceId],
     ) -> Self:
-        """Return the layout reordered to a new widget list.
+        """Возвращает раскладку, переставленную на новый список карточек.
 
-        The ownership check lives here because it is an invariant of the layout:
-        a dashboard may never reference a device of another account.
+        Проверка владельца живёт здесь, потому что это неизменяемое условие
+        раскладки: дашборд не имеет права ссылаться на устройство чужого аккаунта.
 
         Args:
-            widgets: New widgets in the desired order.
-            owned_device_ids: Devices the account actually owns.
+            widgets: Новые карточки в желаемом порядке.
+            owned_device_ids: Устройства, которыми аккаунт действительно владеет.
 
         Returns:
-            Self: Updated layout.
+            Self: Обновлённая раскладка.
 
         Raises:
-            DashboardAccessDeniedError: When a widget points at a foreign device.
-            InvalidDashboardLayoutError: When the list itself breaks a rule.
+            DashboardAccessDeniedError: Когда карточка указывает на чужое устройство.
+            InvalidDashboardLayoutError: Когда список сам нарушает правило.
         """
         for widget in widgets:
             if widget.device_id is not None and widget.device_id not in owned_device_ids:
@@ -78,15 +71,15 @@ class DashboardState:
 
     @classmethod
     def starter(cls, user_id: UserId, device_ids: tuple[DeviceId, ...]) -> Self:
-        """Build the layout a freshly registered account starts with.
+        """Строит раскладку, с которой начинает свежезарегистрированный аккаунт.
 
         Args:
-            user_id: Owner of the layout.
-            device_ids: Identifiers of the devices created with the account.
+            user_id: Владелец раскладки.
+            device_ids: Идентификаторы устройств, созданных вместе с аккаунтом.
 
         Returns:
-            Self: Layout showing the climate card, the command chat and one card
-            per configured device.
+            Self: Раскладка с карточкой климата, чатом команд и по одной карточке
+            на каждое настроенное устройство.
         """
         widgets: list[DashboardWidget] = [
             DashboardWidget(kind=WidgetKind.CLIMATE),

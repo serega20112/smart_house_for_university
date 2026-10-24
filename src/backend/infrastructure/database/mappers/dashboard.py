@@ -15,29 +15,28 @@ from backend.infrastructure.database.tables import (
 
 
 def dashboard_to_row(dashboard: DashboardState) -> DashboardRow:
-    """Build the row marking that an account has a layout.
+    """Строит строку, отмечающую, что у аккаунта есть раскладка.
 
     Args:
-        dashboard: Layout to serialize.
+        dashboard: Раскладка для сериализации.
 
     Returns:
-        DashboardRow: New row describing the owner of the layout.
+        DashboardRow: Новая строка, описывающая владельца раскладки.
     """
     return DashboardRow(user_id=dashboard.user_id.value)
 
 
 def widget_rows(dashboard: DashboardState) -> list[DashboardWidgetRow]:
-    """Build one row per entry of a dashboard layout.
+    """Строит по строке на каждую карточку раскладки главного экрана.
 
-    A layout entry has no identity of its own in the model, so the store assigns
-    one. The render order is stored explicitly instead of being implied by an
-    arbitrary primary key order.
+    Своей идентичности у карточки в модели нет, поэтому хранилище выдаёт её само. Порядок
+    вывода записывают явно, а не выводят из произвольного порядка первичного ключа.
 
     Args:
-        dashboard: Layout to serialize.
+        dashboard: Раскладка для сериализации.
 
     Returns:
-        list[DashboardWidgetRow]: Rows in render order.
+        list[DashboardWidgetRow]: Строки в порядке вывода.
     """
     return [
         DashboardWidgetRow(
@@ -53,18 +52,18 @@ def widget_rows(dashboard: DashboardState) -> list[DashboardWidgetRow]:
 
 
 def dashboard_from_row(row: DashboardRow, widgets: list[DashboardWidgetRow]) -> DashboardState:
-    """Build the layout a row and its widget rows describe.
+    """Строит раскладку, описанную её строкой и строками карточек.
 
-    An entry whose device was deleted arrives without one. Such an entry cannot be
-    drawn, so it is left out of the layout instead of being handed to the
-    aggregate, which would refuse the whole layout over one dead reference.
+    Карточка, чьё устройство удалили, приходит без него. Нарисовать такую нельзя, поэтому
+    её из раскладки убирают, а не несут агрегату, который отверг бы всю раскладку из-за
+    одной мёртвой ссылки.
 
     Args:
-        row: Row identifying the owner of the layout.
-        widgets: Widget rows belonging to that owner.
+        row: Строка, называющая владельца раскладки.
+        widgets: Строки карточек этого владельца.
 
     Returns:
-        DashboardState: Restored layout.
+        DashboardState: Восстановленная раскладка.
     """
     restored: list[DashboardWidget] = []
     for entry in sorted(widgets, key=lambda widget: widget.position):
@@ -75,14 +74,14 @@ def dashboard_from_row(row: DashboardRow, widgets: list[DashboardWidgetRow]) -> 
 
 
 def widget_from_row(row: DashboardWidgetRow) -> DashboardWidget | None:
-    """Build one layout entry, or None when it can no longer be drawn.
+    """Строит одну карточку раскладки или None, когда её больше нельзя нарисовать.
 
     Args:
-        row: Row to deserialize.
+        row: Строка для десериализации.
 
     Returns:
-        DashboardWidget | None: Restored entry, or None when the device it
-        referenced is gone.
+        DashboardWidget | None: Восстановленная карточка или None, когда устройство,
+        на которое она указывала, исчезло.
     """
     kind = WidgetKind.parse(row.kind)
     device_id = None if row.device_id is None else DeviceId.parse(row.device_id)

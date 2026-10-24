@@ -35,9 +35,6 @@ class TelegramConversation:
         links: Выдающий и разбирающий токены привязки адаптер.
         dispatcher: Шина команд прикладного слоя.
         composer: Строит фразу ответа по результату команды.
-
-    Returns:
-        None.
     """
 
     def __init__(
@@ -54,9 +51,6 @@ class TelegramConversation:
             links: Выдающий и разбирающий токены привязки адаптер.
             dispatcher: Шина команд прикладного слоя.
             composer: Строит фразу ответа по результату команды.
-
-        Returns:
-            None.
         """
         self._sessions = sessions
         self._links = links

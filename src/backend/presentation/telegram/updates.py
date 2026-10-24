@@ -21,9 +21,6 @@ class TelegramUpdates:
 
     Args:
         conversation: Разговор, которому отдаётся сообщение чата.
-
-    Returns:
-        None.
     """
 
     def __init__(self, conversation: TelegramConversation) -> None:
@@ -31,9 +28,6 @@ class TelegramUpdates:
 
         Args:
             conversation: Разговор, которому отдаётся сообщение чата.
-
-        Returns:
-            None.
         """
         self._conversation = conversation
 
@@ -47,9 +41,6 @@ class TelegramUpdates:
         Args:
             update: Событие, принесённое long polling.
             context: Окружение приложения бота, дающее доступ к боту.
-
-        Returns:
-            None.
         """
         del context
         message = update.effective_message

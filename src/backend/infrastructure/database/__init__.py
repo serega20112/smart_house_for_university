@@ -1,31 +1,27 @@
-"""Persistence layer of the backend.
+"""Слой хранения бэкенда.
 
-This package is the only place in the system that knows a database exists. The
-domain decides what an aggregate is, the application decides when a change has to
-happen, and everything below is an adapter: rows, statements, sessions and one
-unit of work per lifecycle.
+Этот пакет — единственное место в системе, знающее, что база данных существует. Домен
+решает, что такое агрегат, приложение — когда изменение должно случиться, а всё нижнее —
+адаптеры: строки, запросы, сессии и по одной границе транзакции на жизнь.
 
-The schema is applied through the Alembic revisions in ``build/alembic/versions``
-and never created from here, so a deployment can always rebuild it from zero and a
-review can read the schema as a diff.
+Схему применяют ревизиями Alembic из ``build/alembic/versions`` и отсюда не создают
+никогда, поэтому развёртывание всегда способно построить её с нуля, а схему можно
+прочитать как разность в ревью.
 
-The modules are:
+Модули:
 
 ``tables``
-    the declarative definition of every table, and the metadata the revisions are
-    compared against.
+    декларативное описание всякой таблицы и метаданные, с которыми сверяют ревизии.
 ``mappers``
-    pure functions translating aggregates into rows and rows back into aggregates.
+    чистые функции, переводящие агрегаты в строки и строки обратно в агрегаты.
 ``repositories``
-    the write side, one repository per aggregate, all sharing the session of the
-    unit of work.
+    сторона записи: по хранилищу на агрегат, все делят сессию границы транзакции.
 ``queries``
-    the read side, answering with the read models of the application layer and
-    never opening a transaction.
+    сторона чтения: отвечает моделями чтения прикладного слоя и транзакцию не открывает.
 ``unit_of_work``
-    the transaction boundaries, one per lifecycle, and their factories.
+    границы транзакций, по одной на жизнь, и их фабрики.
 ``engine``
-    the async engine and the session factory the composition root builds once.
+    асинхронный движок и фабрика сессий, которые композиционный корень строит один раз.
 """
 
 from backend.infrastructure.database.engine import build_engine, build_session_factory

@@ -1,4 +1,4 @@
-/** Live updates delivered by the backend WebSocket. */
+/** Живые изменения, которые приносит WebSocket бэкенда. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -22,17 +22,16 @@ interface RealtimeOptions {
 }
 
 /**
- * Subscribes to the backend event stream and keeps the socket alive.
+ * Подписывается на поток событий бэкенда и держит сокет живым.
  *
- * The backend pushes every change of the signed in account, so the interface
- * never polls while the socket is open. The stream is opened with the session
- * token, which is what lets the server deliver only the events of this account.
+ * Бэкенд присылает каждое изменение того аккаунта, который вошёл, поэтому экран не
+ * опрашивает сервер, пока сокет открыт. Поток открывается с токеном сессии — именно
+ * это позволяет серверу отдавать события одного аккаунта.
  *
- * @param options.activates Whether a session is available at all.
- * @param options.onMessage Called for every received event.
- * @param options.onStateChange Called whenever the connection state changes.
- *
- * @returns The current connection state.
+ * @param options.enabled Есть ли вообще сессия, с которой стоит связываться.
+ * @param options.onMessage Вызывается на каждое принятое событие.
+ * @param options.onStateChange Вызывается при каждой смене состояния связи.
+ * @returns Текущее состояние соединения.
  */
 export function useRealtime({ enabled, onMessage, onStateChange }: RealtimeOptions): ConnectionState {
   const [connection, setConnection] = useState<ConnectionState>("connecting");
@@ -99,6 +98,15 @@ export function useRealtime({ enabled, onMessage, onStateChange }: RealtimeOptio
   return connection;
 }
 
+/**
+ * Открывает сокет события одного аккаунта: токен едет параметром строки запроса.
+ *
+ * Заголовок авторизации на handshake WebSocket повесить нельзя, поэтому токен
+ * приходит в адресе, а разбирает его сервер.
+ *
+ * @param token Токен текущей сессии.
+ * @returns Соединение, которое вызывающий уже обслуживает сам.
+ */
 function openSocket(token: string): WebSocket {
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   return new WebSocket(

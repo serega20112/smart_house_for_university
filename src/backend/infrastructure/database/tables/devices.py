@@ -21,23 +21,20 @@ from backend.infrastructure.database.tables.base import Base
 
 
 class DeviceRow(Base):
-    """Stored configuration of one logical device owned by one account.
+    """Сохранённая настройка одного логического устройства одного аккаунта.
 
-    Args:
-        id: Identifier assigned by the domain aggregate.
-        user_id: Owner of the device.
-        name: Name shown to the user.
-        kind: What the device is for, stored as text.
-        channel: Relay channel the device is wired to.
-        enabled: Whether the device may be controlled at all.
-        automation_enabled: Whether the device takes part in automation.
-        version: Revision of the row, bumped on every update. A writer that has
-            read an older revision updates nothing: the optimistic lock keeps a
-            rehearsed command working on an obsolete snapshot from erasing a
-            change somebody else committed meanwhile.
-
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор, выданным агрегатом домена.
+        user_id: Владелец устройства.
+        name: Имя, показанное человеку.
+        kind: Для чего устройство; лежит текстом.
+        channel: Канал реле, к которому подключено устройство.
+        enabled: Разрешено ли устройством управлять вообще.
+        automation_enabled: Участвует ли устройство в автоматизации.
+        version: Ревизия строки, поднимаемая при каждой записи. Кто прочитал
+            старую ревизию, тот не обновляет ничего: оптимистичная блокировка не
+            даёт отработанной команде стереть по устаревшему снимку изменение,
+            которое тем временем кто-то закоммитил.
     """
 
     __tablename__ = "devices"
@@ -54,14 +51,11 @@ class DeviceRow(Base):
 
 
 class DeviceCapabilityRow(Base):
-    """One capability a logical device is able to perform.
+    """Одна способность, которую логическое устройство умеет выполнить.
 
-    Args:
-        device_id: Device the capability belongs to.
-        capability: Capability name, stored as text.
-
-    Returns:
-        None.
+    Attributes:
+        device_id: Устройство, к которому относится способность.
+        capability: Имя способности, лежащее текстом.
     """
 
     __tablename__ = "device_capabilities"

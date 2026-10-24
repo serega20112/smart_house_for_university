@@ -1,9 +1,9 @@
-"""Interface preferences of one account.
+"""Настройки интерфейса одного аккаунта.
 
-Preferences are a projection, not a business decision: the very same frontend build
-renders a different theme, language and unit for every account. The values are
-strict enumerations rather than free text, so an interface can never store a
-setting it is unable to draw.
+Настройки — проекция, а не бизнес-решение: одна и та же сборка интерфейса рисует
+свою тему, язык и единицу каждому аккаунту. Значения заданы строгими перечислениями,
+а не свободным текстом, поэтому интерфейс не может сохранить настройку, которую сам же
+не умеет нарисовать.
 """
 
 from __future__ import annotations
@@ -16,21 +16,21 @@ from backend.domain.identifiers import UserId
 
 
 class TemperatureUnit(StrEnum):
-    """Unit climate values are rendered in."""
+    """Единица, в которой показывают климат."""
 
     CELSIUS = "C"
     FAHRENHEIT = "F"
 
 
 class Theme(StrEnum):
-    """Visual theme of the interface."""
+    """Визуальная тема интерфейса."""
 
     DARK = "dark"
     LIGHT = "light"
 
 
 class InterfaceLanguage(StrEnum):
-    """Language the interface speaks."""
+    """Язык, на котором говорит интерфейс."""
 
     RUSSIAN = "ru"
     ENGLISH = "en"
@@ -38,17 +38,14 @@ class InterfaceLanguage(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class UserPreferences:
-    """The projection settings of one account.
+    """Настройки проекции одного аккаунта.
 
-    Args:
-        user_id: Owner of the preferences.
-        temperature_unit: Unit climate values are rendered in.
-        theme: Visual theme.
-        language: Interface language.
-        show_command_chat: Whether the command chat is shown on the dashboard.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец настроек.
+        temperature_unit: Единица, в которой показывают климат.
+        theme: Визуальная тема.
+        language: Язык интерфейса.
+        show_command_chat: Показывать ли чат команд на главном экране.
     """
 
     user_id: UserId
@@ -65,19 +62,19 @@ class UserPreferences:
         language: InterfaceLanguage | None = None,
         show_command_chat: bool | None = None,
     ) -> Self:
-        """Return the preferences with the given fields changed.
+        """Возвращает настройки с изменёнными указанными полями.
 
-        Every field is optional and None means "keep", so a partial update never
-        has to rebuild the whole object from an untyped dictionary.
+        Каждое поле необязательное, а None означает «оставить»: частичное изменение
+        не должно пересобирать весь объект из бесформенного словаря.
 
         Args:
-            temperature_unit: New unit or None to keep the current one.
-            theme: New theme or None to keep the current one.
-            language: New language or None to keep the current one.
-            show_command_chat: New visibility flag or None to keep the current one.
+            temperature_unit: Новая единица или None оставить нынешнюю.
+            theme: Новая тема или None оставить нынешнюю.
+            language: Новый язык или None оставить нынешний.
+            show_command_chat: Новый признак показа или None оставить нынешний.
 
         Returns:
-            Self: Updated preferences.
+            Self: Изменённые настройки.
         """
         return UserPreferences(
             user_id=self.user_id,
@@ -93,12 +90,12 @@ class UserPreferences:
 
     @classmethod
     def create(cls, user_id: UserId) -> Self:
-        """Build the preferences a fresh account starts with.
+        """Строит настройки, с которыми начинает свежий аккаунт.
 
         Args:
-            user_id: Owner of the preferences.
+            user_id: Владелец настроек.
 
         Returns:
-            Self: Default preferences.
+            Self: Настройки по умолчанию.
         """
         return cls(user_id=user_id)

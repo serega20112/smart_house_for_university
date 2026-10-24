@@ -1,12 +1,12 @@
-"""Board paired with an account.
+"""Плата, сопряжённая с аккаунтом.
 
-A board dials in on its own, so the only thing that links it to a person is the
-key it presents during the handshake. The key is the credential, the account is
-the owner of everything the board reports.
+Плата дозванивается сама, поэтому единственное, что привязывает её к человеку, — ключ,
+который она предъявляет при handshake. Ключ и есть учётные данные, а аккаунт — владелец
+всего, что плата сообщает.
 
-The board also tells which network it is on, and that answer is kept next to
-the moment of the last handshake: both are what the board reported about itself
-the last time it was seen.
+Плата ещё говорит, в какой сети она находится, и этот ответ хранится рядом с моментом
+последнего handshake: оба значения — то о себе, что плата рассказала в последний раз,
+когда её было видно.
 """
 
 from __future__ import annotations
@@ -24,23 +24,19 @@ MAX_NAME_LENGTH = 60
 
 @dataclass(frozen=True, slots=True)
 class EspDevice:
-    """A board paired with one account.
+    """Плата, сопряжённая с одним аккаунтом.
 
-    Args:
-        id: Identifier assigned at creation.
-        user_id: Owner of the board and of every entity it feeds.
-        name: Name shown to the user.
-        pairing_key: Secret the board presents while connecting.
-        created_at: Moment the board was paired.
-        last_seen_at: Moment of the last successful handshake, or None.
-        current_ssid: Network the board reported being on, or None while it has
-            not reported one.
-
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор, выданный при создании.
+        user_id: Владелец платы и всего, что она питает.
+        name: Имя, показанное человеку.
+        pairing_key: Секрет, который плата предъявляет при соединении.
+        created_at: Момент сопряжения платы.
+        last_seen_at: Момент последнего успешного handshake, или None.
+        current_ssid: Сеть, о которой сообщила плата, или None, пока не сообщала.
 
     Raises:
-        InvalidBoardNameError: When the name is empty or too long.
+        InvalidBoardNameError: Когда имя пустое или слишком длинное.
     """
 
     id: EspDeviceId
@@ -52,13 +48,10 @@ class EspDevice:
     current_ssid: str | None = None
 
     def __post_init__(self) -> None:
-        """Validate the name of the board.
-
-        Returns:
-            None.
+        """Проверяет имя платы.
 
         Raises:
-            InvalidBoardNameError: When the name is empty or too long.
+            InvalidBoardNameError: Когда имя пустое или слишком длинное.
         """
         trimmed = self.name.strip()
         if not trimmed or len(trimmed) > MAX_NAME_LENGTH:
@@ -73,16 +66,16 @@ class EspDevice:
         pairing_key: PairingKey,
         paired_at: datetime,
     ) -> Self:
-        """Build a newly paired board.
+        """Строит только что сопряжённую плату.
 
         Args:
-            user_id: Owner of the board.
-            name: Name shown to the user.
-            pairing_key: Secret the board will present while connecting.
-            paired_at: Moment of the pairing.
+            user_id: Владелец платы.
+            name: Имя, показанное человеку.
+            pairing_key: Секрет, который плата будет предъявлять при соединении.
+            paired_at: Момент сопряжения.
 
         Returns:
-            Self: Created board.
+            Self: Созданная плата.
         """
         return cls(
             id=EspDeviceId.generate(),
@@ -93,14 +86,14 @@ class EspDevice:
         )
 
     def seen(self, at: datetime, ssid: str | None) -> Self:
-        """Return the board as it was last seen.
+        """Возвращает плату такой, какой её видели в последний раз.
 
         Args:
-            at: Moment of the handshake.
-            ssid: Network the board reported being on, or None.
+            at: Момент handshake.
+            ssid: Сеть, о которой сообщила плата, или None.
 
         Returns:
-            Self: Board carrying what it reported.
+            Self: Плата с тем, что она сообщила.
         """
         return EspDevice(
             id=self.id,

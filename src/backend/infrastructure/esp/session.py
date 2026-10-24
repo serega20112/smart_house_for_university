@@ -33,9 +33,6 @@ class BoardSession:
         board_id: Идентификатор платы.
         socket: Открытый WebSocket платы.
         counter: Источник идентификаторов, уникальных внутри этого сеанса.
-
-    Returns:
-        None.
     """
 
     def __init__(
@@ -52,9 +49,6 @@ class BoardSession:
             board_id: Идентификатор платы.
             socket: Открытый WebSocket платы.
             counter: Источник идентификаторов, уникальных внутри этого сеанса.
-
-        Returns:
-            None.
         """
         self.user_id = user_id
         self.board_id = board_id
@@ -104,9 +98,6 @@ class BoardSession:
         Raises:
             TimeoutError: Когда плата не подтвердила кадр за отведённое время.
             Exception: Когда кадр не удалось написать в сокет.
-
-        Returns:
-            None.
         """
         command_id = frame.command_id
         future: asyncio.Future[None] = asyncio.get_running_loop().create_future()
@@ -124,22 +115,14 @@ class BoardSession:
             future.set_result(None)
 
     def cancel_pending(self) -> None:
-        """Отменяет все команды, оставшиеся без подтверждения.
-
-        Returns:
-            None.
-        """
+        """Отменяет все команды, оставшиеся без подтверждения."""
         for future in self.pending.values():
             if not future.done():
                 future.cancel()
         self.pending.clear()
 
     async def close(self) -> None:
-        """Закрывает сокет платы, не превращая отказ в аварию.
-
-        Returns:
-            None.
-        """
+        """Закрывает сокет платы, не превращая отказ в аварию."""
         with suppress(Exception):
             await self.socket.close()
 
@@ -148,11 +131,7 @@ class BoardRegistry:
     """Платы, удерживающие соединение, и счётчик их идентификаторов команд."""
 
     def __init__(self) -> None:
-        """Инициализирует пустой реестр.
-
-        Returns:
-            None.
-        """
+        """Инициализирует пустой реестр."""
         self._sessions: dict[tuple[UserId, EspDeviceId], BoardSession] = {}
         self._issued = 0
 
@@ -178,9 +157,6 @@ class BoardRegistry:
 
         Args:
             session: Сеанс, соединение которого закрылось.
-
-        Returns:
-            None.
         """
         key = (session.user_id, session.board_id)
         if self._sessions.get(key) is session:
@@ -217,11 +193,7 @@ class BoardRegistry:
         return list(self._sessions.values())
 
     def clear(self) -> None:
-        """Забывает все сеансы.
-
-        Returns:
-            None.
-        """
+        """Забывает все сеансы."""
         self._sessions.clear()
 
 

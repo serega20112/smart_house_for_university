@@ -20,20 +20,18 @@ from backend.infrastructure.database.tables.base import Base
 
 
 class AutomationRow(Base):
-    """Automation configuration of one account, stored as a single row.
+    """Настройка автоматизации одного аккаунта, лежащая одной строкой.
 
-    Args:
-        user_id: Owner of the configuration and primary key of the row.
-        enabled: Whether automation is active.
-        target_temperature: Temperature the home is asked to hold.
-        temperature_tolerance: How far the temperature may drift.
-        target_humidity: Humidity the home is asked to hold.
-        humidity_tolerance: How far the humidity may drift.
-        version: Revision of the row, bumped on every save. A stale writer
-            updates nothing instead of overwriting a newer configuration.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец настройки и первичный ключ строки.
+        enabled: Работает ли автоматизация.
+        target_temperature: Температура, которую велено держать дому.
+        temperature_tolerance: Насколько позволено уйти температуре.
+        target_humidity: Влажность, которую велено держать дому.
+        humidity_tolerance: Насколько позволено уйти влажности.
+        version: Ревизия строки, поднимаемая при каждой записи. Устаревший
+            записывающий не обновляет ничего, вместо того чтобы перетереть более новую
+            настройку.
     """
 
     __tablename__ = "automation"
@@ -50,17 +48,14 @@ class AutomationRow(Base):
 
 
 class AutomationParticipantRow(Base):
-    """One device automation is allowed to drive.
+    """Одно устройство, которым автоматизации разрешено управлять.
 
-    An account with no participant row drives every device that opted in, which is
-    what the aggregate means by an empty set.
+    Аккаунт без строк участников ведёт всякое устройство, которое на это согласилось, —
+    именно это агрегат называет пустым множеством.
 
-    Args:
-        user_id: Owner of the configuration.
-        device_id: Device taking part in automation.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец настройки.
+        device_id: Устройство, участвующее в автоматизации.
     """
 
     __tablename__ = "automation_participants"

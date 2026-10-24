@@ -1,4 +1,4 @@
-"""Change an existing logical device."""
+"""Меняет уже существующее логическое устройство."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from backend.domain.value_objects.devices.relay_channel import RelayChannel
 
 
 class UpdateDeviceUseCase:
-    """Applies a partial change to a device."""
+    """Применяет частичное изменение устройства."""
 
     def __init__(
         self,
@@ -29,17 +29,14 @@ class UpdateDeviceUseCase:
         state_store: HomeStateStore,
         refresh_attempts: int,
     ) -> None:
-        """Initialize the use case.
+        """Инициализирует сценарий.
 
         Args:
-            home_uow: Factory producing transactions over the configuration.
-            realtime: Publisher of events to the open clients.
-            dispatcher: Announces the fact that the configuration changed.
-            state_store: Durable home of the volatile state.
-            refresh_attempts: How often the change is retried after a lost race.
-
-        Returns:
-            None.
+            home_uow: Фабрика транзакций над конфигурацией.
+            realtime: Издатель событий в открытые соединения.
+            dispatcher: Объявляет факт изменения конфигурации.
+            state_store: Надёжный дом изменчивого состояния.
+            refresh_attempts: Сколько раз повторить изменение после проигранной гонки.
         """
         self._home_uow = home_uow
         self._realtime = realtime
@@ -50,26 +47,25 @@ class UpdateDeviceUseCase:
     async def execute(
         self, user_id: UserId, device_id: DeviceId, command: UpdateDeviceCommand
     ) -> DeviceView:
-        """Change a device on a fresh snapshot of the configuration.
+        """Меняет устройство по свежему снимку конфигурации.
 
-        The lookup is scoped to the owner, so a device of another account reads
-        as missing instead of being modified. A change that loses a race with
-        another writer is retried on the newest snapshot, so the user does not
-        have to repeat themselves because another tab touched the same device a
-        moment earlier.
+        Поиск ограничен владельцем, поэтому чужое устройство читается как
+        отсутствующее, а не изменяется. Изменение, проигравшее гонку другому
+        записывающему, повторяется по самому новому снимку, чтобы человеку не
+        приходилось повторять себя из-за другой вкладки, тронувшей то же устройство.
 
         Args:
-            user_id: Owner resolved from the session.
-            device_id: Identifier of the device.
-            command: Fields to change.
+            user_id: Владелец, разрешённый из сессии.
+            device_id: Идентификатор устройства.
+            command: Поля, которые нужно изменить.
 
         Returns:
-            DeviceView: The updated device.
+            DeviceView: Обновлённое устройство.
 
         Raises:
-            DeviceNotFoundError: When the account has no such device.
-            ChannelConflictError: When the new channel is already wired.
-            ConcurrentModificationError: When others keep winning the race.
+            DeviceNotFoundError: Когда такого устройства у аккаунта нет.
+            ChannelConflictError: Когда новый канал уже занят.
+            ConcurrentModificationError: Когда гонку продолжают выигрывать другие.
         """
         stored: Device | ConcurrentModificationError = await self._attempt(
             user_id, device_id, command
@@ -91,16 +87,16 @@ class UpdateDeviceUseCase:
     async def _attempt(
         self, user_id: UserId, device_id: DeviceId, command: UpdateDeviceCommand
     ) -> Device | ConcurrentModificationError:
-        """State the change once on the snapshot the transaction reads.
+        """Заявляет изменение один раз на снимке, который читает транзакция.
 
         Args:
-            user_id: Owner resolved from the session.
-            device_id: Identifier of the device.
-            command: Fields to change.
+            user_id: Владелец, разрешённый из сессии.
+            device_id: Идентификатор устройства.
+            command: Поля, которые нужно изменить.
 
         Returns:
-            Device | ConcurrentModificationError: The updated device, or the
-            race this attempt lost.
+            Device | ConcurrentModificationError: Обновлённое устройство или гонка,
+            которую эта попытка проиграла.
         """
         async with self._home_uow() as uow:
             device = await uow.devices.get(user_id, device_id)

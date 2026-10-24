@@ -1,14 +1,13 @@
-"""Domain events.
+"""События домена.
 
-An entity that changes something worth telling about records the fact instead of
-calling a notifier. The application layer drains those records after the
-transaction commits and hands them to whatever is subscribed, which keeps the
-model free of messaging infrastructure and of any knowledge about who listens.
+Сущность, которая изменила что-то достойное рассказа, записывает факт вместо звонка
+нотификатору. Прикладной слой собирает эти записи после коммита транзакции и отдаёт их
+тому, кто подписан, — поэтому модель не знает ни про инфраструктуру сообщений, ни про
+то, кто на них слушает.
 
-An event is a plain immutable statement of something that already happened. It
-carries no timestamp and no delivery information: the moment is stamped by the
-publisher, which is the only component that knows when the fact became visible
-outside the transaction.
+Событие — простое незменяемое утверждение о том, что уже случилось. Ни отметки времени,
+ни данных доставки в нём нет: момент ставит издатель, потому что только он знает, когда
+факт стал виден вне транзакции.
 """
 
 from __future__ import annotations
@@ -45,13 +44,10 @@ class EventName:
 
 @dataclass(frozen=True, slots=True)
 class UserRegistered:
-    """A new account exists and its home has to be provisioned.
+    """Новый аккаунт существует, и его дом надо обустраивать.
 
-    Args:
-        user_id: Identifier of the new account.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Идентификатор нового аккаунта.
     """
 
     user_id: UserId
@@ -59,14 +55,11 @@ class UserRegistered:
 
 @dataclass(frozen=True, slots=True)
 class DeviceConfigured:
-    """The configuration of a logical device changed.
+    """Настройка логического устройства изменилась.
 
-    Args:
-        user_id: Owner of the device.
-        device_id: Identifier of the changed device.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец устройства.
+        device_id: Идентификатор изменённого устройства.
     """
 
     user_id: UserId
@@ -75,23 +68,18 @@ class DeviceConfigured:
 
 @dataclass(frozen=True, slots=True)
 class DeviceCapabilityApplied:
-    """A capability reached the hardware on behalf of an account.
+    """Способность дошла до железа по просьбе аккаунта.
 
-    This is the single place the rule "a manual action suspends automation for a
-    while" is written down, instead of a line repeated at the end of every use
-    case that switches something.
+    Только здесь записано правило «ручное действие ставит автоматику на паузу», а не
+    строкой в конце каждого сценария, который что-нибудь переключает.
 
-    Args:
-        user_id: Owner of the device.
-        device_id: Identifier of the device.
-        device_name: Name shown to the user.
-        channel: Physical relay channel that was switched.
-        capability: Capability that was performed.
-        manual: Whether a person asked for it, as opposed to automation or a
-            scenario.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец устройства.
+        device_id: Идентификатор устройства.
+        device_name: Имя, показанное человеку.
+        channel: Физический канал реле, который переключили.
+        capability: Выполненная способность.
+        manual: Просил ли человек сам, в отличие от автоматики или сценария.
     """
 
     user_id: UserId
@@ -104,13 +92,10 @@ class DeviceCapabilityApplied:
 
 @dataclass(frozen=True, slots=True)
 class AutomationSettingsChanged:
-    """The automation configuration of an account changed.
+    """Настройка автоматизации аккаунта изменилась.
 
-    Args:
-        user_id: Owner of the configuration.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец настройки.
     """
 
     user_id: UserId
@@ -118,14 +103,11 @@ class AutomationSettingsChanged:
 
 @dataclass(frozen=True, slots=True)
 class ScenarioScheduled:
-    """A scenario was stored and waits for its start moment.
+    """Сценарий сохранён и ждёт своего момента начать.
 
-    Args:
-        user_id: Owner of the scenario.
-        scenario_id: Identifier of the scenario.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец сценария.
+        scenario_id: Идентификатор сценария.
     """
 
     user_id: UserId
@@ -134,14 +116,11 @@ class ScenarioScheduled:
 
 @dataclass(frozen=True, slots=True)
 class ScenarioStarted:
-    """A scenario began acting on the home.
+    """Сценарий начал действовать в доме.
 
-    Args:
-        user_id: Owner of the scenario.
-        scenario_id: Identifier of the scenario.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец сценария.
+        scenario_id: Идентификатор сценария.
     """
 
     user_id: UserId
@@ -150,16 +129,13 @@ class ScenarioStarted:
 
 @dataclass(frozen=True, slots=True)
 class ScenarioFinished:
-    """A scenario reached a final stage.
+    """Сценарий дошёл до итогового этапа.
 
-    Args:
-        user_id: Owner of the scenario.
-        scenario_id: Identifier of the scenario.
-        status: Stage the scenario reached.
-        reason: Why it reached that stage.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец сценария.
+        scenario_id: Идентификатор сценария.
+        status: Этап, которого сценарий достиг.
+        reason: Почему он его достиг.
     """
 
     user_id: UserId
@@ -170,14 +146,11 @@ class ScenarioFinished:
 
 @dataclass(frozen=True, slots=True)
 class BoardPaired:
-    """A board became owned by an account.
+    """Плата стала принадлежать аккаунту.
 
-    Args:
-        user_id: Owner of the board.
-        board_id: Identifier of the board.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец платы.
+        board_id: Идентификатор платы.
     """
 
     user_id: UserId
@@ -186,13 +159,10 @@ class BoardPaired:
 
 @dataclass(frozen=True, slots=True)
 class BoardAnnouncementPublished:
-    """A board nobody owns yet is asking to be taken.
+    """Плата, у которой пока нет хозяина, просит, чтобы её забрали.
 
-    Args:
-        label: Short code the interface shows next to the board.
-
-    Returns:
-        None.
+    Attributes:
+        label: Короткий код, который интерфейс показывает рядом с платой.
     """
 
     label: str = field(compare=False)

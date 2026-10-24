@@ -1,13 +1,12 @@
-"""Sending notifications into Telegram.
+"""Отправляет уведомления в Telegram.
 
-The chat a user is notified in is remembered rather than configured: a person who
-linked their account from the messenger expects to hear about their own home
-there, and the operator chat is only the fallback for somebody who never linked
-one.
+Чат, в котором уведомляют человека, запоминают, а не настраивают: привязавший аккаунт из
+мессенджера ждёт известий о своём доме именно там, а чат оператора — только запасной
+вариант для того, кто ничего не привязал.
 
-A delivery failure is logged and swallowed on purpose. The port says so: a
-channel that is down must not break the business operation that produced the
-message, but it must not disappear either.
+Отказ доставки нарочно записывают в журнал и проглатывают. Так говорит интерфейс: канал,
+который лежит, не должен ломать бизнес-операцию, породившую сообщение, но и исчезать молча
+он не должен.
 """
 
 from __future__ import annotations
@@ -23,15 +22,12 @@ log = get_logger("telegram.notifier")
 
 
 class TelegramNotifier(UserNotifier):
-    """Delivers notifications into the chat a user linked.
+    """Доставляет уведомления в чат, который привязал человек.
 
-    Args:
-        client: The one bot instance of the process.
-        sessions: Chats linked to accounts.
-        operator_chat_id: Chat notified for an account that linked none.
-
-    Returns:
-        None.
+    Attributes:
+        client: Единственный экземпляр бота процесса.
+        sessions: Чаты, привязанные к аккаунтам.
+        operator_chat_id: Чат, куда пишут аккаунту, ничего не привязавшему.
     """
 
     def __init__(
@@ -40,29 +36,23 @@ class TelegramNotifier(UserNotifier):
         sessions: RedisChatSessionStore,
         operator_chat_id: str,
     ) -> None:
-        """Initialize the notifier.
+        """Инициализирует рассыльщик.
 
         Args:
-            client: The one bot instance of the process.
-            sessions: Chats linked to accounts.
-            operator_chat_id: Chat notified for an account that linked none.
-
-        Returns:
-            None.
+            client: Единственный экземпляр бота процесса.
+            sessions: Чаты, привязанные к аккаунтам.
+            operator_chat_id: Чат, куда пишут аккаунту, ничего не привязавшему.
         """
         self._client = client
         self._sessions = sessions
         self._operator_chat_id = operator_chat_id
 
     async def notify(self, user_id: UserId, notification: Notification) -> None:
-        """Send a notification to the owner of a home.
+        """Отправляет уведомление владельцу дома.
 
         Args:
-            user_id: Owner the notification is about.
-            notification: Message to deliver.
-
-        Returns:
-            None.
+            user_id: Владелец, о котором уведомление.
+            notification: Сообщение для доставки.
         """
         if not self._client.enabled:
             log.info("telegram.notification_skipped", user=str(user_id), reason="bot_off")

@@ -22,69 +22,57 @@ PROTOCOL_VERSION = 4
 
 
 class MalformedFrameError(ValueError):
-    """A frame of the wire protocol could not be read.
+    """Кадр протокола не удалось прочитать.
 
     Args:
-        message: What the validation refused.
-
-    Returns:
-        None.
+        message: На что указала проверка.
     """
 
     def __init__(self, message: str) -> None:
-        """Initialize the failure.
+        """Инициализирует отказ.
 
         Args:
-            message: What the validation refused.
-
-        Returns:
-            None.
+            message: На что проверка указала.
         """
         super().__init__(f"malformed board frame: {message}")
 
 
 class _Inbound(BaseModel):
-    """Common behaviour of every frame received from a board."""
+    """Общее поведение каждого кадра, пришедшего от платы."""
 
     model_config = ConfigDict(extra="allow", populate_by_name=True, frozen=True)
 
 
 class HelloFrame(_Inbound):
-    """The handshake of a board that just dialed in.
+    """Handshake платы, которая только что дозвонилась.
 
-    Args:
-        type: Discriminator of the union.
-        pairing_key: Secret the board presents, absent on a reconnected board
-            that already knows its owner.
-        label: Short code the board reported about itself.
-        firmware: Version string the board reported.
-        ssid: Name of the network the board is on, absent when it is not on one.
-        provisioned: Whether the board already has a network of its own.
-
-    Returns:
-        None.
+    Attributes:
+        type: Разделитель объединения.
+        pairing_key: Секрет, который предъявляет плата; отсутствует у переподключившейся
+            платы, чей хозяин ей уже известен.
+        label: Короткий код, который плата сообщила о себе.
+        firmware_version: Версия прошивки, которую сообщила плата.
+        ssid: Имя сети, в которой находится плата; отсутствует вне сети.
+        provisioned: Есть ли у платы уже собственная сеть.
     """
 
     type: Literal["HELLO"] = "HELLO"
     pairing_key: str | None = None
     label: str = ""
-    firmware: str = ""
+    firmware_version: str = ""
     ssid: str | None = None
     provisioned: bool = False
 
 
 class StateFrame(_Inbound):
-    """Everything the board knows: contacts and sensors.
+    """Всё, что знает плата: контакты и датчики.
 
-    Args:
-        type: Discriminator of the union.
-        relays: Contact positions ordered by channel, starting at one.
-        temperature: Measured temperature, absent when the sensor did not answer.
-        humidity: Measured relative humidity, absent when the sensor did not
-            answer.
-
-    Returns:
-        None.
+    Attributes:
+        type: Разделитель объединения.
+        relays: Положения контактов по порядку каналов, начиная с первого.
+        temperature: Измеренная температура; отсутствует, когда датчик не ответил.
+        humidity: Измеренная относительная влажность; отсутствует, когда датчик
+            не ответил.
     """
 
     type: Literal["STATE"] = "STATE"
@@ -94,16 +82,13 @@ class StateFrame(_Inbound):
 
 
 class SensorDataFrame(_Inbound):
-    """A reading of the climate sensors alone.
+    """Показания датчиков климата, без всего остального.
 
-    Args:
-        type: Discriminator of the union.
-        temperature: Measured temperature, absent when the sensor did not answer.
-        humidity: Measured relative humidity, absent when the sensor did not
-            answer.
-
-    Returns:
-        None.
+    Attributes:
+        type: Разделитель объединения.
+        temperature: Измеренная температура; отсутствует, когда датчик не ответил.
+        humidity: Измеренная относительная влажность; отсутствует, когда датчик
+            не ответил.
     """
 
     type: Literal["SENSOR_DATA"] = "SENSOR_DATA"
@@ -112,14 +97,11 @@ class SensorDataFrame(_Inbound):
 
 
 class AckFrame(_Inbound):
-    """The confirmation of one command.
+    """Подтверждение одной команды.
 
-    Args:
-        type: Discriminator of the union.
-        command_id: Identifier of the acknowledged command.
-
-    Returns:
-        None.
+    Attributes:
+        type: Разделитель объединения.
+        command_id: Идентификатор подтверждённой команды.
     """
 
     type: Literal["ACK"] = "ACK"
@@ -127,15 +109,12 @@ class AckFrame(_Inbound):
 
 
 class ErrorFrame(_Inbound):
-    """A failure the board reports about itself.
+    """Отказ, о котором сообщает сама плата.
 
-    Args:
-        type: Discriminator of the union.
-        code: Machine readable error code.
-        message: Human readable error description.
-
-    Returns:
-        None.
+    Attributes:
+        type: Разделитель объединения.
+        code: Машинночитаемый код отказа.
+        message: Описание отказа человеческими словами.
     """
 
     type: Literal["ERROR"] = "ERROR"
@@ -152,30 +131,27 @@ INBOUND_ADAPTER: TypeAdapter[InboundFrame] = TypeAdapter(InboundFrame)
 
 
 class OutboundFrame(BaseModel):
-    """Common behaviour of every frame sent to a board."""
+    """Общее поведение каждого кадра, отправляемого плате."""
 
     model_config = ConfigDict(frozen=True)
 
     def to_json(self) -> str:
-        """Serialize the frame.
+        """Сериализует кадр.
 
         Returns:
-            str: JSON document written to the socket.
+            str: JSON-документ, записанный в сокет.
         """
         return self.model_dump_json()
 
 
 class SetRelayFrame(OutboundFrame):
-    """Switch one relay contact.
+    """Переключает один контакт реле.
 
-    Args:
-        type: Frame type.
-        command_id: Identifier matched against the acknowledgement.
-        channel: Physical relay channel, starting at one.
-        state: True closes the contact, False releases it.
-
-    Returns:
-        None.
+    Attributes:
+        type: Тип кадра.
+        command_id: Идентификатор, по которому ждут подтверждения.
+        channel: Физический канал реле, начиная с первого.
+        state: True замыкает контакт, False размыкает.
     """
 
     type: Literal["SET_RELAY"] = "SET_RELAY"
@@ -185,31 +161,25 @@ class SetRelayFrame(OutboundFrame):
 
 
 class GetStateFrame(OutboundFrame):
-    """Ask the board to resend everything it knows.
+    """Просит плату прислать заново всё, что она знает.
 
-    Args:
-        type: Frame type.
-
-    Returns:
-        None.
+    Attributes:
+        type: Тип кадра.
     """
 
     type: Literal["GET_STATE"] = "GET_STATE"
 
 
 class ClaimFrame(OutboundFrame):
-    """Tell a board nobody owns yet that it was understood.
+    """Сообщает плате без хозяина, что её поняли.
 
-    The account is chosen in the interface of whoever holds the board, so the
-    board is not told by whom.
+    Аккаунт выбирают в интерфейсе того, кто держит плату в руках, поэтому плате
+    не говорят, кому именно она досталась.
 
-    Args:
-        type: Frame type.
-        label: Short code the interface shows next to the board.
-        ttl_sec: How long the offer stays valid.
-
-    Returns:
-        None.
+    Attributes:
+        type: Тип кадра.
+        label: Короткий код, который интерфейс показывает рядом с платой.
+        ttl_sec: Сколько времени предложение остаётся действительным.
     """
 
     type: Literal["CLAIM"] = "CLAIM"
@@ -218,31 +188,25 @@ class ClaimFrame(OutboundFrame):
 
 
 class ClaimedFrame(OutboundFrame):
-    """Tell a board that it belongs to an account.
+    """Сообщает плате, что она принадлежит аккаунту.
 
-    It is sent on every successful handshake on purpose: a board that missed the
-    moment of the takeover still learns about it, and being told twice costs
-    nothing.
+    Кадр шлют при каждом успешном handshake нарочно: плата, пропустившая момент
+    забирания, узнаёт об этом всё равно, а получить сообщение дважды для неё ничего
+    не стоит.
 
-    Args:
-        type: Frame type.
-
-    Returns:
-        None.
+    Attributes:
+        type: Тип кадра.
     """
 
     type: Literal["CLAIMED"] = "CLAIMED"
 
 
 class RejectedFrame(OutboundFrame):
-    """Refuse a board that is not allowed in.
+    """Отказывает плате, которой вход не разрешён.
 
-    Args:
-        type: Frame type.
-        reason: Machine readable reason of the refusal.
-
-    Returns:
-        None.
+    Attributes:
+        type: Тип кадра.
+        reason: Машинночитаемая причина отказа.
     """
 
     type: Literal["REJECTED"] = "REJECTED"
@@ -250,24 +214,21 @@ class RejectedFrame(OutboundFrame):
 
 
 class SetNetworkFrame(OutboundFrame):
-    """Tell a board which network it is to use.
+    """Сообщает плате сеть, которую та должна использовать.
 
-    The board writes the settings into its own flash and reconnects, so the
-    change survives a power cycle. The password travels in this frame only: it
-    is never stored on the server and never leaves it again.
+    Плата пишет настройки в свою память и переподключается, поэтому изменение
+    переживает перезапуск питания. Пароль едет только в этом кадре: на сервере он не
+    хранится и обратно с сервера не уходит.
 
-    Args:
-        type: Frame type.
-        command_id: Identifier matched against the acknowledgement.
-        ssid: Name of the wireless network.
-        password: Password of that network, empty when the network is open.
-        host: Address of the server the board reports to.
-        server_port: Port of the ordinary interface of that server.
-        socket_port: Port of the board socket of that server.
-        socket_path: Path of the board socket of that server.
-
-    Returns:
-        None.
+    Attributes:
+        type: Тип кадра.
+        command_id: Идентификатор, по которому ждут подтверждения.
+        ssid: Имя беспроводной сети.
+        password: Пароль этой сети; пустой, когда сеть открыта.
+        host: Адрес сервера, которому плата докладывается.
+        server_port: Порт обычного интерфейса этого сервера.
+        socket_port: Порт доски этого сервера.
+        socket_path: Путь доски этого сервера.
     """
 
     type: Literal["SET_NETWORK"] = "SET_NETWORK"
@@ -281,17 +242,16 @@ class SetNetworkFrame(OutboundFrame):
 
 
 def parse_inbound(raw: str | bytes) -> InboundFrame:
-    """Read one frame received from a board.
+    """Читает один кадр, пришедший от платы.
 
     Args:
-        raw: Raw frame as it arrived on the socket.
+        raw: Кадр таким, каким он пришёл в сокет.
 
     Returns:
-        InboundFrame: Validated frame.
+        InboundFrame: Проверенный кадр.
 
     Raises:
-        MalformedFrameError: When the frame is not a valid frame of the
-            protocol.
+        MalformedFrameError: Когда кадр не является правильным кадром протокола.
     """
     text = raw.decode("utf-8", "replace") if isinstance(raw, bytes | bytearray) else raw
     try:

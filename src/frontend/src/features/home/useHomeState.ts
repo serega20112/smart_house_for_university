@@ -1,4 +1,10 @@
-/** Shared home state kept live by the backend event stream. */
+/**
+ * Состояние дома, которое общий хук держит актуальным.
+ *
+ * Пока сокет открыт, каждое изменение приходит событием и дописывается в уже
+ * прочитанный снимок. Если сокет падает, хук переходит на опрос, чтобы экран не
+ * показывал вчерашние числа, и перестаёт опрашивать, как только связь вернётся.
+ */
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -8,23 +14,21 @@ import { getToken } from "../../services/session";
 import type { HomeState } from "../../services/types";
 import { needsReload, reduceEvent } from "./reducer";
 
+const EMPTY_AUTOMATION: HomeState["automation"] = {
+  enabled: false,
+  target_temperature: 22,
+  target_humidity: 45,
+  temperature_tolerance: 1,
+  humidity_tolerance: 5,
+  participating_device_ids: [],
+};
+
 const INITIAL: HomeState = {
-  backend_online: true,
-  esp_online: false,
-  manual_override: false,
-  temperature: null,
-  humidity: null,
+  board_online: false,
+  automation_suspended: false,
+  reading: { temperature: null, humidity: null },
   devices: [],
-  automation: {
-    enabled: false,
-    target_temperature: 22,
-    min_temperature: 21,
-    max_temperature: 23,
-    target_humidity: 45,
-    min_humidity: 40,
-    max_humidity: 50,
-    participating_device_ids: [],
-  },
+  automation: EMPTY_AUTOMATION,
   active_scenarios: [],
 };
 
@@ -39,13 +43,9 @@ export interface HomeStore {
 }
 
 /**
- * Holds the home snapshot of the signed in account and keeps it current.
+ * Хранит снимок дома вошедшего аккаунта и держит его свежим.
  *
- * While the WebSocket is open every change arrives as an event and is applied
- * in place. If the socket drops, the store falls back to polling so the
- * interface never shows stale data, and stops polling once it is back.
- *
- * @returns The snapshot of the current user together with its load state.
+ * @returns Снимок текущего человека вместе с состоянием загрузки.
  */
 export function useHomeState(): HomeStore {
   const [state, setState] = useState<HomeState>(INITIAL);
@@ -73,13 +73,18 @@ export function useHomeState(): HomeStore {
   const realtimeState = useRealtime({
     enabled: Boolean(getToken()),
     onMessage: (incoming) => {
+      // Отказ платы человек должен увидеть: чужие коды ошибок экрану не нужны.
+      if (incoming.type === "board.error") {
+        setError(typeof incoming.payload.message === "string" ? incoming.payload.message : null);
+        return;
+      }
       if (needsReload(incoming.type)) {
         void refresh();
         return;
       }
       setState((current) => {
         const patch = reduceEvent(current, incoming.type, incoming.payload);
-        return patch ? { ...current, ...patch } : current;
+        return Object.keys(patch).length > 0 ? { ...current, ...patch } : current;
       });
     },
   });

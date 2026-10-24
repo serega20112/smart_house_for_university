@@ -1,4 +1,4 @@
-"""Partial change of a device."""
+"""Частичное изменение устройства."""
 
 from __future__ import annotations
 
@@ -10,21 +10,18 @@ from backend.domain.value_objects.devices.device_kind import DeviceKind
 
 @dataclass(frozen=True, slots=True)
 class UpdateDeviceCommand:
-    """The fields of a device a person wants to change.
+    """Поля устройства, которые человек хочет изменить.
 
-    Every field is optional and None means "keep", so a use case never has to
-    rebuild the aggregate out of an untyped dictionary.
+    Каждое поле необязательное, а None означает «оставить», поэтому сценарию
+    приложения не нужно пересобирать агрегат из бесформенного словаря.
 
-    Args:
-        name: New name or None.
-        kind: New kind or None.
-        channel: New relay channel or None.
-        capabilities: New capabilities or None.
-        enabled: New availability flag or None.
-        automation_enabled: New automation flag or None.
-
-    Returns:
-        None.
+    Attributes:
+        name: Новое имя или None.
+        kind: Новое назначение или None.
+        channel: Новый канал реле или None.
+        capabilities: Новые способности или None.
+        enabled: Новый признак доступности или None.
+        automation_enabled: Новый признак автоматизации или None.
     """
 
     name: str | None = None

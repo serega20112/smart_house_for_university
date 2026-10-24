@@ -11,6 +11,7 @@ from backend.infrastructure.di.providers.esp import EspProvider
 from backend.infrastructure.di.providers.home import HomeProvider
 from backend.infrastructure.di.providers.language import LanguageProvider
 from backend.infrastructure.di.providers.persistence import PersistenceProvider
+from backend.infrastructure.di.providers.personalization import PersonalizationProvider
 from backend.infrastructure.di.providers.scenarios import ScenarioProvider
 from backend.infrastructure.di.providers.security import SecurityProvider
 from backend.infrastructure.di.providers.telegram import TelegramProvider
@@ -28,6 +29,7 @@ __all__ = [
     "HomeProvider",
     "LanguageProvider",
     "PersistenceProvider",
+    "PersonalizationProvider",
     "ScenarioProvider",
     "SecurityProvider",
     "TelegramProvider",

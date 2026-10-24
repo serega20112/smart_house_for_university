@@ -1,9 +1,9 @@
-"""Acceptable climate band implementing the hysteresis.
+"""Допустимый коридор климата, в котором живёт гистерезис.
 
-The band is stored as a target plus a tolerance rather than as two loose numbers,
-because that is the only shape in which the pair cannot be transposed or turned
-negative by a caller. A single constructor check replaces the defensive absolute
-value calls that used to be sprinkled over every computation.
+Коридор хранится как цель плюс допуск, а не как два отдельных числа: только в такой
+форме вызывающий не может ни переставить их местами, ни сделать отрицательными. Одна
+проверка конструктора заменяет защитные abs(), которые раньше встречались в каждом
+вычислении.
 """
 
 from __future__ import annotations
@@ -15,85 +15,71 @@ from backend.domain.exceptions import InvalidToleranceError
 
 @dataclass(frozen=True, slots=True)
 class ClimateBand[MeasuredT]:
-    """The acceptable band around a target value.
+    """Допустимый коридор вокруг целевого значения.
 
-    Args:
-        target: Value the home is asked to hold.
-        tolerance: How far the measurement may drift before a device is driven.
-            Never negative: the constructor refuses it, so no accessor has to
-            repair it later.
-
-    Returns:
-        None.
+    Attributes:
+        target: Значение, которое велено держать дому.
+        tolerance: Насколько измерению позволено уйти, прежде чем примутся за
+            устройство. Отрицательным не бывает: конструктор его отвергает, поэтому
+            никому после не приходится его починять.
 
     Raises:
-        InvalidToleranceError: When the tolerance is negative.
+        InvalidToleranceError: Когда допуск отрицательный.
     """
 
     target: MeasuredT
     tolerance: float
 
     def __post_init__(self) -> None:
-        """Validate the tolerance.
-
-        Returns:
-            None.
+        """Проверяет допуск.
 
         Raises:
-            InvalidToleranceError: When the tolerance is negative.
+            InvalidToleranceError: Когда допуск отрицательный.
         """
         if self.tolerance < 0:
             raise InvalidToleranceError(self.tolerance)
 
     @property
     def low(self) -> float:
-        """Return the lower bound of the band.
-
-        Returns:
-            float: Lower bound.
-        """
+        """Возвращает нижнюю границу коридора."""
         return self._value_of(self.target) - self.tolerance
 
     @property
     def high(self) -> float:
-        """Return the upper bound of the band.
-
-        Returns:
-            float: Upper bound.
-        """
+        """Возвращает верхнюю границу коридора."""
         return self._value_of(self.target) + self.tolerance
 
     def contains(self, measurement: MeasuredT) -> bool:
-        """Return whether a measurement already sits inside the band.
+        """Сообщает, уложилось ли измерение в коридор.
 
         Args:
-            measurement: Value measured by the sensors.
+            measurement: Значение, которое измерили датчики.
 
         Returns:
-            bool: True when nothing has to be changed.
+            bool: True, когда менять ничего не нужно.
         """
         numeric = self._value_of(measurement)
         return self.low <= numeric <= self.high
 
     def needs_increase(self, measurement: MeasuredT) -> bool:
-        """Return whether a measurement is below the band.
+        """Сообщает, оказалось ли измерение ниже коридора.
 
         Args:
-            measurement: Value measured by the sensors.
+            measurement: Значение, которое измерили датчики.
 
         Returns:
-            bool: True when heating or humidifying is required.
+            bool: True, когда нужно нагрев или увлажнение.
         """
         return self._value_of(measurement) < self.low
 
     def needs_decrease(self, measurement: MeasuredT) -> bool:
-        """Return whether a measurement is above the band.
+        """Сообщает, оказалось ли измерение выше коридора.
 
         Args:
-            measurement: Value measured by the sensors.
+            measurement: Значение, которое измерили датчики.
 
         Returns:
-            bool: True when cooling or drying is required.
+            bool: True, когда нужно охлаждение или осушение.
         """
         return self._value_of(measurement) > self.high
 

@@ -1,4 +1,4 @@
-"""A deferred action the user asked for."""
+"""Отложенное действие, о котором попросил человек."""
 
 from __future__ import annotations
 
@@ -10,17 +10,14 @@ from backend.domain.value_objects.scenario.scenario_action import ScenarioAction
 
 @dataclass(frozen=True, slots=True)
 class ScheduleScenarioCommand:
-    """The values of a scenario the interface is asked to schedule.
+    """Значения запроса поставить сценарий.
 
-    Args:
-        action: The single action the scenario performs.
-        delay_minutes: How long to wait before acting.
-        target: Area or object the user named.
-        completion_behavior: What happens with the devices afterwards.
-        duration_minutes: How long the scenario may run.
-
-    Returns:
-        None.
+    Attributes:
+        action: Единственное действие, которое сценарий выполняет.
+        delay_minutes: Сколько ждать до действия.
+        target: Место или предмет, который назвал человек.
+        completion_behavior: Что будет с устройствами после.
+        duration_minutes: Сколько сценарию разрешено идти.
     """
 
     action: ScenarioAction

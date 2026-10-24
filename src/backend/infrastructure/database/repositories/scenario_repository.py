@@ -32,34 +32,28 @@ Runner = AsyncConnection | AsyncSession
 
 
 class SqlScenarioRepository:
-    """Storage of the timed scenarios of one account.
+    """Хранение временных сценариев одного аккаунта.
 
-    Args:
-        session: Session the unit of work opened for this transaction.
-
-    Returns:
-        None.
+    Attributes:
+        session: Сессия, которую открыла для этой транзакции граница.
     """
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize the repository.
+        """Инициализирует хранилище.
 
         Args:
-            session: Session bound to the current transaction.
-
-        Returns:
-            None.
+            session: Сессия, привязанная к нынешней транзакции.
         """
         self._session = session
 
     async def list_all(self, user_id: UserId) -> Sequence[Scenario]:
-        """Return every scenario of an account, newest first.
+        """Возвращает все сценарии аккаунта, свежие в начале.
 
         Args:
-            user_id: Owner of the scenarios.
+            user_id: Владелец сценариев.
 
         Returns:
-            Sequence[Scenario]: Stored scenarios.
+            Sequence[Scenario]: Сохранённые сценарии.
         """
         result = await self._session.execute(
             select(ScenarioRow)
@@ -69,13 +63,13 @@ class SqlScenarioRepository:
         return [await self._restore(row) for row in result.scalars().all()]
 
     async def list_holding_priority(self, user_id: UserId) -> Sequence[Scenario]:
-        """Return the scenarios that still outrank automation.
+        """Возвращает сценарии, которые ещё ставят себя выше автоматики.
 
         Args:
-            user_id: Owner of the scenarios.
+            user_id: Владелец сценариев.
 
         Returns:
-            Sequence[Scenario]: Pending and running scenarios.
+            Sequence[Scenario]: Ожидающие и идущие сценарии.
         """
         holding = (ScenarioStatus.PENDING.value, ScenarioStatus.RUNNING.value)
         result = await self._session.execute(
@@ -89,14 +83,14 @@ class SqlScenarioRepository:
         return [await self._restore(row) for row in result.scalars().all()]
 
     async def get(self, user_id: UserId, scenario_id: ScenarioId) -> Scenario | None:
-        """Return one scenario of an account.
+        """Возвращает один сценарий аккаунта.
 
         Args:
-            user_id: Owner of the scenario.
-            scenario_id: Identifier of the scenario.
+            user_id: Владелец сценария.
+            scenario_id: Идентификатор сценария.
 
         Returns:
-            Scenario | None: Scenario, or None when the account has no such one.
+            Scenario | None: Сценарий или None, когда у аккаунта такого нет.
         """
         row = await first_row(
             self._session,
@@ -107,36 +101,29 @@ class SqlScenarioRepository:
         return None if row is None else await self._restore(row)
 
     async def add(self, scenario: Scenario) -> None:
-        """Store a newly scheduled scenario.
+        """Сохраняет только что поставленный сценарий.
 
         Args:
-            scenario: Scenario to persist.
-
-        Returns:
-            None.
+            scenario: Сценарий для записи.
         """
         values = mappers.row_values(ScenarioRow.__table__, mappers.scenario_to_row(scenario))
         await self._session.execute(insert(ScenarioRow.__table__).values(**values))
         await self._write_children(scenario)
 
     async def update(self, scenario: Scenario) -> None:
-        """Store a changed scenario under a revision it has actually seen.
+        """Сохраняет изменённый сценарий по ревизии, которую он действительно видел.
 
-        The statement carries the revision the aggregate was read at, so a
-        scenario that moves on an obsolete snapshot touches nothing instead of
-        overwriting what an API call changed meanwhile. The actions and the
-        captured states are replaced rather than merged: the aggregate holds the
-        complete collections, and a row that is no longer listed was
-        deliberately removed from it.
+        Запрос несёт ревизию, на которой агрегат прочитали, поэтому сценарий, идущий
+        по устаревшему снимку, не трогает ничего вместо того, чтобы перетереть то, что
+        успела изменить заявка API. Действия и снятые состояния заменяют целиком, а не
+        сливают: агрегат держит коллекции полностью, и строку, которой в нём больше нет,
+        из него убрали нарочно.
 
         Args:
-            scenario: Scenario to persist.
-
-        Returns:
-            None.
+            scenario: Сценарий для записи.
 
         Raises:
-            ConcurrentModificationError: When the row moved on since it was read.
+            ConcurrentModificationError: Когда строка ушла вперёд с момента чтения.
         """
         row = mappers.scenario_to_row(scenario)
         result = await self._session.execute(
@@ -171,13 +158,13 @@ class SqlScenarioRepository:
         await self._write_children(scenario)
 
     async def _restore(self, row: ScenarioRow) -> Scenario:
-        """Rebuild one scenario together with its collections.
+        """Восстанавливает один сценарий вместе с его коллекциями.
 
         Args:
-            row: Row identifying the scenario.
+            row: Строка, называющая сценарий.
 
         Returns:
-            Scenario: Restored scenario.
+            Scenario: Восстановленный сценарий.
         """
         action_rows = await every_row(
             self._session,
@@ -199,13 +186,10 @@ class SqlScenarioRepository:
         return mappers.scenario_from_row(row, actions, captured)
 
     async def _write_children(self, scenario: Scenario) -> None:
-        """Write the collection rows of one scenario.
+        """Записывает строки коллекций одного сценария.
 
         Args:
-            scenario: Scenario whose collections are written.
-
-        Returns:
-            None.
+            scenario: Сценарий, чьи коллекции записывают.
         """
         await insert_rows(self._session, ScenarioActionRow.__table__, mappers.action_rows(scenario))
         await insert_rows(

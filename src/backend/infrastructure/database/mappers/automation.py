@@ -13,14 +13,7 @@ from backend.infrastructure.database.tables import (
 
 
 def automation_to_row(settings: AutomationSettings) -> AutomationRow:
-    """Build the row describing the automation configuration of an account.
-
-    Args:
-        settings: Configuration to serialize.
-
-    Returns:
-        AutomationRow: New row describing the configuration.
-    """
+    """Строит строку, описывающую настройку автоматизации аккаунта."""
     return AutomationRow(
         user_id=settings.user_id.value,
         enabled=settings.enabled,
@@ -35,14 +28,10 @@ def automation_to_row(settings: AutomationSettings) -> AutomationRow:
 def automation_from_row(
     row: AutomationRow, participants: frozenset[DeviceId]
 ) -> AutomationSettings:
-    """Build the configuration a row and its participant rows describe.
+    """Строит настройку, описанную её строкой и строками участников.
 
     Args:
-        row: Row to deserialize.
-        participants: Devices read from ``automation_participants``.
-
-    Returns:
-        AutomationSettings: Restored configuration.
+        participants: Устройства, прочитанные из ``automation_participants``.
     """
     return AutomationSettings(
         user_id=UserId.parse(row.user_id),
@@ -57,13 +46,10 @@ def automation_from_row(
 
 
 def participant_rows(settings: AutomationSettings) -> list[AutomationParticipantRow]:
-    """Build one row per device automation is allowed to drive.
+    """Строит по строке на каждое устройство, которым автоматизации разрешено управлять.
 
-    Args:
-        settings: Configuration to serialize.
-
-    Returns:
-        list[AutomationParticipantRow]: Participant rows of the configuration.
+    Порядок участников задают явно, иначе файл с перечислением unset-значений в
+    множестве менялся бы от запуска к запуску.
     """
     return [
         AutomationParticipantRow(

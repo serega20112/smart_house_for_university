@@ -1,4 +1,9 @@
-/** Free-form command chat backed by the natural language pipeline. */
+/**
+ * Чат свободных команд, опирающийся на понимание обычного текста.
+ *
+ * Экран отправляет предложение целиком и показывает то, что ответило приложение:
+ * разбором слов занимается бэкенд, и подсказок про «похожие команды» здесь нет.
+ */
 
 import { useState } from "react";
 
@@ -22,7 +27,11 @@ interface CommandChatProps {
   title?: string;
 }
 
-
+/**
+ * Собирает написанное, отправляет одним запросом и ведёт переписку.
+ *
+ * @param props.title Личный заголовок виджета.
+ */
 export function CommandChat({ title }: CommandChatProps) {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -43,7 +52,7 @@ export function CommandChat({ title }: CommandChatProps) {
       const result = await api.sendCommand(trimmed);
       setMessages((current) => [
         ...current,
-        { id: current.length, role: "system", text: result.message },
+        { id: current.length, role: "system", text: result.answer },
       ]);
     } catch (exc) {
       const reason = exc instanceof Error ? exc.message : "Не удалось выполнить команду";

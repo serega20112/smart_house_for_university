@@ -1,19 +1,18 @@
-"""Turning a capability into a relay command.
+"""Превращение способности в команду реле.
 
-Every path that changes the hardware goes through this service: a person in the
-browser, a command in the messenger, automation and scenarios alike. That is what
-keeps one rule in one place instead of four copies of it.
+Через этот сервис идёт всякий путь, который меняет железо: человек в браузере, команда
+в мессенджере, автоматика и сценарии — все. Поэтому правило живёт в одном месте, а не в
+четырёх копиях.
 
-The order of the steps is fixed. The aggregate is loaded and the transaction is
-closed before the hardware is asked; the board is commanded while no database
-connection is held; a fresh short transaction then stores the confirmed state;
-and only after that transaction commits the fact is published to the interface
-and handed to the reactions. A refused command therefore leaves the database, the
-events and the volatile state untouched.
+Порядок шагов постоянен. Агрегат загружают и транзакцию закрывают до того, как
+попросят железо; плате приказывают, не держая соединение с базой; затем свежая короткая
+транзакция сохраняет подтверждённое состояние; и только после её коммита факт уходит
+интерфейсу и реакциям. Отклонённая команда поэтому оставляет базу, события и изменчивое
+состояние нетронутыми.
 
-The service does not decide what a manual action means for the rest of the system.
-Suspending automation is a reaction other components subscribe to, which is why
-it is written once.
+Сервис не решает, что ручное действие значит для остальной системы. Ставить автоматику
+на паузу — реакция, на которую подписываются другие компоненты; именно поэтому она
+записана один раз.
 """
 
 from __future__ import annotations
@@ -42,7 +41,7 @@ from backend.domain.value_objects.devices.device_view import DeviceView
 
 
 class DeviceControlService:
-    """Applies capabilities to devices and keeps the runtime state in step."""
+    """Применяет способности к устройствам и держит состояние в ладу с ними."""
 
     def __init__(
         self,
@@ -54,19 +53,16 @@ class DeviceControlService:
         clock: Clock,
         selector: DeviceSelector,
     ) -> None:
-        """Initialize the service.
+        """Инициализирует сервис.
 
         Args:
-            home_uow: Factory producing transactions over the configuration.
-            boards: Gateway to the physical hardware.
-            state_store: Durable home of the volatile state.
-            realtime: Publisher of events to the open clients.
-            dispatcher: Hands recorded facts to their subscribers.
-            clock: Source of the current time.
-            selector: Resolves devices by capability.
-
-        Returns:
-            None.
+            home_uow: Фабрика транзакций над конфигурацией.
+            boards: Шлюз к физическому железу.
+            state_store: Надёжный дом изменчивого состояния.
+            realtime: Издатель событий в открытые соединения.
+            dispatcher: Отдаёт записанные факты подписанным на них.
+            clock: Источник текущего времени.
+            selector: Находит устройства по способности.
         """
         self._home_uow = home_uow
         self._boards = boards
@@ -84,21 +80,21 @@ class DeviceControlService:
         *,
         manual: bool = True,
     ) -> DeviceView:
-        """Apply a capability to one device.
+        """Применяет способность к одному устройству.
 
         Args:
-            user_id: Owner of the device and of the board.
-            device_id: Identifier of the device.
-            capability: Capability to perform.
-            manual: Whether a person asked for it.
+            user_id: Владелец устройства и платы.
+            device_id: Идентификатор устройства.
+            capability: Способность, которую нужно выполнить.
+            manual: Просил ли человек сам.
 
         Returns:
-            DeviceView: The device with the status it reached.
+            DeviceView: Устройство с состоянием, которого оно достигло.
 
         Raises:
-            DeviceNotFoundError: When the account has no such device.
-            NoDeviceForCapabilityError: When the device cannot perform it.
-            BoardUnreachableError: When the board did not confirm.
+            DeviceNotFoundError: Когда такого устройства у аккаунта нет.
+            NoDeviceForCapabilityError: Когда устройство этого не умеет.
+            BoardUnreachableError: Когда плата не подтвердила выполнение.
         """
         async with self._home_uow() as uow:
             device = await uow.devices.get(user_id, device_id)
@@ -118,19 +114,19 @@ class DeviceControlService:
         *,
         manual: bool = True,
     ) -> DeviceView:
-        """Apply a capability to the first device able to perform it.
+        """Применяет способность к первому устройству, которое её умеет.
 
         Args:
-            user_id: Owner of the devices and of the board.
-            devices: Candidate devices.
-            capability: Capability to perform.
-            manual: Whether a person asked for it.
+            user_id: Владелец устройств и платы.
+            devices: Подходящие кандидаты.
+            capability: Способность, которую нужно выполнить.
+            manual: Просил ли человек сам.
 
         Returns:
-            DeviceView: The device that was driven.
+            DeviceView: Устройство, которое привели в действие.
 
         Raises:
-            NoDeviceForCapabilityError: When nothing in the home supports it.
+            NoDeviceForCapabilityError: Когда в доме этого не умеет никто.
         """
         target = self._selector.first_supporting(devices, capability)
         if target is None:
@@ -148,20 +144,20 @@ class DeviceControlService:
         *,
         manual: bool = True,
     ) -> CapabilityReport:
-        """Apply a capability to every device able to perform it.
+        """Применяет способность к каждому устройству, которое её умеет.
 
-        A board that refuses one command does not stop the others: the caller gets a
-        report of what was driven, which is more useful than an exception in the
-        middle of a sweep.
+        Плата, отказавшая в одной команде, не останавливает остальные: вызывающий
+        получает отчёт о том, что было приведено в действие, — это полезнее исключения
+        посреди обхода.
 
         Args:
-            user_id: Owner of the devices and of the board.
-            devices: Devices to address.
-            capability: Capability to perform.
-            manual: Whether a person asked for it.
+            user_id: Владелец устройств и платы.
+            devices: Устройства, к которым обращаются.
+            capability: Способность, которую нужно выполнить.
+            manual: Просил ли человек сам.
 
         Returns:
-            CapabilityReport: Devices that were driven.
+            CapabilityReport: Устройства, приведённые в действие.
         """
         driven: list[tuple[Device, DeviceStatus]] = []
         for device in self._selector.all_supporting(devices, capability):
@@ -178,15 +174,12 @@ class DeviceControlService:
     async def restore_statuses(
         self, user_id: UserId, devices: Sequence[Device], wanted: dict[DeviceId, DeviceStatus]
     ) -> None:
-        """Put devices back into states they had before.
+        """Возвращает устройства в состояния, в которых они были раньше.
 
         Args:
-            user_id: Owner of the devices and of the board.
-            devices: Devices to address.
-            wanted: Target state per device.
-
-        Returns:
-            None.
+            user_id: Владелец устройств и платы.
+            devices: Устройства, к которым обращаются.
+            wanted: Желаемое состояние для каждого устройства.
         """
         by_id = {device.id: device for device in devices}
         for device_id, status in wanted.items():
@@ -201,14 +194,14 @@ class DeviceControlService:
     async def views_with_live_status(
         self, user_id: UserId, devices: Sequence[Device]
     ) -> list[DeviceView]:
-        """Return the devices with the status they have right now.
+        """Возвращает устройства с состоянием, которое у них сейчас.
 
         Args:
-            user_id: Owner of the devices.
-            devices: Configured devices.
+            user_id: Владелец устройств.
+            devices: Настроенные устройства.
 
         Returns:
-            list[DeviceView]: Devices with their live status.
+            list[DeviceView]: Устройства с их живым состоянием.
         """
         state = await self._state_store.read(user_id)
         return [DeviceView.of(device, state.status_of(device)) for device in devices]
@@ -220,20 +213,20 @@ class DeviceControlService:
         capability: Capability,
         manual: bool,
     ) -> DeviceStatus:
-        """Decide and drive, holding no transaction while the board answers.
+        """Решает и приводит в действие, не держа транзакцию, пока плата отвечает.
 
         Args:
-            user_id: Owner of the board.
-            device: Device the capability is performed on.
-            capability: Capability to perform.
-            manual: Whether a person asked for it.
+            user_id: Владелец платы.
+            device: Устройство, на котором выполняют способность.
+            capability: Способность, которую нужно выполнить.
+            manual: Просил ли человек сам.
 
         Returns:
-            DeviceStatus: State the device reached.
+            DeviceStatus: Состояние, которого устройство достигло.
 
         Raises:
-            UnsupportedCapabilityError: When the device cannot perform it.
-            BoardUnreachableError: When the board did not confirm.
+            UnsupportedCapabilityError: Когда устройство этого не умеет.
+            BoardUnreachableError: Когда плата не подтвердила выполнение.
         """
         device.require_capability(capability)
         board_id = self._boards.board_for(user_id)
@@ -251,29 +244,23 @@ class DeviceControlService:
         return status
 
     async def _persist(self, user_id: UserId, *devices: Device) -> None:
-        """Store the aggregates in one short transaction.
+        """Сохраняет агрегаты в одной короткой транзакции.
 
         Args:
-            user_id: Owner of the devices.
-            devices: Aggregates to store; every one was already confirmed.
-
-        Returns:
-            None.
+            user_id: Владелец устройств.
+            devices: Агрегаты для сохранения; каждый уже подтверждён платой.
         """
         async with self._home_uow() as uow:
             for device in devices:
                 await uow.devices.update(device)
 
     async def _announce(self, user_id: UserId, device: Device, status: DeviceStatus) -> None:
-        """Publish the fact once it is committed.
+        """Публикует факт, когда он закоммичен.
 
         Args:
-            user_id: Owner of the device.
-            device: Device the fact belongs to.
-            status: State the device was driven into.
-
-        Returns:
-            None.
+            user_id: Владелец устройства.
+            device: Устройство, к которому относится факт.
+            status: Состояние, в которое устройство привели.
         """
         await self._realtime.publish(
             user_id,

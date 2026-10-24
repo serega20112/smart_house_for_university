@@ -21,17 +21,14 @@ from backend.infrastructure.database.tables.base import Base
 
 
 class PreferencesRow(Base):
-    """Interface preferences of one account, stored as a single row.
+    """Настройки интерфейса одного аккаунта, лежащие одной строкой.
 
-    Args:
-        user_id: Owner of the preferences and primary key of the row.
-        temperature_unit: Unit climate values are rendered in.
-        theme: Visual theme.
-        language: Interface language.
-        show_command_chat: Whether the command chat is shown on the dashboard.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец настроек и первичный ключ строки.
+        temperature_unit: Единица, в которой показывают климат.
+        theme: Визуальная тема.
+        language: Язык интерфейса.
+        show_command_chat: Показывать ли чат команд на главном экране.
     """
 
     __tablename__ = "preferences"
@@ -46,17 +43,14 @@ class PreferencesRow(Base):
 
 
 class DashboardRow(Base):
-    """Dashboard layout of one account, stored as a single row.
+    """Раскладка главного экрана одного аккаунта, лежащая одной строкой.
 
-    The row itself carries no widgets: they live in ``dashboard_widgets`` so that
-    every entry is addressable, ordered and referentially protected. The row
-    exists only to make the absence of a layout an observable fact.
+    Сама строка карточек не несёт: они живут в ``dashboard_widgets``, чтобы каждая была
+    адресуема, упорядочена и защищена ссылкой. Строка нужна только для того, чтобы
+    отсутствие раскладки оставалось наблюдаемым фактом.
 
-    Args:
-        user_id: Owner of the layout and primary key of the row.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец раскладки и первичный ключ строки.
     """
 
     __tablename__ = "dashboard"
@@ -67,18 +61,15 @@ class DashboardRow(Base):
 
 
 class DashboardWidgetRow(Base):
-    """One entry of a dashboard layout.
+    """Одна карточка раскладки главного экрана.
 
-    Args:
-        id: Identifier of the stored entry, meaningful to the store only.
-        user_id: Owner of the layout.
-        position: Zero based render order of the entry.
-        kind: Which generic component to draw, stored as text.
-        device_id: Device feeding the component, or None for a global one.
-        title: Personal title overriding the component default.
-
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор сохранённой карточки, значимый только для хранилища.
+        user_id: Владелец раскладки.
+        position: Место карточки в порядке вывода, считая от нуля.
+        kind: Какой готовый компонент рисовать; лежит текстом.
+        device_id: Устройство, которым карточку питают, или None для общей.
+        title: Личный заголовок поверх значения по умолчанию.
     """
 
     __tablename__ = "dashboard_widgets"

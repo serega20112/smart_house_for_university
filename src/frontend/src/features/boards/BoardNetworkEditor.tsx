@@ -1,19 +1,19 @@
 /**
- * Editor of the network a board is to use.
+ * Редактор сети, которую плате предписано использовать.
  *
- * The board keeps the network in its own flash, so nothing here is a setting of
- * the server: the form is a way to tell the board, and the board answers over
- * the socket it already keeps open. A board that is not connected right now
- * cannot be told anything, and the form says so instead of pretending.
+ * Плата хранит сеть в своей памяти, поэтому здесь нет настройки сервера: форма лишь
+ * способ сообщить настройки плате, а та отвечает по уже открытому сокету. Плату, которая
+ * не на связи, ни о чём спросить нельзя, и форма говорит об этом прямо, а не делает
+ * вид, что настройки применились.
  */
 
 import { useEffect, useState } from "react";
 
 import * as api from "../../services/api";
-import type { BoardNetwork, EspDevice } from "../../services/types";
+import type { Board, BoardNetwork } from "../../services/types";
 
 interface BoardNetworkEditorProps {
-  board: EspDevice;
+  board: Board;
   onSaved: () => void;
   onError: (message: string) => void;
 }
@@ -36,6 +36,15 @@ const DEFAULTS: Draft = {
   socketPath: "/ws/board",
 };
 
+/**
+ * Возвращает черновик формы по сети, сохранённой на сервере.
+ *
+ * Пароль в ответе не приходит ни при каких условиях, поэтому поле всегда пустое:
+ * пусто означает «не менять», а не «сети пароль не нужен».
+ *
+ * @param network Сеть платы или None, когда её ещё не настраивали.
+ * @returns Значения, которые форма показывает человеку.
+ */
 function draftOf(network: BoardNetwork | null): Draft {
   if (!network) {
     return { ...DEFAULTS };
@@ -64,8 +73,8 @@ export function BoardNetworkEditor({ board, onSaved, onError }: BoardNetworkEdit
         }
       })
       .catch(() => {
-        // A board that was never configured has nothing to show, and the empty
-        // form is exactly what the person in front of it needs.
+        // У платы, которую ни разу не настраивали, показывать нечего: пустая форма
+        // — ровно то, что нужно человеку, который её открывает.
       });
     return () => {
       cancelled = true;

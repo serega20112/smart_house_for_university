@@ -1,12 +1,11 @@
-"""A lease several worker processes can agree on.
+"""Аренда, о которой договариваются несколько процессов-воркеров.
 
-The decision "is this home already being automated" cannot live inside one
-process: two ARQ workers may pick up the same period at the same moment. The
-lease is a Redis key holding a random token. Whoever writes it with SET NX
-first owns it, a renewal loop extends the lease while the holder works, and a
-Lua script makes both renewal and release conditional on the token, so a slow
-holder can never prolong or delete the lease of the one that took over after
-the expiry.
+Решение «этот дом уже автоматизируют» не может жить внутри одного процесса: два воркера
+ARQ могут взять один и тот же период одновременно. Аренда — ключ Redis со случайным
+токеном: кто первый записал его через SET NX, тот и владеет; цикл продления удлиняет
+аренду, пока держатель работает, а Lua-скрипт делает и продление, и освобождение
+условными по токену, поэтому медленный держатель не сможет ни продлить, ни удалить
+аренду того, кто пришёл ему на смену после истечения срока.
 """
 
 from __future__ import annotations
@@ -43,11 +42,11 @@ return 0
 
 
 class RedisDistributedLock(DistributedLock):
-    """Lease held by exactly one process at a time, renewed while it works.
+    """Аренда, которую держит ровно один процесс, с продлением во время работы.
 
-    Args:
-        redis: Connection the lease key lives in.
-        key_prefix: Namespace separating deployments that share one server.
+    Attributes:
+        redis: Соединение, в котором живёт ключ аренды.
+        key_prefix: Пространство имён, отделяющее развёртывания на одном сервере.
     """
 
     def __init__(self, redis: Redis, *, key_prefix: str) -> None:
@@ -62,25 +61,25 @@ class RedisDistributedLock(DistributedLock):
 
     @asynccontextmanager
     async def acquire(self, key: str, *, ttl_sec: int, refresh_sec: int) -> AsyncIterator[None]:
-        """Acquire the lease, extending it until the block ends.
+        """Забирает аренду и удлиняет её до конца блока.
 
-        The lease is taken with SET NX, so only one caller can win; the losers
-        are told immediately instead of waiting, and the caller decides whether
-        that means "skip this round". While the block runs, a renewal task
-        keeps extending the lease so a long job does not lose it to a peer.
+        Аренду берут через SET NX, поэтому выиграть может только один вызов; проигравшим
+        говорят сразу, вместо того чтобы их ждать, — а вызывающий сам решает, значит ли
+        это «пропустить этот круг». Пока блок идёт, задача продления удлиняет аренду, чтобы
+        долгая работа не отдала её соседу.
 
         Args:
-            key: Name of the lock.
-            ttl_sec: Initial time-to-live in seconds.
-            refresh_sec: How often the lease is extended.
+            key: Имя блокировки.
+            ttl_sec: Изначальное время жизни в секундах.
+            refresh_sec: Как часто продлевать аренду.
 
         Yields:
-            None: The lock is held while the caller runs.
+            None: Пока вызывающий работает, блокировка удерживается.
 
         Raises:
-            TimeoutError: When another holder owns the lease right now.
-            ValueError: When the renewal period is not shorter than the lease,
-                which would let the lease expire between two renewals.
+            TimeoutError: Когда аренду сейчас держит другой.
+            ValueError: Когда период продления не короче самой аренды — тогда она будет
+                истекать между двумя продлениями.
         """
         if refresh_sec >= ttl_sec:
             raise ValueError("refresh_sec must be shorter than ttl_sec")
@@ -100,13 +99,13 @@ class RedisDistributedLock(DistributedLock):
             await self._release(name, token)
 
     async def _renew(self, name: str, token: str, ttl_sec: int, refresh_sec: int) -> None:
-        """Extend the lease every period while the holder is working.
+        """Удлиняет аренду каждый период, пока держатель работает.
 
         Args:
-            name: Full key of the lease.
-            token: Secret identifying the holder.
-            ttl_sec: Lease length to reset on every renewal.
-            refresh_sec: Seconds between two renewals.
+            name: Полный ключ аренды.
+            token: Секрет, называющий держателя.
+            ttl_sec: Длина аренды, которую ставят заново при каждом продлении.
+            refresh_sec: Секунд между двумя продлениями.
         """
         while True:
             await asyncio.sleep(refresh_sec)
@@ -121,11 +120,11 @@ class RedisDistributedLock(DistributedLock):
                 return
 
     async def _release(self, name: str, token: str) -> None:
-        """Delete the lease if, and only if, this holder still owns it.
+        """Удаляет аренду, только если её всё ещё держит этот владелец.
 
         Args:
-            name: Full key of the lease.
-            token: Secret identifying the holder.
+            name: Полный ключ аренды.
+            token: Секрет, называющий держателя.
         """
         try:
             async with asyncio.timeout(IO_TIMEOUT_SECONDS):
@@ -134,15 +133,15 @@ class RedisDistributedLock(DistributedLock):
             log.exception("locks.release_failed", key=name)
 
     async def _eval(self, script: str, name: str, *args: str) -> str:
-        """Run a Lua script against the lease key, under an IO timeout.
+        """Запускает Lua-скрипт по ключу аренды, с таймаутом на ввод-вывод.
 
         Args:
-            script: Lua source deciding what the server does.
-            name: Full key of the lease.
-            args: Script arguments, the holder token and lease lengths.
+            script: Текст на Lua, решающий, что делает сервер.
+            name: Полный ключ аренды.
+            args: Аргументы скрипта: токен держателя и длины аренды.
 
         Returns:
-            Raw answer of the server.
+            Ответ сервера в сыром виде.
         """
         response: Awaitable[str] | str = self._redis.eval(script, 1, name, *args)
         if isinstance(response, str):

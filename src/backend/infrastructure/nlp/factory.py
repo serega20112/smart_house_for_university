@@ -1,8 +1,8 @@
-"""Building the understanding pipeline from the configuration.
+"""Собирает конвейер понимания из конфигурации.
 
-The composition root calls one function and receives a ready pipeline. Which
-pipeline that is depends on two settings only: whether a remote model is
-configured, and how sure the local classifier has to be.
+Композиционный корень зовёт одну функцию и получает готовый конвейер. Какой он будет,
+зависит всего от двух настроек: задана ли удалённая модель и насколько уверенным должен
+быть местный классификатор.
 """
 
 from __future__ import annotations
@@ -29,15 +29,15 @@ from backend.infrastructure.nlp.remote import (
 def build_local_understanding(
     engine: AsyncEngine, embedder: Embedder, settings: Settings
 ) -> VectorIntentClassifier:
-    """Build the classifier running against the pgvector index.
+    """Строит классификатор, работающий по индексу pgvector.
 
     Args:
-        engine: Engine the reference phrases are read from.
-        embedder: Encoder turning a phrase into a vector.
-        settings: Configuration of the language pipeline.
+        engine: Движок, из которого читают опорные фразы.
+        embedder: Кодировщик, превращающий фразу в вектор.
+        settings: Конфигурация языкового конвейера.
 
     Returns:
-        VectorIntentClassifier: Local pipeline.
+        VectorIntentClassifier: Местный конвейер.
     """
     return VectorIntentClassifier(
         engine=engine,
@@ -53,17 +53,17 @@ def build_understanding(
     client: httpx.AsyncClient,
     settings: Settings,
 ) -> CommandUnderstandingPort:
-    """Build the understanding pipeline the deployment asked for.
+    """Строит конвейер понимания, какой попросило развёртывание.
 
     Args:
-        engine: Engine the reference phrases are read from.
-        embedder: Encoder turning a phrase into a vector.
-        client: Connection to the remote model host.
-        settings: Configuration of the language pipeline.
+        engine: Движок, из которого читают опорные фразы.
+        embedder: Кодировщик, превращающий фразу в вектор.
+        client: Соединение с хостом удалённой модели.
+        settings: Конфигурация языкового конвейера.
 
     Returns:
-        CommandUnderstandingPort: Local pipeline, or the remote first composite
-        when a remote model is configured.
+        CommandUnderstandingPort: Местный конвейер, а при настроенной удалённой модели —
+        составной, где первым идёт удалённая.
     """
     local = build_local_understanding(engine, embedder, settings)
     if not settings.language_neural_commands or not settings.language_bootstrap_url:
@@ -77,17 +77,16 @@ def build_understanding(
 
 
 def build_embedder(settings: Settings) -> Embedder:
-    """Load the encoder named by the configuration.
+    """Загружает кодировщик, названный в конфигурации.
 
     Args:
-        settings: Configuration of the language pipeline.
+        settings: Конфигурация языкового конвейера.
 
     Returns:
-        Embedder: Loaded encoder.
+        Embedder: Загруженный кодировщик.
 
     Raises:
-        EmbeddingsUnavailableError: When the library or the model cannot be
-            loaded.
+        EmbeddingsUnavailableError: Когда библиотеку или модель не удалось загрузить.
     """
     return load_embedder(
         model_name=settings.language_model_name,
@@ -97,13 +96,13 @@ def build_embedder(settings: Settings) -> Embedder:
 
 
 def build_reference_phrase_seeder(engine: AsyncEngine, embedder: Embedder) -> ReferencePhraseSeeder:
-    """Build the startup step filling the reference phrase index.
+    """Строит шаг запуска, наполняющий индекс опорных фраз.
 
     Args:
-        engine: Engine the reference phrases are written to.
-        embedder: Encoder turning a phrase into a vector.
+        engine: Движок, в который записывают опорные фразы.
+        embedder: Кодировщик, превращающий фразу в вектор.
 
     Returns:
-        ReferencePhraseSeeder: Seeder of the index.
+        ReferencePhraseSeeder: Заполнитель индекса.
     """
     return ReferencePhraseSeeder(engine=engine, embedder=embedder)

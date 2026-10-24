@@ -1,4 +1,4 @@
-"""Snapshot of the climate sensors at a point in time."""
+"""Снимок показаний датчиков климата в один момент."""
 
 from __future__ import annotations
 
@@ -10,18 +10,14 @@ from backend.domain.value_objects.climate.temperature import Temperature
 
 @dataclass(frozen=True, slots=True)
 class ClimateReading:
-    """What the sensors reported last.
+    """То, что датчики сообщили в последний раз.
 
-    A field is absent rather than zero when the board could not measure it, so
-    automation can tell "the room is exactly zero degrees" from "the sensor did
-    not answer".
+    Поле отсутствует, а не равно нулю, когда плата не смогла измерить: автоматика
+    различает «в комнате ровно ноль градусов» и «датчик не ответил».
 
-    Args:
-        temperature: Measured temperature or None when unavailable.
-        humidity: Measured relative humidity or None when unavailable.
-
-    Returns:
-        None.
+    Attributes:
+        temperature: Измеренная температура или None, если её нет.
+        humidity: Измеренная относительная влажность или None, если её нет.
     """
 
     temperature: Temperature | None = None
@@ -29,23 +25,19 @@ class ClimateReading:
 
     @property
     def is_usable(self) -> bool:
-        """Return whether at least one usable measurement is present.
-
-        Returns:
-            bool: True when the reading can drive automation.
-        """
+        """Сообщает, есть ли хотя бы одно годное измерение."""
         return self.temperature is not None or self.humidity is not None
 
     @classmethod
     def measured(cls, celsius: float | None, percent: float | None) -> ClimateReading:
-        """Build a reading from raw sensor numbers.
+        """Строит снимок из сырых чисел датчика.
 
         Args:
-            celsius: Measured temperature or None.
-            percent: Measured relative humidity or None.
+            celsius: Измеренная температура или None.
+            percent: Измеренная относительная влажность или None.
 
         Returns:
-            ClimateReading: Typed reading.
+            ClimateReading: Снимок с типами домена.
         """
         return cls(
             temperature=None if celsius is None else Temperature(celsius),

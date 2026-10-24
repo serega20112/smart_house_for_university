@@ -1,13 +1,12 @@
-"""Choosing the device a command is meant for.
+"""Выбор устройства, для которого предназначена команда.
 
-Two questions are answered here: which device can perform a capability, and which
-device a free form reference points at. Both are decisions of the model, so they
-live in a domain service rather than in a module of functions a caller has to
-remember to use.
+Здесь два вопроса: какое устройство способно выполнить способность и на какое устройство
+указывает свободная ссылка. Оба — решения модели, поэтому живут в сервисе домена, а не в
+наборе функций, о котором вызывающему надо помнить.
 
-What this service deliberately does not know is any word in any language. Reading
-"кондиционер" as a hint about the air conditioner belongs to the language
-pipeline, which may answer in any language at all; the model only compares names.
+Чего этот сервис нарочно не знает, так это любого слова на любом языке. Прочитать
+слово «кондиционер» как намёк на нужное устройство — дело конвейера понимания речи,
+который вообще может ответить на любом языке; модель только сравнивает имена.
 """
 
 from __future__ import annotations
@@ -22,7 +21,7 @@ from backend.domain.value_objects.devices.device_kind import DeviceKind
 
 
 class DeviceSelector:
-    """Resolves devices by capability, by name and by automation participation."""
+    """Находит устройства по способности, по имени и по участию в автоматизации."""
 
     def first_supporting(
         self,
@@ -32,16 +31,16 @@ class DeviceSelector:
         *,
         automation_only: bool = False,
     ) -> Device | None:
-        """Return the first device able to perform a capability.
+        """Возвращает первое устройство, способное выполнить способность.
 
         Args:
-            devices: Candidate devices.
-            capability: Required capability.
-            settings: Automation settings used to filter participants.
-            automation_only: Whether only automation participants are considered.
+            devices: Подходящие кандидаты.
+            capability: Нужная способность.
+            settings: Настройка автоматизации, по которой отсеивают участников.
+            automation_only: Рассматривать только участников автоматизации.
 
         Returns:
-            Device | None: Matching device, or None when there is none.
+            Device | None: Подходящее устройство или None, когда такого нет.
         """
         for device in devices:
             if not device.is_controllable:
@@ -53,33 +52,33 @@ class DeviceSelector:
         return None
 
     def all_supporting(self, devices: Iterable[Device], capability: Capability) -> list[Device]:
-        """Return every device able to perform a capability.
+        """Возвращает всякое устройство, способное выполнить способность.
 
         Args:
-            devices: Candidate devices.
-            capability: Required capability.
+            devices: Подходящие кандидаты.
+            capability: Нужная способность.
 
         Returns:
-            list[Device]: Matching devices in the order they were given.
+            list[Device]: Подходящие устройства в том порядке, в котором их дали.
         """
         return [
             device for device in devices if device.is_controllable and device.supports(capability)
         ]
 
     def by_name(self, devices: Sequence[Device], reference: str) -> Device | None:
-        """Return the device a free form reference points at by name.
+        """Возвращает устройство, на которое ссылка указывает по имени.
 
-        An exact name always wins. A partial name is accepted next, preferring the
-        shortest match, and finally a device whose own name appears inside the
-        reference, which is what makes "включи свет на кухне" reach the lamp even
-        though the sentence carries more than the name.
+        Точное имя всегда побеждает. Частично совпавшее принимается следующим — из
+        него берут самое короткое, и наконец устройство, чьё собственное имя вошло в
+        ссылку: именно так «включи свет на кухне» доходит до лампы, хотя во фразе
+        больше, чем имя.
 
         Args:
-            devices: Candidate devices.
-            reference: Device name fragment taken from the user command.
+            devices: Подходящие кандидаты.
+            reference: Кусок имени устройства, взятый из команды человека.
 
         Returns:
-            Device | None: Matching device, or None when the name is unknown.
+            Device | None: Подходящее устройство или None, когда имя неизвестно.
         """
         needle = reference.strip().lower()
         if not needle:
@@ -96,29 +95,28 @@ class DeviceSelector:
         return None
 
     def of_kind(self, devices: Iterable[Device], kinds: frozenset[DeviceKind]) -> list[Device]:
-        """Return every controllable device of the given kinds.
+        """Возвращает всякое управляемое устройство указанных назначений.
 
-        This is how a language hint reaches the model: the pipeline decides which
-        kinds a phrase might mean, and the model decides which of those devices
-        actually exist.
+        Так языковой намёк доходит до модели: конвейер решает, какие назначения могут
+        стоять за фразой, а модель решает, какие из этих устройств вообще есть.
 
         Args:
-            devices: Candidate devices.
-            kinds: Kinds the phrase could be about.
+            devices: Подходящие кандидаты.
+            kinds: Назначения, о которых могла идти речь.
 
         Returns:
-            list[Device]: Matching devices.
+            list[Device]: Подходящие устройства.
         """
         return [device for device in devices if device.is_controllable and device.kind in kinds]
 
     def owned_ids(self, devices: Iterable[Device]) -> frozenset[DeviceId]:
-        """Return the identifiers of every device an account owns.
+        """Возвращает идентификаторы всех устройств аккаунта.
 
         Args:
-            devices: Devices of the account.
+            devices: Устройства аккаунта.
 
         Returns:
-            frozenset[DeviceId]: Owned identifiers.
+            frozenset[DeviceId]: Идентификаторы, которые принадлежат владельцу.
         """
         return frozenset(device.id for device in devices)
 

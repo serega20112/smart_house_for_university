@@ -23,34 +23,28 @@ from backend.infrastructure.database.tables import (
 
 
 class SqlBoardQueries:
-    """Reads of the boards, answered without a transaction.
+    """Чтения плат без транзакции.
 
-    Args:
-        engine: Engine the reads are executed on.
-
-    Returns:
-        None.
+    Attributes:
+        engine: Движок, на котором выполняют чтения.
     """
 
     def __init__(self, engine: AsyncEngine) -> None:
-        """Initialize the queries.
+        """Инициализирует чтения.
 
         Args:
-            engine: Engine to read from.
-
-        Returns:
-            None.
+            engine: Движок, из которого читают.
         """
         self._engine = engine
 
     async def list_all(self, user_id: UserId) -> list[BoardView]:
-        """Return every board of an account.
+        """Возвращает все платы аккаунта.
 
         Args:
-            user_id: Owner of the boards.
+            user_id: Владелец плат.
 
         Returns:
-            list[BoardView]: Boards shaped for display.
+            list[BoardView]: Платы, приготовленные для показа.
         """
         async with self._engine.connect() as connection:
             result = await connection.execute(
@@ -61,13 +55,13 @@ class SqlBoardQueries:
             return [board_view_of(row) for row in result.scalars().all()]
 
     async def list_open_claims(self) -> list[BoardClaimView]:
-        """Return every offer nobody took yet.
+        """Возвращает всякое предложение, которое ещё никто не забрал.
 
-        Reading the list never deletes anything: an offer that is already over is
-        still listed, and removing it is a separate command.
+        Чтение списка ничего не удаляет: уже просроченное предложение всё равно
+        показывается, а убирает его отдельная команда.
 
         Returns:
-            list[BoardClaimView]: Open offers.
+            list[BoardClaimView]: Открытые предложения.
         """
         async with self._engine.connect() as connection:
             result = await connection.execute(
@@ -79,16 +73,16 @@ class SqlBoardQueries:
 
 
 def board_view_of(row: EspDeviceRow) -> BoardView:
-    """Return the read model of one stored board.
+    """Возвращает модель чтения одной сохранённой платы.
 
-    The board is reported as offline because connectivity belongs to the live
-    layer of the hardware, not to a table row.
+    Плата всегда показывается отключённой: доступность относится к живому слою железа,
+    а не к строке таблицы.
 
     Args:
-        row: Row to shape.
+        row: Строка, которую превращают в образ.
 
     Returns:
-        BoardView: Board shaped for display.
+        BoardView: Плата, приготовленная для показа.
     """
     return BoardView(
         id=EspDeviceId.parse(row.id),
@@ -100,16 +94,16 @@ def board_view_of(row: EspDeviceRow) -> BoardView:
 
 
 def claim_view_of(row: EspClaimRow) -> BoardClaimView:
-    """Return the read model of one stored offer.
+    """Возвращает модель чтения одного сохранённого предложения.
 
-    The device key is never part of the answer: it is the credential of the board,
-    and the only things a person needs are the code and the token of the offer.
+    Ключ устройства в ответ не входит никогда: это учётные данные платы, а человеку
+    нужны только код и токен предложения.
 
     Args:
-        row: Row to shape.
+        row: Строка, которую превращают в образ.
 
     Returns:
-        BoardClaimView: Offer shaped for display.
+        BoardClaimView: Предложение, приготовленное для показа.
     """
     return BoardClaimView(
         id=EspClaimId.parse(row.id),

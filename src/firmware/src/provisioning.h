@@ -1,17 +1,16 @@
 /**
  * @file provisioning.h
- * @brief The access point the board raises until it is told where to go.
+ * @brief Точка доступа, которую плата поднимает, пока ей не сказали, куда идти.
  *
- * A board that has never been set up knows neither the network nor the server,
- * so it raises an access point of its own and serves a small page from it. The
- * person walks up to the board with a phone, joins that access point, fills in
- * the form and the board has everything it needs: the values are written into its
- * own flash, it joins the network and the access point disappears.
+ * Плата, которой ещё не настраивали сеть, не знает ни имени сети, ни адреса
+ * сервера, поэтому поднимает собственную точку доступа и отдаёт с неё маленькую
+ * страницу. Человек подходит к плате с телефоном, входит в эту точку, заполняет
+ * форму — и у платы есть всё нужное: значения ложатся в её собственную память,
+ * плата входит в сеть, а точка доступа больше не появляется.
  *
- * The page is served from the soft access point, so the board needs no name
- * server, no address of its own and nothing from the outside world. That is the
- * whole point of the arrangement: a board bought in a shop works without anyone
- * typing a password into a file before flashing it.
+ * Страница отдаётся с soft-AP, поэтому плате не нужны ни DNS, ни собственный
+ * адрес, ни вообще что-либо из внешнего мира. В этом и смысл: плата, купленная в
+ * магазине, работает без всякого вписывания пароля в файл перед прошивкой.
  */
 
 #pragma once
@@ -22,94 +21,94 @@
 
 #include "network_config.h"
 
-/** Port the setup page is served on. */
+/** Порт, на котором отдаётся страница настройки. */
 static const uint16_t SETUP_PORT = 80;
 
-/** Length of the name of the access point including the terminating zero. */
+/** Длина имени точки доступа вместе с нулём. */
 static const size_t ACCESS_POINT_NAME_SIZE = 32;
 
 /**
- * @brief The access point and the page that configures the board through it.
+ * @brief Точка доступа и страница, которой плату через неё настраивают.
  */
 class Provisioning {
    public:
-    /** Prepare the board for the setup.
+    /** Готовит плату к настройке.
      *
      * Returns:
      *     None.
      */
     void begin();
 
-    /** Serve the page and the form.
+    /** Обслуживает страницу и форму.
      *
-     * Called from the main loop as often as possible: the radio is the only
-     * thing the board can do while it waits, and a person standing next to it
-     * expects the page to appear at once.
+     * Вызывается из главного цикла так часто, как возможно: радио — единственное,
+     * что плата может делать в ожидании, а человек, стоящий рядом с ней, ждёт
+     * страницу сразу.
      *
      * Returns:
      *     None.
      */
     void loop();
 
-    /** Stop serving and put the access point away.
+    /** Перестаёт отдавать страницу и убирает точку доступа.
      *
      * Returns:
      *     None.
      */
     void stop();
 
-    /** Return whether the board is waiting to be set up.
+    /** Сообщает, ждёт ли плата настройки.
      *
      * Returns:
-     *     bool: True while the access point is up.
+     *     bool: True, пока точка доступа поднята.
      */
     bool isActive() const { return _active; }
 
-    /** Return the configuration the person filled in.
+    /** Забирает конфигурацию, которую ввёл человек.
      *
-     * The value is only valid once the form has been sent, which the caller
-     * learns from the return value of this method.
+     * Значение годно ровно один раз — после отправленной формы, о чём говорит
+     * возвращаемое значение этого метода.
      *
      * Returns:
-     *     bool: True when a form was sent and accepted.
+     *     bool: True, когда форму отправили и приняли.
      */
     bool takeResult(NetworkConfig &out);
 
    private:
-    /** Send the page with the form.
+    /** Отдаёт страницу с формой.
      *
      * Returns:
      *     None.
      */
     void servePage();
 
-    /** Read the form and store what it says.
+    /** Читает форму и сохраняет то, что в ней написано.
      *
      * Returns:
      *     None.
      */
     void handleSubmit();
 
-    /** Read one field of the form into a fixed buffer.
+    /** Читает одно поле формы в фиксированный буфер.
      *
-     * @param name Name of the field.
-     * @param out Buffer the value is copied into.
-     * @param capacity Size of that buffer.
-     * @return The number of characters copied.
+     * @param name Имя поля.
+     * @param out Буфер, куда копируется значение.
+     * @param capacity Размер этого буфера.
+     * @return Число скопированных знаков.
      */
     size_t readField(const char *name, char *out, size_t capacity);
 
-    /** Read one numeric field of the form.
+    /** Читает одно числовое поле формы.
      *
-     * @param name Name of the field.
-     * @param fallback Value used when the field is empty or malformed.
-     * @return The number the field carries.
+     * @param name Имя поля.
+     * @param fallback Значение, используемое, если поле пусто или испорчено.
+     * @return Число, которое поле несёт.
      */
     uint16_t readNumber(const char *name, uint16_t fallback);
 
-    // The server lives only while the board is being set up. It is a heavy
-    // object on a chip with forty kilobytes of heap, and the board needs that
-    // heap for the socket the moment the setup is over.
+    // Сервер живёт ровно пока плату настраивают. На микросхеме с сорока
+    // килобайтами живой памяти объект тяжёлый, а после настройки та же память
+    // нужна сокету сервера.
     std::unique_ptr<ESP8266WebServer> _server;
     bool _active{false};
     bool _submitted{false};

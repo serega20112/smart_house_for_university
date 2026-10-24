@@ -1,24 +1,32 @@
-/** Device editor used on the devices page. */
+/**
+ * Редактор одного устройства со страницы устройств.
+ *
+ * Форма собирает частичное изменение и отправляет его целиком в одну команду:
+ * какие сочетания способностей и каналов допустимы, решает домен, а не проверка
+ * на экране, поэтому здесь отказ сервера только показывается.
+ */
 
 import { useEffect, useState } from "react";
 
 import * as api from "../../services/api";
-import type { Capability, Device, DeviceType } from "../../services/types";
+import type { Capability, Device, DeviceKind } from "../../services/types";
 
-const TYPES: DeviceType[] = [
+const KINDS: DeviceKind[] = [
   "LIGHT",
   "FAN",
   "HUMIDIFIER",
+  "DEHUMIDIFIER",
   "AIR_CONDITIONER",
   "HEATER",
   "OUTLET",
   "OTHER",
 ];
 
-const TYPE_LABELS: Record<DeviceType, string> = {
+const KIND_LABELS: Record<DeviceKind, string> = {
   LIGHT: "Свет",
   FAN: "Вентилятор",
   HUMIDIFIER: "Увлажнитель",
+  DEHUMIDIFIER: "Осушитель",
   AIR_CONDITIONER: "Кондиционер",
   HEATER: "Обогреватель",
   OUTLET: "Розетка",
@@ -36,7 +44,7 @@ const CHANNELS = [1, 2, 3, 4, 5, 6];
 
 interface Draft {
   name: string;
-  type: DeviceType;
+  kind: DeviceKind;
   channel: number;
   capabilities: Capability[];
   enabled: boolean;
@@ -53,8 +61,8 @@ interface DeviceEditorProps {
 function draftOf(device: Device): Draft {
   return {
     name: device.name,
-    type: device.type,
-    channel: device.physical_channel,
+    kind: device.kind,
+    channel: device.channel,
     capabilities: [...device.capabilities],
     enabled: device.enabled,
     automationEnabled: device.automation_enabled,
@@ -89,8 +97,8 @@ export function DeviceEditor({
     try {
       await api.updateDevice(device.id, {
         name: draft.name,
-        type: draft.type,
-        physical_channel: draft.channel,
+        kind: draft.kind,
+        channel: draft.channel,
         capabilities: draft.capabilities,
         enabled: draft.enabled,
         automation_enabled: draft.automationEnabled,
@@ -112,8 +120,8 @@ export function DeviceEditor({
 
   const dirty =
     draft.name !== device.name ||
-    draft.type !== device.type ||
-    draft.channel !== device.physical_channel ||
+    draft.kind !== device.kind ||
+    draft.channel !== device.channel ||
     draft.enabled !== device.enabled ||
     draft.automationEnabled !== device.automation_enabled ||
     draft.capabilities.length !== device.capabilities.length ||
@@ -135,30 +143,30 @@ export function DeviceEditor({
       </label>
 
       <label className="field">
-        <span>Тип</span>
+        <span>Назначение</span>
         <select
-          value={draft.type}
-          onChange={(event) => patch({ type: event.target.value as DeviceType })}
+          value={draft.kind}
+          onChange={(event) => patch({ kind: event.target.value as DeviceKind })}
         >
-          {TYPES.map((item) => (
+          {KINDS.map((item) => (
             <option key={item} value={item}>
-              {TYPE_LABELS[item]}
+              {KIND_LABELS[item]}
             </option>
           ))}
         </select>
       </label>
 
       <label className="field">
-        <span>Физический канал</span>
+        <span>Канал реле</span>
         <select
           value={draft.channel}
           onChange={(event) => patch({ channel: Number(event.target.value) })}
         >
           {CHANNELS.map((item) => {
-            const taken = takenChannels.includes(item) && item !== device.physical_channel;
+            const taken = takenChannels.includes(item) && item !== device.channel;
             return (
               <option key={item} value={item} disabled={taken}>
-                Relay {item}
+                Канал {item}
                 {taken ? " — занят" : ""}
               </option>
             );

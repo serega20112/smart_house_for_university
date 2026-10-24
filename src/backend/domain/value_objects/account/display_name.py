@@ -1,4 +1,4 @@
-"""Name shown in the interface for an account."""
+"""Имя, которым интерфейс называет аккаунт."""
 
 from __future__ import annotations
 
@@ -11,28 +11,22 @@ MAX_LENGTH = 80
 
 @dataclass(frozen=True, slots=True, order=True)
 class DisplayName:
-    """A name a person wants to be called by.
+    """Имя, под которым человек хочет, чтобы к нему обращались.
 
-    Args:
-        value: Trimmed name.
-
-    Returns:
-        None.
+    Attributes:
+        value: Имя без окружающих пробелов.
 
     Raises:
-        InvalidDisplayNameError: When the name is empty or too long.
+        InvalidDisplayNameError: Когда имя пустое или слишком длинное.
     """
 
     value: str
 
     def __post_init__(self) -> None:
-        """Validate the name.
-
-        Returns:
-            None.
+        """Проверяет имя.
 
         Raises:
-            InvalidDisplayNameError: When the name is empty or too long.
+            InvalidDisplayNameError: Когда имя пустое или слишком длинное.
         """
         trimmed = self.value.strip()
         if not trimmed:
@@ -43,15 +37,15 @@ class DisplayName:
 
     @classmethod
     def parse(cls, raw: str) -> DisplayName:
-        """Build a display name from what a person typed.
+        """Строит имя для показа из того, что набрал человек.
 
         Args:
-            raw: Raw text entered by the user.
+            raw: Текст, введённый без какой-либо подготовки.
 
         Returns:
-            DisplayName: Trimmed name.
+            DisplayName: Имя без окружающих пробелов.
 
         Raises:
-            InvalidDisplayNameError: When the text is not a usable name.
+            InvalidDisplayNameError: Когда текст не годится как имя.
         """
         return cls(raw)

@@ -1,12 +1,11 @@
-"""User account.
+"""Аккаунт человека.
 
-The aggregate owns the rules about what an account may look like. It does not own
-hashing: that is cryptography, it lives in the infrastructure layer behind a port,
-and the aggregate only stores the resulting string it was handed.
+Агрегат владеет правилами о том, каким аккаунт может быть. Хешированием он не владеет:
+это криптография, она живёт в инфраструктуре за интерфейсом, а агрегат только хранит
+переданную ему строку результата.
 
-Registering an account is also the moment the rest of the home has to come into
-existence, so the aggregate records that fact and lets whoever is subscribed set
-the home up.
+Регистрация аккаунта — тот же момент, когда остальной дом должен появиться, поэтому
+агрегат записывает этот факт и позволяет подписанному обустраивать дом.
 """
 
 from __future__ import annotations
@@ -26,19 +25,16 @@ MIN_PASSWORD_LENGTH = 8
 
 @dataclass(frozen=True, slots=True)
 class User:
-    """One person using the platform.
+    """Один человек, пользующийся платформой.
 
-    Args:
-        id: Identifier of the account.
-        email: Login of the account.
-        password_hash: Stored form of the password, produced by the password
-            hasher and never inspected by the model.
-        display_name: Name shown in the interface.
-        created_at: Moment the account was created.
-        _events: Facts recorded since the account was loaded.
-
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор аккаунта.
+        email: Логин аккаунта.
+        password_hash: Сохранённая форма пароля, построенная хешером и никогда не
+            разбираемая моделью.
+        display_name: Имя, показанное в интерфейсе.
+        created_at: Момент создания аккаунта.
+        _events: Факты, записанные с момента загрузки аккаунта.
     """
 
     id: UserId
@@ -50,22 +46,21 @@ class User:
 
     @property
     def can_authenticate_with(self) -> str:
-        """Return the stored password to compare a presented one against.
+        """Возвращает сохранённый пароль, с которым сверят предъявленный.
 
-        The aggregate hands the value over instead of comparing it: hashing is
-        infrastructure work, and the model refuses to grow a cryptography
-        dependency.
+        Агрегат отдаёт значение, а не сравнивает сам: хеширование — работа
+        инфраструктуры, и модель отказывается обрастать зависимостью от криптографии.
 
         Returns:
-            str: Stored password form.
+            str: Сохранённая форма пароля.
         """
         return self.password_hash
 
     def pull_events(self) -> tuple[UserRegistered, ...]:
-        """Return the recorded facts and forget them.
+        """Возвращает записанные факты и забывает их.
 
         Returns:
-            tuple[UserRegistered, ...]: Facts recorded since the last call.
+            tuple[UserRegistered, ...]: Факты с прошлого обращения.
         """
         recorded = tuple(self._events)
         object.__setattr__(self, "_events", [])
@@ -80,21 +75,21 @@ class User:
         password_length: int,
         created_at: datetime,
     ) -> Self:
-        """Create a new account.
+        """Создаёт новый аккаунт.
 
         Args:
-            email: Login of the account.
-            display_name: Name shown in the interface.
-            password_hash: Stored form of the password.
-            password_length: Length of the password the person chose, which the
-                model refuses to be too short of.
-            created_at: Moment the account was created.
+            email: Логин аккаунта.
+            display_name: Имя, показанное в интерфейсе.
+            password_hash: Сохранённая форма пароля.
+            password_length: Длина пароля, который выбрал человек, — слишком
+                короткую модель не примет.
+            created_at: Момент создания аккаунта.
 
         Returns:
-            Self: Created account.
+            Self: Созданный аккаунт.
 
         Raises:
-            WeakPasswordError: When the password is shorter than allowed.
+            WeakPasswordError: Когда пароль короче разрешённого.
         """
         if password_length < MIN_PASSWORD_LENGTH:
             raise WeakPasswordError(MIN_PASSWORD_LENGTH)

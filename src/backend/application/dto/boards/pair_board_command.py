@@ -1,4 +1,4 @@
-"""A board the user paired from the interface."""
+"""Плата, которую человек сопряг из интерфейса."""
 
 from __future__ import annotations
 
@@ -7,15 +7,12 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class PairBoardCommand:
-    """The values of a pairing the interface is asked to perform.
+    """Значения запроса сопрячь плату.
 
-    Args:
-        name: Name shown to the user.
-        pairing_key: Key chosen by the user, or None to let the system generate
-            one.
-
-    Returns:
-        None.
+    Attributes:
+        name: Имя, показанное человеку.
+        pairing_key: Ключ, выбранный человеком, или None, чтобы его выработала
+            система.
     """
 
     name: str

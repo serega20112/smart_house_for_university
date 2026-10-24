@@ -1,4 +1,4 @@
-"""Mapping between the account aggregate and the user row."""
+"""Перевод аккаунта туда и обратно в строку пользователя."""
 
 from __future__ import annotations
 
@@ -11,14 +11,7 @@ from backend.infrastructure.database.tables import UserRow
 
 
 def user_to_row(user: User) -> UserRow:
-    """Build the row describing an account.
-
-    Args:
-        user: Account to serialize.
-
-    Returns:
-        UserRow: New row describing the account.
-    """
+    """Строит строку, описывающую аккаунт."""
     return UserRow(
         id=user.id.value,
         email=user.email.value,
@@ -30,14 +23,7 @@ def user_to_row(user: User) -> UserRow:
 
 
 def user_from_row(row: UserRow) -> User:
-    """Build the account a row describes.
-
-    Args:
-        row: Row to deserialize.
-
-    Returns:
-        User: Restored account.
-    """
+    """Строит аккаунт, описанный строкой."""
     return User(
         id=UserId.parse(row.id),
         email=Email.parse(row.email),

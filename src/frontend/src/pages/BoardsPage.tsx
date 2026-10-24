@@ -1,15 +1,14 @@
 /**
- * Screen listing the boards of the current account.
+ * Экран плат текущего аккаунта.
  *
- * A board is never configured in the firmware: it generates a key of its own on
- * the first boot and asks to be taken. The user holds the board, holds its FLASH
- * button while plugging the power in, and presses one button here. Nothing is
- * written into the source code, so the same binary is sold to everybody.
+ * Плату не настраивают в прошивке: при первом запуске она вырабатывает собственный
+ * ключ и просит хозяина. Человек держит плату в руках, зажимает кнопку FLASH при
+ * подаче питания и нажимает одну кнопку здесь. В код не записано ни одного секрета,
+ * поэтому один и тот же бинарник получают все.
  *
- * The network of a board is told to it here as well: the board keeps it in its
- * own flash, and the server hands the values over the socket it already keeps
- * open. A board that was never set up raises an access point of its own and is
- * configured there, on the page the board serves.
+ * Сеть плате тоже сообщают здесь: она хранит её в своей памяти, а сервер передаёт
+ * значения по уже открытому сокету. Плата, которую ни разу не настраивали, поднимает
+ * собственную точку доступа и настраивается на той странице, что она сама отдаёт.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -19,20 +18,20 @@ import { Card } from "../components/Card";
 import { BoardNetworkEditor } from "../features/boards/BoardNetworkEditor";
 import { useRealtime } from "../services/realtime";
 import * as api from "../services/api";
-import type { EspClaim, EspDevice } from "../services/types";
+import type { Board, BoardClaim } from "../services/types";
 
-/** How often the list of waiting boards is refreshed while the page is open. */
+/** Как часто перечитывать список плат, которые ищут хозяина, пока экран открыт. */
 const POLL_MS = 5000;
 
 export function BoardsPage() {
-  const [boards, setBoards] = useState<EspDevice[]>([]);
-  const [claims, setClaims] = useState<EspClaim[]>([]);
+  const [boards, setBoards] = useState<Board[]>([]);
+  const [claims, setClaims] = useState<BoardClaim[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   const loadBoards = useCallback(async () => {
     try {
-      setBoards(await api.fetchEspDevices());
+      setBoards(await api.fetchBoards());
       setError(null);
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "Не удалось получить список плат");
@@ -41,7 +40,7 @@ export function BoardsPage() {
 
   const loadClaims = useCallback(async () => {
     try {
-      const waiting = await api.fetchEspClaims();
+      const waiting = await api.fetchBoardClaims();
       setClaims(waiting);
       setNames((current) => {
         const next = { ...current };
@@ -65,20 +64,26 @@ export function BoardsPage() {
   useRealtime({
     enabled: true,
     onMessage: (message) => {
-      if (message.type === "esp.claim_available" || message.type === "esp.connected") {
+      if (message.type === "board.announcement_published" || message.type === "board.online") {
         void loadClaims();
         void loadBoards();
       }
     },
   });
 
+  /**
+   * Забирает объявленную плату за текущим аккаунтом.
+   *
+   * @param token Токен предложения.
+   * @returns Ничего: списки перечитываются после ответа сервера.
+   */
   async function takeBoard(token: string): Promise<void> {
     const name = (names[token] ?? "").trim();
     if (!name) {
       return;
     }
     try {
-      await api.claimEspDevice({ claim_token: token, name });
+      await api.claimBoard({ claim_token: token, name });
       await loadClaims();
       await loadBoards();
     } catch (exc) {
@@ -86,9 +91,15 @@ export function BoardsPage() {
     }
   }
 
-  async function unpair(deviceId: string): Promise<void> {
+  /**
+   * Убирает плату из аккаунта.
+   *
+   * @param boardId Идентификатор платы.
+   * @returns Ничего: список перечитывается после ответа сервера.
+   */
+  async function unpair(boardId: string): Promise<void> {
     try {
-      await api.unpairEspDevice(deviceId);
+      await api.revokeBoard(boardId);
       await loadBoards();
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "Не удалось отвязать плату");

@@ -28,9 +28,6 @@ async def read(session: BoardSession, raw: str, report: BoardReport) -> None:
         session: Сеанс платы, приславшей рамку.
         raw: Текст рамки так, как она пришла.
         report: Приёмник состояния дома.
-
-    Returns:
-        None.
     """
     try:
         frame = protocol.parse_inbound(raw)
@@ -53,9 +50,6 @@ async def apply(session: BoardSession, frame: protocol.InboundFrame, report: Boa
         session: Сеанс платы, приславшей кадр.
         frame: Разобранный кадр протокола.
         report: Приёмник состояния дома.
-
-    Returns:
-        None.
     """
     match frame:
         case protocol.HelloFrame():
@@ -63,7 +57,7 @@ async def apply(session: BoardSession, frame: protocol.InboundFrame, report: Boa
                 "esp.board_hello",
                 user=str(session.user_id),
                 board=str(session.board_id),
-                firmware=frame.firmware,
+                firmware=frame.firmware_version,
             )
         case protocol.AckFrame():
             session.resolve_ack(frame.command_id)

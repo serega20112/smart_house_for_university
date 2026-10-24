@@ -124,8 +124,5 @@ async def unpair_board(
         device_id: Идентификатор платы.
         user_id: Владелец, разрешённый из bearer-токена.
         use_case: Отзыв платы.
-
-    Returns:
-        None.
     """
     await use_case.execute(user_id, EspDeviceId.parse(device_id))

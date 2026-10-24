@@ -24,38 +24,32 @@ from backend.infrastructure.database.tables import (
 
 
 class SqlAutomationQueries:
-    """Reads of the automation configuration, answered without a transaction.
+    """Чтения настройки автоматизации без транзакции.
 
-    Args:
-        engine: Engine the reads are executed on.
-
-    Returns:
-        None.
+    Attributes:
+        engine: Движок, на котором выполняют чтения.
     """
 
     def __init__(self, engine: AsyncEngine) -> None:
-        """Initialize the queries.
+        """Инициализирует чтения.
 
         Args:
-            engine: Engine to read from.
-
-        Returns:
-            None.
+            engine: Движок, из которого читают.
         """
         self._engine = engine
 
     async def get(self, user_id: UserId) -> AutomationView:
-        """Return the automation configuration of an account.
+        """Возвращает настройку автоматизации аккаунта.
 
-        An account that never configured automation still gets an answer: the
-        defaults are taken from the aggregate itself, so the read model can never
-        drift away from the values a fresh home is actually built with.
+        Аккаунт, который автоматизацию ни разу не настраивал, ответ всё равно получает:
+        значения по умолчанию берутся из самого агрегата, поэтому модель чтения не
+        расходится с тем, из чего на деле строят свежий дом.
 
         Args:
-            user_id: Owner of the configuration.
+            user_id: Владелец настройки.
 
         Returns:
-            AutomationView: Configuration shaped for display.
+            AutomationView: Настройка, приготовленная для показа.
         """
         async with self._engine.connect() as connection:
             row = await first_row(connection, AutomationRow, AutomationRow.user_id == user_id.value)
@@ -68,14 +62,14 @@ class SqlAutomationQueries:
 def automation_view_of(
     settings: AutomationSettings, participants: frozenset[DeviceId]
 ) -> AutomationView:
-    """Return the read model of one automation configuration.
+    """Возвращает модель чтения одной настройки автоматизации.
 
     Args:
-        settings: Configuration to shape.
-        participants: Devices automation is allowed to drive.
+        settings: Настройка, из которой строят образ.
+        participants: Устройства, которыми автоматизации разрешено управлять.
 
     Returns:
-        AutomationView: Configuration shaped for display.
+        AutomationView: Настройка, приготовленная для показа.
     """
     return AutomationView(
         enabled=settings.enabled,

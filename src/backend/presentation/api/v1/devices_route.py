@@ -101,9 +101,6 @@ async def delete_device(
         device_id: Идентификатор устройства.
         user_id: Владелец, разрешённый из bearer-токена.
         use_case: Удаление устройства.
-
-    Returns:
-        None.
     """
     await use_case.execute(user_id, DeviceId.parse(device_id))
 
@@ -126,5 +123,7 @@ async def perform_capability(
     Returns:
         DeviceResponse: Устройство в состоянии, которого оно достигло.
     """
-    device = await use_case.execute(user_id, DeviceId.parse(device_id), Capability.parse(capability))
+    device = await use_case.execute(
+        user_id, DeviceId.parse(device_id), Capability.parse(capability)
+    )
     return device_of(device)

@@ -1,10 +1,10 @@
 /**
- * Generic components the dashboard is built from.
+ * Готовые компоненты, из которых собирается главный экран.
  *
- * Every widget type is a component that knows nothing about a particular home.
- * Which components appear, in which order and under which personal title comes
- * from the server, so the same bundle renders a different projection of the
- * application for every signed in account.
+ * Каждый виджет — компонент, который о конкретном доме не знает ничего. Какие
+ * компоненты появятся, в каком порядке и под каким личным заголовком, приходит с
+ * сервера, поэтому одна и та же сборка рисует свою проекцию приложения каждому
+ * аккаунту.
  */
 
 import { Card } from "../../components/Card";
@@ -23,18 +23,17 @@ export interface DashboardProps {
 }
 
 /**
- * Renders the stored widget list with the generic components.
+ * Рисует сохранённый список виджетов готовыми компонентами.
  *
- * A widget pointing at a device that no longer exists is skipped instead of
- * breaking the screen, so a layout edited on another tab can never leave the
- * dashboard half rendered.
+ * Виджет, указывающий на исчезнувшее устройство, пропускается, а не ломает экран:
+ * раскладку, поправленную в другой вкладке, человек не должен видеть половину.
  *
- * @param props.widgets Ordered layout coming from the server.
- * @param props.state Live snapshot of the current account.
- * @param props.preferences Stored interface preferences.
- * @param props.loading Whether the snapshot is still loading.
- * @param props.onError Called with a human readable failure.
- * @param props.onChanged Called after a command changed something.
+ * @param props.widgets Порядок виджетов, пришедший с сервера.
+ * @param props.state Живой снимок текущего аккаунта.
+ * @param props.preferences Сохранённые настройки интерфейса.
+ * @param props.loading Идёт ли ещё первая загрузка снимка.
+ * @param props.onError Вызывается с человеческим текстом отказа.
+ * @param props.onChanged Вызывается после того, как команда что-то изменила.
  */
 export function Dashboard({
   widgets,

@@ -1,12 +1,12 @@
-"""Timed scenario aggregate.
+"""Агрегат отложенного сценария.
 
-A scenario is a deferred promise: "make it twenty degrees in half an hour". The
-aggregate owns that promise. It knows when it has to start, when its goal counts
-as reached, when it ran out of time and what has to happen with the devices
-afterwards, and it refuses every transition that does not make sense.
+Сценарий — обещание, данное себе на потом: «через полчаса сделай двадцать
+градусов». Агрегат владеет этим обещанием: он знает, когда должен начаться, когда
+цель считается достигнутой, когда время вышло и что делать с устройствами после,
+и отказывает любому переходу, который смысла не имеет.
 
-Nothing outside the aggregate changes its status, its snapshot or its actions, so
-the rules cannot be bypassed by a caller that simply assigns a field.
+Вне агрегата его статус, снимок состояний и действия не меняет никто: правило
+нельзя обойти присваиванием поля из вызывающего кода.
 """
 
 from __future__ import annotations
@@ -34,25 +34,22 @@ MAX_TARGET_LENGTH = 120
 
 @dataclass
 class Scenario:
-    """A promise about the climate of one home at a later moment.
+    """Обещание изменить климат одного дома в более поздний момент.
 
-    Args:
-        id: Identifier assigned at creation.
-        user_id: Owner of the scenario, part of the aggregate so that no method
-            has to be told whose home it is acting on.
-        status: Stage the scenario is in.
-        created_at: Moment the scenario was stored.
-        start_at: Moment the scenario starts acting.
-        duration_minutes: How long it may run, or None when it is unbounded.
-        target: Area or object the user named, or None.
-        completion_behavior: What happens with the devices afterwards.
-        actions: Actions performed once the scenario starts.
-        captured_statuses: Device states captured before the start, used by the
-            restore behaviour.
-        _events: Facts recorded since the scenario was loaded.
-
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор, выданный при создании.
+        user_id: Владелец сценария; часть агрегата, чтобы ни один метод не
+            спрашивал, чей дом он ведёт.
+        status: Этап, на котором сценарий находится.
+        created_at: Момент, когда сценарий сохранили.
+        start_at: Момент, когда сценарий начинает действовать.
+        duration_minutes: Сколько ему разрешено идти, или None без границы.
+        target: Место или предмет, который назвал человек, или None.
+        completion_behavior: Что будет с устройствами после.
+        actions: Действия, которые сценарий выполняет после начала.
+        captured_statuses: Состояния устройств, снятые до начала; нужны
+            поведению возврата.
+        _events: Факты, записанные с момента загрузки сценария.
     """
 
     id: ScenarioId
@@ -72,55 +69,47 @@ class Scenario:
 
     @property
     def holds_control_priority(self) -> bool:
-        """Return whether the scenario still outranks automation.
-
-        Returns:
-            bool: True while the scenario is pending or running.
-        """
+        """Сообщает, ставит ли сценарий себя выше автоматики."""
         return self.status.holds_control_priority
 
     @property
     def ends_at(self) -> datetime | None:
-        """Return the moment the scenario runs out of time.
-
-        Returns:
-            datetime | None: End moment, or None when the scenario is unbounded.
-        """
+        """Возвращает момент, когда у сценария кончится время."""
         if self.duration_minutes is None:
             return None
         return self.start_at + timedelta(minutes=self.duration_minutes)
 
     def is_due(self, now: datetime) -> bool:
-        """Return whether the start moment has come.
+        """Сообщает, наступило ли время начать.
 
         Args:
-            now: Moment to judge at.
+            now: Момент, относительно которого решают.
 
         Returns:
-            bool: True when the scenario has to start acting.
+            bool: True, когда сценарий должен начать действовать.
         """
         return self.status is ScenarioStatus.PENDING and now >= self.start_at
 
     def has_timed_out(self, now: datetime) -> bool:
-        """Return whether the scenario ran out of time.
+        """Сообщает, вышло ли время, отведённое сценарию.
 
         Args:
-            now: Moment to judge at.
+            now: Момент, относительно которого решают.
 
         Returns:
-            bool: True when the duration has elapsed.
+            bool: True, когда длительность истекла.
         """
         end = self.ends_at
         return end is not None and now >= end
 
     def is_goal_reached(self, reading: ClimateReading) -> bool:
-        """Return whether every requested target temperature was reached.
+        """Сообщает, достигнута ли каждая запрошенная температура.
 
         Args:
-            reading: Current sensor reading.
+            reading: Текущие показания датчиков.
 
         Returns:
-            bool: True when nothing has to be waited for any more.
+            bool: True, когда ждать больше нечего.
         """
         measured = reading.temperature
         if measured is None:
@@ -132,20 +121,20 @@ class Scenario:
         )
 
     def start(self, current_statuses: dict[DeviceId, DeviceStatus]) -> ScenarioStarted:
-        """Begin acting on the home.
+        """Начинает действовать в доме.
 
-        The states the devices had a moment before are captured here rather than
-        by the caller, because the restore behaviour depends on them and the
-        aggregate is what knows whether it will need them.
+        Состояния, в которых устройства были за мгновение до этого, снимаются
+        здесь, а не у вызывающего: поведение возврата опирается на снимок, и только
+        агрегат знает, понадобится ли он ему.
 
         Args:
-            current_statuses: State of every device right before the start.
+            current_statuses: Состояние каждого устройства прямо перед стартом.
 
         Returns:
-            ScenarioStarted: The recorded fact.
+            ScenarioStarted: Записанный факт.
 
         Raises:
-            IllegalScenarioTransitionError: When the scenario is not pending.
+            IllegalScenarioTransitionError: Когда сценарий не ожидает начала.
         """
         self._require_transition(ScenarioStatus.PENDING, ScenarioStatus.RUNNING)
         self.captured_statuses = dict(current_statuses)
@@ -155,58 +144,58 @@ class Scenario:
         return event
 
     def complete(self, reason: str) -> ScenarioFinished:
-        """Finish successfully.
+        """Завершает сценарий успешно.
 
         Args:
-            reason: Why the scenario finished.
+            reason: Почему сценарий завершился.
 
         Returns:
-            ScenarioFinished: The recorded fact.
+            ScenarioFinished: Записанный факт.
 
         Raises:
-            IllegalScenarioTransitionError: When the scenario never started.
+            IllegalScenarioTransitionError: Когда сценарий так и не начался.
         """
         self._require_transition(ScenarioStatus.RUNNING, ScenarioStatus.COMPLETED)
         return self._finish(ScenarioStatus.COMPLETED, reason)
 
     def cancel(self) -> ScenarioFinished:
-        """Give the scenario up before it finished.
+        """Снимает сценарий до того, как он завершился.
 
-        Cancelling a running scenario is allowed and normal: a person changed
-        their mind. What the aggregate refuses is cancelling twice.
+        Отменить идущий сценарий можно и это нормально: человек передумал.
+        Агрегат отказывает только в повторной отмене.
 
         Returns:
-            ScenarioFinished: The recorded fact.
+            ScenarioFinished: Записанный факт.
 
         Raises:
-            ScenarioAlreadyFinishedError: When the scenario already finished.
+            ScenarioAlreadyFinishedError: Когда сценарий уже завершился.
         """
         if self.status.is_final:
             raise ScenarioAlreadyFinishedError(str(self.id), self.status.value)
         return self._finish(ScenarioStatus.CANCELLED, "cancelled_by_user")
 
     def fail(self, reason: str) -> ScenarioFinished:
-        """Record that the scenario could not be carried out.
+        """Записывает, что сценарий выполнить не удалось.
 
         Args:
-            reason: Why it failed.
+            reason: Почему не удалось.
 
         Returns:
-            ScenarioFinished: The recorded fact.
+            ScenarioFinished: Записанный факт.
 
         Raises:
-            IllegalScenarioTransitionError: When the scenario already finished.
+            IllegalScenarioTransitionError: Когда сценарий уже завершился.
         """
         if self.status.is_final:
             raise ScenarioAlreadyFinishedError(str(self.id), self.status.value)
         return self._finish(ScenarioStatus.FAILED, reason)
 
     def statuses_to_restore(self) -> dict[DeviceId, DeviceStatus]:
-        """Return the states the devices have to be put back into.
+        """Возвращает состояния, в которые устройства нужно вернуть.
 
         Returns:
-            dict[DeviceId, DeviceStatus]: States to restore, empty when the
-            devices are to be left to automation.
+            dict[DeviceId, DeviceStatus]: Состояния возврата; пусто, когда
+            устройства оставляют автоматике.
         """
         restored: dict[DeviceId, DeviceStatus] = {}
         for device_id, captured in self.captured_statuses.items():
@@ -218,11 +207,11 @@ class Scenario:
         return restored
 
     def pull_events(self) -> tuple[ScenarioScheduled | ScenarioStarted | ScenarioFinished, ...]:
-        """Return the recorded facts and forget them.
+        """Возвращает записанные факты и забывает их.
 
         Returns:
             tuple[ScenarioScheduled | ScenarioStarted | ScenarioFinished, ...]:
-            Facts recorded since the last call.
+            Факты, записанные с прошлого обращения.
         """
         recorded = tuple(self._events)
         self._events.clear()
@@ -254,22 +243,22 @@ class Scenario:
         completion_behavior: CompletionBehavior = CompletionBehavior.LEAVE_TO_AUTOMATION,
         duration_minutes: int | None = None,
     ) -> Self:
-        """Build a scenario waiting for its start moment.
+        """Строит сценарий, который ждёт своего момента.
 
         Args:
-            user_id: Owner of the scenario.
-            created_at: Moment the scenario was asked for.
-            delay_minutes: How long to wait before acting.
-            actions: Actions to perform once started.
-            target: Area or object the user named.
-            completion_behavior: What happens with the devices afterwards.
-            duration_minutes: How long the scenario may run.
+            user_id: Владелец сценария.
+            created_at: Момент, когда сценарий попросили.
+            delay_minutes: Сколько ждать до действия.
+            actions: Действия, которые нужно выполнить после начала.
+            target: Место или предмет, который назвал человек.
+            completion_behavior: Что будет с устройствами после.
+            duration_minutes: Сколько сценарию разрешено идти.
 
         Returns:
-            Self: Created scenario.
+            Self: Созданный сценарий.
 
         Raises:
-            ValueError: When the named target is longer than the model allows.
+            ValueError: Когда названное место длиннее разрешённого моделью.
         """
         if target is not None and len(target.strip()) > MAX_TARGET_LENGTH:
             raise ValueError(f"scenario target is longer than {MAX_TARGET_LENGTH} characters")
@@ -292,13 +281,13 @@ class Scenario:
     def action_for(
         cls, capability: object, target_temperature: Temperature | None = None
     ) -> ScenarioAction:
-        """Build the single action of a simple scenario.
+        """Строит единственное действие простого сценария.
 
         Args:
-            capability: Capability the scenario asks for.
-            target_temperature: Temperature the action aims for.
+            capability: Способность, о которой просит сценарий.
+            target_temperature: Температура, к которой действие идёт.
 
         Returns:
-            ScenarioAction: Action to put into a scenario.
+            ScenarioAction: Действие, которое кладут в сценарий.
         """
         return ScenarioAction(capability=capability, target_temperature=target_temperature)

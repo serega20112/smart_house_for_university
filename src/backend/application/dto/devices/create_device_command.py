@@ -1,4 +1,4 @@
-"""Description of a device the user wants to add."""
+"""Описание устройства, которое человек хочет завести."""
 
 from __future__ import annotations
 
@@ -10,18 +10,15 @@ from backend.domain.value_objects.devices.device_kind import DeviceKind
 
 @dataclass(frozen=True, slots=True)
 class CreateDeviceCommand:
-    """The values of a device the interface is asked to create.
+    """Значения устройства, которое просят создать интерфейс.
 
-    Args:
-        name: Name shown to the user.
-        kind: What the device is for.
-        channel: Relay channel the device is wired to.
-        capabilities: Actions the device is able to perform.
-        enabled: Whether the device may be controlled at all.
-        automation_enabled: Whether the device takes part in automation.
-
-    Returns:
-        None.
+    Attributes:
+        name: Имя, показанное человеку.
+        kind: Для чего устройство.
+        channel: Канал реле, к которому устройство подключают.
+        capabilities: Действия, которые устройство умеет.
+        enabled: Разрешено ли устройством управлять вообще.
+        automation_enabled: Участвует ли устройство в автоматизации.
     """
 
     name: str

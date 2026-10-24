@@ -25,62 +25,42 @@ from backend.infrastructure.database.unit_of_work.base import SqlUnitOfWork
 
 
 class SqlBoardOnboardingUnitOfWork(SqlUnitOfWork, BoardOnboardingUnitOfWork):
-    """Transaction over the boards of the system.
+    """Транзакция над платами системы.
 
-    Args:
-        session_factory: Factory producing the session of the block.
-
-    Returns:
-        None.
+    Attributes:
+        session_factory: Фабрика, дающая сессию блока.
     """
 
     @property
     def boards(self) -> BoardRepository:
-        """Return the paired board repository bound to the current transaction.
-
-        Returns:
-            BoardRepository: Paired board repository.
-        """
+        """Хранилище сопряжённых плат нынешней транзакции."""
         return self.repository(SqlBoardRepository)
 
     @property
     def claims(self) -> ClaimRepository:
-        """Return the announced board repository of the current transaction.
-
-        Returns:
-            ClaimRepository: Announced board repository.
-        """
+        """Хранилище объявленных плат нынешней транзакции."""
         return self.repository(SqlClaimRepository)
 
     @property
     def networks(self) -> BoardNetworkRepository:
-        """Return the network repository of the current transaction.
-
-        Returns:
-            BoardNetworkRepository: Network repository.
-        """
+        """Хранилище сетей плат нынешней транзакции."""
         return self.repository(SqlBoardNetworkRepository)
 
 
 def make_board_onboarding_unit_of_work(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> BoardOnboardingUnitOfWorkFactory:
-    """Build the factory producing units of work over the boards.
+    """Строит фабрику границ транзакции над платами.
 
     Args:
-        session_factory: Factory producing sessions.
+        session_factory: Фабрика сессий.
 
     Returns:
-        BoardOnboardingUnitOfWorkFactory: Callable handing out a fresh unit of
-        work.
+        BoardOnboardingUnitOfWorkFactory: Вызываемый объект, дающий свежую границу.
     """
 
     def factory() -> SqlBoardOnboardingUnitOfWork:
-        """Create a new unit of work over the boards.
-
-        Returns:
-            SqlBoardOnboardingUnitOfWork: Unit of work bound to its own session.
-        """
+        """Создаёт новую границу над платами."""
         return SqlBoardOnboardingUnitOfWork(session_factory)
 
     return factory

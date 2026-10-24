@@ -1,4 +1,4 @@
-"""Lifecycle stage of a timed scenario."""
+"""Этап жизни отложенного сценария."""
 
 from __future__ import annotations
 
@@ -6,14 +6,7 @@ from enum import StrEnum
 
 
 class ScenarioStatus(StrEnum):
-    """Where a scenario is in its life.
-
-    Args:
-        None.
-
-    Returns:
-        None.
-    """
+    """Где сценарий находится в своей жизни."""
 
     PENDING = "PENDING"
     RUNNING = "RUNNING"
@@ -23,19 +16,19 @@ class ScenarioStatus(StrEnum):
 
     @property
     def is_final(self) -> bool:
-        """Return whether the scenario will never act again.
+        """Сообщает, будет ли сценарий действовать ещё когда-нибудь.
 
         Returns:
-            bool: True for completed, failed and cancelled scenarios.
+            bool: True для завершённых, проваленных и отменённых сценариев.
         """
         return self in _FINAL_STATUSES
 
     @property
     def holds_control_priority(self) -> bool:
-        """Return whether the scenario still outranks automation.
+        """Сообщает, ставит ли сценарий себя выше автоматики.
 
         Returns:
-            bool: True for pending and running scenarios.
+            bool: True для ожидающих и идущих сценариев.
         """
         return self in (ScenarioStatus.PENDING, ScenarioStatus.RUNNING)
 

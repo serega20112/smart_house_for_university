@@ -21,34 +21,28 @@ from backend.infrastructure.database.tables import (
 
 
 class SqlAccountQueries:
-    """Reads of the accounts, answered without a transaction.
+    """Чтения аккаунтов без транзакции.
 
-    Args:
-        engine: Engine the reads are executed on.
-
-    Returns:
-        None.
+    Attributes:
+        engine: Движок, на котором выполняют чтения.
     """
 
     def __init__(self, engine: AsyncEngine) -> None:
-        """Initialize the queries.
+        """Инициализирует чтения.
 
         Args:
-            engine: Engine to read from.
-
-        Returns:
-            None.
+            engine: Движок, из которого читают.
         """
         self._engine = engine
 
     async def get_profile(self, user_id: UserId) -> AccountProfile | None:
-        """Return the profile of an account.
+        """Возвращает профиль аккаунта.
 
         Args:
-            user_id: Owner of the account.
+            user_id: Владелец аккаунта.
 
         Returns:
-            AccountProfile | None: Profile, or None when the account is gone.
+            AccountProfile | None: Профиль или None, когда аккаунт исчез.
         """
         async with self._engine.connect() as connection:
             row = await first_row(connection, UserRow, UserRow.id == user_id.value)
@@ -62,17 +56,17 @@ class SqlAccountQueries:
         )
 
     async def get_credentials(self, email: str) -> StoredCredentials | None:
-        """Return the credentials a login belongs to.
+        """Возвращает учётные данные, которым принадлежит логин.
 
-        The stored password is the only thing read here: the profile of the
-        account is a separate question with a separate answer.
+        Сохранённый пароль — единственное, что читают здесь: профиль аккаунта —
+        отдельный вопрос с отдельным ответом.
 
         Args:
-            email: Normalized login of the account.
+            email: Приведённый логин аккаунта.
 
         Returns:
-            StoredCredentials | None: Credentials, or None when no account uses
-            that login.
+            StoredCredentials | None: Учётные данные или None, когда таким логином
+            никто не пользуется.
         """
         async with self._engine.connect() as connection:
             row = await first_row(connection, UserRow, UserRow.email == email)
@@ -81,10 +75,10 @@ class SqlAccountQueries:
         return StoredCredentials(user_id=UserId.parse(row.id), password_hash=row.password_hash)
 
     async def list_registered_ids(self) -> list[UserId]:
-        """Return the identifiers of every registered account.
+        """Возвращает идентификаторы каждого зарегистрированного аккаунта.
 
         Returns:
-            list[UserId]: Registered accounts.
+            list[UserId]: Зарегистрированные аккаунты.
         """
         async with self._engine.connect() as connection:
             result = await connection.execute(select(UserRow.id).order_by(UserRow.id))

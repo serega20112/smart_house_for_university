@@ -1,13 +1,12 @@
-"""Logical device of the smart home.
+"""Логическое устройство умного дома.
 
-A physical relay is not a device. The mapping device to channel is stored here,
-which lets the user decide what a channel means without touching the firmware, and
-it is the reason every automation rule speaks about capabilities instead of relay
-numbers.
+Физическое реле -- это не устройство. Соответствие «устройство -- канал» хранится
+здесь, поэтому человек сам решает, что значит канал, не трогая прошивку; именно
+поэтому любое правило автоматизации говорит о способностях, а не о номерах реле.
 
-The entity owns its own rules: it knows whether it can perform a capability, when
-it takes part in automation and how to change its configuration. Callers never
-assign to its fields.
+Сущность владеет своими правилами: она знает, какую способность может выполнить,
+когда участвует в автоматизации и как менять свою настройку. Полям сущности извне
+не присваивают.
 """
 
 from __future__ import annotations
@@ -28,23 +27,20 @@ MAX_NAME_LENGTH = 120
 
 @dataclass
 class Device:
-    """A device the user configured on a relay channel of their board.
+    """Устройство, которое человек настроил на канале реле своей платы.
 
-    Args:
-        id: Identifier assigned at creation.
-        user_id: Owner of the device.
-        name: Name shown to the user.
-        kind: What the device is for.
-        channel: Relay channel the device is wired to.
-        capabilities: Actions the device is able to perform.
-        enabled: Whether the device may be controlled at all.
-        automation_enabled: Whether the device takes part in automation.
-
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор, выданный при создании.
+        user_id: Владелец устройства.
+        name: Имя, показанное человеку.
+        kind: Для чего устройство.
+        channel: Канал реле, к которому устройство подключено.
+        capabilities: Действия, которые устройство умеет.
+        enabled: Разрешено ли устройством управлять вообще.
+        automation_enabled: Участвует ли устройство в автоматизации.
 
     Raises:
-        InvalidDeviceNameError: When the name is empty or too long.
+        InvalidDeviceNameError: Когда имя пустое или слишком длинное.
     """
 
     id: DeviceId
@@ -61,13 +57,10 @@ class Device:
     )
 
     def __post_init__(self) -> None:
-        """Validate the name of the device.
-
-        Returns:
-            None.
+        """Проверяет имя устройства.
 
         Raises:
-            InvalidDeviceNameError: When the name is empty or too long.
+            InvalidDeviceNameError: Когда имя пустое или слишком длинное.
         """
         trimmed = self.name.strip()
         if not trimmed or len(trimmed) > MAX_NAME_LENGTH:
@@ -75,64 +68,53 @@ class Device:
         self.name = trimmed
 
     def supports(self, capability: Capability) -> bool:
-        """Return whether the device is able to perform a capability.
+        """Сообщает, умеет ли устройство выполнять способность.
 
         Args:
-            capability: Capability to check.
+            capability: Проверяемая способность.
 
         Returns:
-            bool: True when supported.
+            bool: True, когда устройство на это способно.
         """
         return capability in self.capabilities
 
     def require_capability(self, capability: Capability) -> None:
-        """Refuse a capability the device cannot perform.
+        """Отказывает в способности, которую устройство не может выполнить.
 
         Args:
-            capability: Required capability.
-
-        Returns:
-            None.
+            capability: Требованная способность.
 
         Raises:
-            UnsupportedCapabilityError: When the capability is not supported.
+            UnsupportedCapabilityError: Когда способность не поддерживается.
         """
         if not self.supports(capability):
             raise UnsupportedCapabilityError(self.name, capability.value)
 
     @property
     def is_controllable(self) -> bool:
-        """Return whether the device may be driven by anything at all.
-
-        Returns:
-            bool: True when the device is enabled.
-        """
+        """Сообщает, можно ли этим устройством хоть как-то управлять."""
         return self.enabled
 
     @property
     def takes_part_in_automation(self) -> bool:
-        """Return whether automation is allowed to drive this device.
-
-        Returns:
-            bool: True when the device is enabled and opted in.
-        """
+        """Сообщает, разрешено ли вести это устройство автоматизации."""
         return self.enabled and self.automation_enabled
 
     def drive(self, capability: Capability, source_is_manual: bool) -> DeviceStatus:
-        """Record that a capability was performed on this device.
+        """Записывает, что на этом устройстве выполнили способность.
 
-        The entity does not talk to the hardware; it validates the request, keeps
-        the fact and states what the device looks like afterwards.
+        Сущность не разговаривает с железом: она проверяет запрос, хранит факт и
+        говорит, каким устройство окажется после.
 
         Args:
-            capability: Capability that was performed.
-            source_is_manual: Whether a person asked for it.
+            capability: Выполненная способность.
+            source_is_manual: Просил ли человек или это автоматика/сценарий.
 
         Returns:
-            DeviceStatus: State the device reached.
+            DeviceStatus: Состояние, которого устройство достигло.
 
         Raises:
-            UnsupportedCapabilityError: When the capability is not supported.
+            UnsupportedCapabilityError: Когда способность не поддерживается.
         """
         self.require_capability(capability)
         result = DeviceStatus.after(capability)
@@ -149,19 +131,15 @@ class Device:
         return result
 
     def record_change(self) -> None:
-        """Record that the configuration of this device changed.
-
-        Returns:
-            None.
-        """
+        """Записывает, что настройка этого устройства изменилась."""
         self._events.append(DeviceConfigured(user_id=self.user_id, device_id=self.id))
 
     def pull_events(self) -> tuple[DeviceConfigured | DeviceCapabilityApplied, ...]:
-        """Return the recorded facts and forget them.
+        """Возвращает записанные факты и забывает их.
 
         Returns:
-            tuple[DeviceConfigured | DeviceCapabilityApplied, ...]: Facts recorded
-            since the last call.
+            tuple[DeviceConfigured | DeviceCapabilityApplied, ...]: Факты с
+            прошлого обращения.
         """
         recorded = tuple(self._events)
         self._events.clear()
@@ -177,21 +155,19 @@ class Device:
         enabled: bool | None = None,
         automation_enabled: bool | None = None,
     ) -> None:
-        """Apply a partial change to the configuration.
+        """Применяет частичное изменение настройки.
 
         Args:
-            name: New name or None to keep the current one.
-            kind: New kind or None to keep the current one.
-            channel: New relay channel or None to keep the current one.
-            capabilities: New capabilities or None to keep the current ones.
-            enabled: New availability flag or None to keep the current one.
-            automation_enabled: New automation flag or None to keep the current one.
-
-        Returns:
-            None.
+            name: Новое имя или None оставить нынешнее.
+            kind: Новое назначение или None оставить нынешнее.
+            channel: Новый канал реле или None оставить нынешний.
+            capabilities: Новые способности или None оставить нынешние.
+            enabled: Новый признак доступности или None оставить нынешний.
+            automation_enabled: Новый признак автоматизации или None оставить
+                нынешний.
 
         Raises:
-            InvalidDeviceNameError: When the new name is empty or too long.
+            InvalidDeviceNameError: Когда новое имя пустое или слишком длинное.
         """
         if name is not None:
             trimmed = name.strip()
@@ -221,19 +197,19 @@ class Device:
         enabled: bool = True,
         automation_enabled: bool = True,
     ) -> Self:
-        """Build a new device with an identifier of its own.
+        """Строит новое устройство с собственным идентификатором.
 
         Args:
-            user_id: Owner of the device.
-            name: Name shown to the user.
-            kind: What the device is for.
-            channel: Relay channel the device is wired to.
-            capabilities: Actions the device is able to perform.
-            enabled: Whether the device may be controlled at all.
-            automation_enabled: Whether the device takes part in automation.
+            user_id: Владелец устройства.
+            name: Имя, показанное человеку.
+            kind: Для чего устройство.
+            channel: Канал реле, к которому устройство подключают.
+            capabilities: Действия, которые устройство умеет.
+            enabled: Разрешено ли устройством управлять вообще.
+            automation_enabled: Участвует ли устройство в автоматизации.
 
         Returns:
-            Self: Created device.
+            Self: Созданное устройство.
         """
         return cls(
             id=DeviceId.generate(),

@@ -1,13 +1,13 @@
-"""Structured logging for the whole process.
+"""Структурированный журнал всего процесса.
 
-Every module obtains its logger through :func:`get_logger`, which returns a
-``structlog`` bound logger. Context is passed as keyword arguments
-(``log.info("board.online", board_id=..., user_id=...)``) and is rendered into the
-same line as the event, which removes the ``extra={"ctx": {...}}`` dictionary
-every call site used to build by hand.
+Каждый модуль берёт свой журнал через :func:`get_logger` — это привязанный логгер
+``structlog``. Контекст передают именованными аргументами
+(``log.info("board.online", board_id=..., user_id=...)``), и он рисуется в той же строке, что
+и событие: словарь ``extra={"ctx": {...}}``, который каждое место вызования собирало руками,
+больше не нужен.
 
-Records stay machine readable and free of personal data: only device names,
-channel numbers and technical identifiers are ever written.
+Записи остаются машиночитаемыми и свободными от персональных данных: пишут только имена
+устройств, номера каналов и технические идентификаторы.
 """
 
 from __future__ import annotations
@@ -33,21 +33,17 @@ _configured = False
 
 
 def configure_logging(level: str = "INFO") -> None:
-    """Configure structlog and the standard library bridge once per process.
+    """Настраивает structlog и мост стандартной библиотеки один раз на процесс.
 
-    The standard library logging tree is routed into structlog as well, so a
-    record produced by SQLAlchemy, ARQ or the Telegram library is rendered with
-    the same pipeline as one produced by this application instead of appearing as
-    a bare string in the middle of the JSON stream.
+    Дерево журналирования стандартной библиотеки тоже заводят в structlog, поэтому
+    запись от SQLAlchemy, ARQ или библиотеки Telegram рисуется тем же конвейером, а не
+    голой строкой посреди потока JSON.
 
-    Calling the function twice is harmless: the second call keeps the first
-    configuration, which lets a test and a composition root both ask for it.
+    Вызвать функцию дважды безопасно: второй раз оставляет первую настройку, поэтому за
+    ней могут прийти и тест, и композиционный корень.
 
     Args:
-        level: Minimum level every record is rendered at.
-
-    Returns:
-        None.
+        level: Минимальный уровень, с которым рисуют всякую запись.
     """
     global _configured
     if _configured:
@@ -76,14 +72,14 @@ def configure_logging(level: str = "INFO") -> None:
 
 
 def get_logger(name: str = "") -> structlog.stdlib.BoundLogger:
-    """Return a structured logger of the application namespace.
+    """Возвращает структурированный журнал пространства имён приложения.
 
     Args:
-        name: Module or component name, appended to the namespace of the
-            application.
+        name: Имя модуля или компонента, добавляемое к пространству имён приложения.
 
     Returns:
-        structlog.stdlib.BoundLogger: Logger accepting keyword context.
+        structlog.stdlib.BoundLogger: Журнал, принимающий контекст именованными
+            аргументами.
     """
     qualified = f"{LOGGER_ROOT}.{name}" if name else LOGGER_ROOT
     return structlog.get_logger(qualified)

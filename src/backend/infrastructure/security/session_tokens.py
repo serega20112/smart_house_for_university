@@ -34,9 +34,6 @@ class MissingSigningSecretError(RuntimeError):
 
         Args:
             message: Причина человеческими словами, если вызывающий знает её точнее.
-
-        Returns:
-            None.
         """
         super().__init__(
             message
@@ -63,9 +60,6 @@ class JwtSessionTokenIssuer(SessionTokenIssuer):
             secret: Ключ подписи.
             lifetime_minutes: Срок только что выданной сессии.
             leeway_seconds: Расхождение часов, которое ещё принимается при проверке.
-
-        Returns:
-            None.
 
         Raises:
             MissingSigningSecretError: Когда ключа нет или он короче допустимого.

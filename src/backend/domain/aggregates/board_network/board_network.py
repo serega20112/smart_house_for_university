@@ -1,12 +1,12 @@
-"""The network a board is told to use.
+"""Сеть, которую плате предписано использовать.
 
-A board that was set up on its own already has a network, and the backend learns
-which one from the handshake. This aggregate is the other half: the network the
-owner asked for in the interface and the backend hands to the board.
+Плата, настроившаяся сама, уже знает сеть, и бэкенд узнаёт её из handshake. Этот
+агрегат — вторая половина: сеть, которую владелец попросил в интерфейсе и которую
+бэкенд передаёт плате.
 
-The two are kept apart on purpose. What the board reports is what it is on right
-now and lives with the board itself, while this is what it is to be on, and the
-two differ while a change is on its way.
+Держать их врозь — намеренно. То, о чём сообщает плата, есть то, где она находится
+сейчас и живёт вместе с платой; это же — где ей над быть, и значения расходятся, пока
+изменение в пути.
 """
 
 from __future__ import annotations
@@ -20,16 +20,13 @@ from backend.domain.value_objects.boards.network_profile import NetworkProfile
 
 @dataclass(frozen=True, slots=True)
 class BoardNetwork:
-    """The network one board is to use.
+    """Сеть, которую должна использовать одна плата.
 
-    Args:
-        board_id: Board the network belongs to.
-        user_id: Owner of the board.
-        profile: Settings the backend asked the board to use.
-        updated_at: Moment the settings were written.
-
-    Returns:
-        None.
+    Attributes:
+        board_id: Плата, к которой относится сеть.
+        user_id: Владелец платы.
+        profile: Настройки, которые бэкенд велел плате применить.
+        updated_at: Момент записи настроек.
     """
 
     board_id: EspDeviceId

@@ -1,13 +1,12 @@
-"""Turning phrases into vectors.
+"""Превращает фразы в векторы.
 
-The classifier compares meanings, so it needs a real semantic encoder. A hashed
-bag of words cannot tell "выключи свет" from "включи свет" apart in any direction
-that matters, which is why no fallback encoder exists in this package: a system
-that silently degrades to a meaningless similarity is worse than a system that
-refuses to start.
+Классификатор сравнивает смыслы, поэтому настоящий смысловой кодировщик ему нужен.
+Хешированный мешок слов не отличит «выключи свет» от «включи свет» ни в каком важном
+направлении, поэтому запасного кодировщика в этом пакете нет: система, молча скатывающаяся
+к бессмысленному сходству, хуже системы, которая отказывается запускаться.
 
-The model is loaded from the configuration, and a missing dependency raises
-:class:`EmbeddingsUnavailableError` before the first request is served.
+Модель берут из конфигурации, и отсутствующая зависимость поднимает
+:class:`EmbeddingsUnavailableError` до того, как будет обслужен первый запрос.
 """
 
 from __future__ import annotations
@@ -27,74 +26,61 @@ INSTALL_HINT = (
 
 
 class EmbeddingsUnavailableError(RuntimeError):
-    """The sentence embedding model cannot be loaded.
+    """Модель кодирования предложений не удаётся загрузить.
 
     Args:
-        model_name: Name of the model that was asked for.
-        reason: What the loader reported.
-
-    Returns:
-        None.
+        model_name: Название запрошенной модели.
+        reason: О чём сообщил загрузчик.
     """
 
     def __init__(self, model_name: str, reason: str) -> None:
-        """Initialize the failure.
+        """Инициализирует отказ.
 
         Args:
-            model_name: Name of the model that was asked for.
-            reason: What the loader reported.
-
-        Returns:
-            None.
+            model_name: Название запрошенной модели.
+            reason: О чём сообщил загрузчик.
         """
         super().__init__(f"cannot load the embedding model {model_name!r}: {reason}")
         self.model_name = model_name
 
 
 class Embedder(Protocol):
-    """Produces the normalized vector of a phrase."""
+    """Выдаёт нормированный вектор фразы."""
 
     def encode(self, texts: Sequence[str]) -> list[list[float]]:
-        """Return the vector representation of each phrase.
+        """Возвращает векторное представление каждой фразы.
 
         Args:
-            texts: Phrases to encode.
+            texts: Фразы для кодирования.
 
         Returns:
-            list[list[float]]: One vector per phrase.
+            list[list[float]]: По одному вектору на фразу.
         """
 
 
 class SentenceTransformerEmbedder(Embedder):
-    """Encoder backed by a multilingual sentence transformers model.
+    """Кодировщик на многоязычной модели sentence transformers.
 
-    Args:
-        model_name: Name of the sentence transformers model.
-        device: Torch device used for inference.
-        dimensions: Expected length of a produced vector.
-
-    Returns:
-        None.
+    Attributes:
+        model_name: Название модели sentence transformers.
+        device: Устройство torch, на котором идут выводы.
+        dimensions: Ожидаемая длина полученного вектора.
 
     Raises:
-        EmbeddingsUnavailableError: When the library or the model cannot be
-            loaded.
+        EmbeddingsUnavailableError: Когда библиотеку или модель не удалось загрузить.
     """
 
     def __init__(self, model_name: str, device: str, dimensions: int) -> None:
-        """Load the model.
+        """Загружает модель.
 
         Args:
-            model_name: Name of the sentence transformers model.
-            device: Torch device used for inference.
-            dimensions: Expected length of a produced vector.
-
-        Returns:
-            None.
+            model_name: Название модели sentence transformers.
+            device: Устройство torch, на котором идут выводы.
+            dimensions: Ожидаемая длина полученного вектора.
 
         Raises:
-            EmbeddingsUnavailableError: When the library or the model cannot be
-                loaded.
+            EmbeddingsUnavailableError: Когда библиотеку или модель не удалось
+                загрузить.
         """
         try:
             from sentence_transformers import SentenceTransformer
@@ -114,17 +100,17 @@ class SentenceTransformerEmbedder(Embedder):
         )
 
     def encode(self, texts: Sequence[str]) -> list[list[float]]:
-        """Return the vector representation of each phrase.
+        """Возвращает векторное представление каждой фразы.
 
         Args:
-            texts: Phrases to encode.
+            texts: Фразы для кодирования.
 
         Returns:
-            list[list[float]]: One normalized vector per phrase.
+            list[list[float]]: По одному нормированному вектору на фразу.
 
         Raises:
-            EmbeddingsUnavailableError: When the model produced a vector of an
-                unexpected length, which would silently corrupt every search.
+            EmbeddingsUnavailableError: Когда модель дала вектор неожиданной длины —
+                иначе каждая выдача молча портилась бы.
         """
         if not texts:
             return []
@@ -141,30 +127,29 @@ class SentenceTransformerEmbedder(Embedder):
         return encoded
 
     async def encode_async(self, texts: Sequence[str]) -> list[list[float]]:
-        """Return the vector representation of each phrase off the event loop.
+        """Возвращает векторное представление фраз, не занимая цикл событий.
 
         Args:
-            texts: Phrases to encode.
+            texts: Фразы для кодирования.
 
         Returns:
-            list[list[float]]: One normalized vector per phrase.
+            list[list[float]]: По одному нормированному вектору на фразу.
         """
         return await asyncio.to_thread(self.encode, texts)
 
 
 def load_embedder(model_name: str, device: str, dimensions: int) -> Embedder:
-    """Load the encoder named by the configuration.
+    """Загружает кодировщик, названный в конфигурации.
 
     Args:
-        model_name: Name of the sentence transformers model.
-        device: Torch device used for inference.
-        dimensions: Expected length of a produced vector.
+        model_name: Название модели sentence transformers.
+        device: Устройство torch, на котором идут выводы.
+        dimensions: Ожидаемая длина полученного вектора.
 
     Returns:
-        Embedder: Loaded encoder.
+        Embedder: Загруженный кодировщик.
 
     Raises:
-        EmbeddingsUnavailableError: When the library or the model cannot be
-            loaded.
+        EmbeddingsUnavailableError: Когда библиотеку или модель не удалось загрузить.
     """
     return SentenceTransformerEmbedder(model_name, device, dimensions)

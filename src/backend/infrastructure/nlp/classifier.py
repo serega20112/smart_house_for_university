@@ -1,14 +1,13 @@
-"""Intent classification over a pgvector index of reference phrases.
+"""Разбор намерения по индексу pgvector опорных фраз.
 
-A sentence is embedded once and matched against the reference phrases of every
-intent with the cosine distance operator of Postgres, so the nearest neighbours
-come back from the store itself instead of from a list this process happens to
-hold. The index behind the column is an HNSW graph, which is what keeps the
-search fast enough to run on every sentence the interface receives.
+Предложение кодируют один раз и сравнивают с опорными фразами каждого намерения
+оператором косинусного расстояния Postgres, поэтому ближайшие сосед приходят из самого
+хранилища, а не из списка, который случайно держит процесс. Индекс за колонкой — граф
+HNSW, и именно он оставляет поиск достаточно быстрым, чтобы идти на каждое предложение
+интерфейса.
 
-The parameters of a sentence are not guessed here: the classifier produces the
-intent and the confidence, and the parser produces the typed values the
-application asked for.
+Параметры предложения здесь не угадывают: классификатор даёт намерение и уверенность, а
+разборщик даёт типизированные значения, о которых попросило приложение.
 """
 
 from __future__ import annotations
@@ -45,15 +44,12 @@ log = get_logger("nlp.classifier")
 
 @dataclass(frozen=True, slots=True)
 class IntentMatch:
-    """The nearest reference phrase of a sentence.
+    """Ближайшая опорная фраза предложения.
 
-    Args:
-        intent: Intent the phrase stands for.
-        phrase: Reference phrase that was matched.
-        confidence: Cosine similarity between zero and one.
-
-    Returns:
-        None.
+    Attributes:
+        intent: Намерение, которое фраза означает.
+        phrase: Опорная фраза, с которой вышло совпадение.
+        confidence: Косинусная близость от нуля до единицы.
     """
 
     intent: Intent
@@ -62,16 +58,13 @@ class IntentMatch:
 
 
 class VectorIntentClassifier(CommandUnderstandingPort):
-    """Understands a sentence with a pgvector nearest neighbour search.
+    """Понимает предложение поиском ближайшего соседа в pgvector.
 
-    Args:
-        engine: Engine the reference phrases are read from.
-        embedder: Encoder turning a sentence into a vector.
-        parser: Reader of the parameters of a sentence.
-        confidence_threshold: Score a home changing intent has to reach.
-
-    Returns:
-        None.
+    Attributes:
+        engine: Движок, из которого читают опорные фразы.
+        embedder: Кодировщик, превращающий предложение в вектор.
+        parser: Читатель параметров предложения.
+        confidence_threshold: Оценка, до которой должно дотянуть намерение, меняющее дом.
     """
 
     def __init__(
@@ -81,16 +74,14 @@ class VectorIntentClassifier(CommandUnderstandingPort):
         parser: SentenceParser,
         confidence_threshold: float,
     ) -> None:
-        """Initialize the classifier.
+        """Инициализирует классификатор.
 
         Args:
-            engine: Engine the reference phrases are read from.
-            embedder: Encoder turning a sentence into a vector.
-            parser: Reader of the parameters of a sentence.
-            confidence_threshold: Score a home changing intent has to reach.
-
-        Returns:
-            None.
+            engine: Движок, из которого читают опорные фразы.
+            embedder: Кодировщик, превращающий предложение в вектор.
+            parser: Читатель параметров предложения.
+            confidence_threshold: Оценка, до которой должно дотянуть намерение,
+                меняющее дом.
         """
         self._engine = engine
         self._embedder = embedder
@@ -98,14 +89,14 @@ class VectorIntentClassifier(CommandUnderstandingPort):
         self._threshold = confidence_threshold
 
     async def understand(self, text: str) -> CommandUnderstanding:
-        """Interpret a sentence.
+        """Толкует предложение.
 
         Args:
-            text: Raw sentence as the interface received it.
+            text: Предложение в сыром виде, каким его получил интерфейс.
 
         Returns:
-            CommandUnderstanding: What the pipeline made of it. The intent is
-            None when the index holds nothing comparable to the sentence.
+            CommandUnderstanding: То, что из него сделал конвейер. Намерение равно
+            None, когда в индексе нет ничего сравнимого с предложением.
         """
         facts = self._parser.parse(text)
         match = await self.classify(text)
@@ -122,17 +113,17 @@ class VectorIntentClassifier(CommandUnderstandingPort):
         )
 
     async def is_confident_enough(self, understanding: CommandUnderstanding) -> bool:
-        """Return whether an understanding may be carried out.
+        """Сообщает, можно ли выполненное понимание пускать в дело.
 
-        The threshold guards the intents that change the home. Asking how warm it
-        is cannot break anything, so a weak match of a read only intent is still
-        answered instead of turning into a question.
+        Порог сторожит намерения, меняющие дом. Спросить, насколько тепло, сломать
+        ничего не может, поэтому слабого совпадения намерения чтения достаточно и
+        ответа вместо встречного вопроса.
 
         Args:
-            understanding: Result of the pipeline.
+            understanding: Результат конвейера.
 
         Returns:
-            bool: True when the command may proceed.
+            bool: True, когда команде можно идти дальше.
         """
         intent = understanding.intent
         if intent is None or not intent.changes_the_home:
@@ -140,14 +131,14 @@ class VectorIntentClassifier(CommandUnderstandingPort):
         return understanding.confidence >= self._threshold
 
     async def classify(self, text: str) -> IntentMatch | None:
-        """Return the nearest reference phrase of a sentence.
+        """Возвращает ближайшую опорную фразу предложения.
 
         Args:
-            text: Raw sentence as the interface received it.
+            text: Предложение в сыром виде, каким его получил интерфейс.
 
         Returns:
-            IntentMatch | None: Nearest reference phrase, or None when the index
-            is empty or holds nothing comparable.
+            IntentMatch | None: Ближайшая опорная фраза, или None, когда индекс пуст
+            или не содержит ничего сравнимого.
         """
         vectors = await asyncio.to_thread(self._embedder.encode, [text])
         if not vectors:
@@ -183,38 +174,31 @@ async def _nearest(connection: AsyncConnection, vector: list[float]) -> list[Row
 
 
 class ReferencePhraseSeeder:
-    """Fills the index with the reference phrases of the vocabulary.
+    """Наполняет индекс опорными фразами словаря.
 
-    Seeding is an explicit startup step rather than a side effect of a search:
-    an index that fills itself the first time somebody asks a question turns a
-    slow first request into a timeout.
+    Наполнение — явный шаг запуска, а не побочный эффект поиска: индекс, который сам
+    заполняется при первом вопросе, превращает первую медленную заявку в таймаут.
 
-    Args:
-        engine: Engine the reference phrases are written to.
-        embedder: Encoder turning a phrase into a vector.
-
-    Returns:
-        None.
+    Attributes:
+        engine: Движок, в который записывают опорные фразы.
+        embedder: Кодировщик, превращающий фразу в вектор.
     """
 
     def __init__(self, engine: AsyncEngine, embedder: Embedder) -> None:
-        """Initialize the seeder.
+        """Инициализирует заполнитель.
 
         Args:
-            engine: Engine the reference phrases are written to.
-            embedder: Encoder turning a phrase into a vector.
-
-        Returns:
-            None.
+            engine: Движок, в который записывают опорные фразы.
+            embedder: Кодировщик, превращающий фразу в вектор.
         """
         self._engine = engine
         self._embedder = embedder
 
     async def seed(self) -> int:
-        """Store every reference phrase of the vocabulary that is missing.
+        """Сохраняет каждую отсутствующую опорную фразу словаря.
 
         Returns:
-            int: Number of rows that were written.
+            int: Число записанных строк.
         """
         pairs = vocabulary.reference_pairs()
         async with self._engine.begin() as connection:

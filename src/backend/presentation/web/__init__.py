@@ -1,4 +1,4 @@
-"""Serving of the built web interface."""
+"""Отдача собранного веб-интерфейса."""
 
 from backend.presentation.web.frontend import mount_frontend, resolve_dist
 

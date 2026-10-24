@@ -1,4 +1,4 @@
-"""A new dashboard layout."""
+"""Новая раскладка главного экрана."""
 
 from __future__ import annotations
 
@@ -9,13 +9,10 @@ from backend.domain.value_objects.personalization.dashboard_widget import Dashbo
 
 @dataclass(frozen=True, slots=True)
 class DashboardPatch:
-    """The layout the interface is asked to store.
+    """Раскладка, которую просят интерфейс сохранить.
 
-    Args:
-        widgets: Widgets in the order they have to be rendered.
-
-    Returns:
-        None.
+    Attributes:
+        widgets: Карточки в порядке вывода.
     """
 
     widgets: tuple[DashboardWidget, ...]

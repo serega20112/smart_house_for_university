@@ -12,44 +12,32 @@ from sqlalchemy.ext.asyncio import AsyncSession, AsyncSessionTransaction, async_
 
 
 class SessionBound(Protocol):
-    """A repository that takes the session of a transaction.
+    """Хранилище, принимающее сессию транзакции.
 
-    Args:
-        session: Session the unit of work opened.
-
-    Returns:
-        None.
+    Attributes:
+        session: Сессия, которую открыла граница транзакции.
     """
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize the repository with the session of the transaction.
+        """Инициализирует хранилище сессией текущей транзакции.
 
         Args:
-            session: Session bound to the current transaction.
-
-        Returns:
-            None.
+            session: Сессия, привязанная к нынешней транзакции.
         """
 
 
 class SqlUnitOfWork:
-    """One session, one transaction, and the repositories bound to them.
+    """Одна сессия, одна транзакция и привязанные к ним хранилища.
 
-    Args:
-        session_factory: Factory producing the session of the block.
-
-    Returns:
-        None.
+    Attributes:
+        session_factory: Фабрика, дающая сессию блока.
     """
 
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
-        """Initialize the unit of work.
+        """Инициализирует границу транзакции.
 
         Args:
-            session_factory: Factory producing sessions.
-
-        Returns:
-            None.
+            session_factory: Фабрика сессий.
         """
         self._session_factory = session_factory
         self._session: AsyncSession | None = None
@@ -57,10 +45,10 @@ class SqlUnitOfWork:
         self._repositories: dict[type[SessionBound], SessionBound] = {}
 
     async def __aenter__(self) -> Self:
-        """Open the session and the transaction of the block.
+        """Открывает сессию и транзакцию блока.
 
         Returns:
-            Self: Unit of work for use inside the block.
+            Self: Граница, годная к употреблению внутри блока.
         """
         self._session = self._session_factory()
         self._transaction = await self._session.begin()
@@ -73,14 +61,14 @@ class SqlUnitOfWork:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """End the transaction and release the session.
+        """Заканчивает транзакцию и отпускает сессию.
 
-        The exception, if there was one, keeps propagating after the rollback.
+        Исключение, если оно было, продолжается после отката.
 
         Args:
-            exc_type: Raised exception type or None.
-            exc_val: Raised exception value or None.
-            exc_tb: Raised exception traceback or None.
+            exc_type: Тип поднятого исключения или None.
+            exc_val: Само исключение или None.
+            exc_tb: Его traceback или None.
         """
         try:
             if exc_type is None:
@@ -95,48 +83,43 @@ class SqlUnitOfWork:
             self._repositories.clear()
 
     async def commit(self) -> None:
-        """Persist everything done inside the block atomically.
-
-        Returns:
-            None.
-        """
+        """Атомарно сохраняет всё сделанное внутри блока."""
         if self._transaction is not None:
             await self._transaction.commit()
 
     async def rollback(self) -> None:
-        """Discard everything done inside the block.
-
-        Returns:
-            None.
-        """
+        """Отменяет всё сделанное внутри блока."""
         if self._transaction is not None:
             await self._transaction.rollback()
 
     @property
     def session(self) -> AsyncSession:
-        """Return the session of the current transaction.
+        """Возвращает сессию текущей транзакции.
 
         Returns:
-            AsyncSession: Session of the open block.
+            AsyncSession: Сессия открытого блока.
 
         Raises:
-            RuntimeError: When the unit of work is used outside its block.
+            RuntimeError: Когда границу используют вне её блока.
         """
         if self._session is None:
             raise RuntimeError("the unit of work is used outside of its block")
         return self._session
 
     def repository[Bound: SessionBound](self, model: type[Bound]) -> Bound:
-        """Return the one instance of a repository this unit of work hands out.
+        """Возвращает единственный экземпляр хранилища, который даёт эта граница.
+
+        Кеш нужен, чтобы два вызова внутри одной транзакции видели одни и те же
+        объекты, а не два независимых чтения одного состояния.
 
         Args:
-            model: Repository class to return.
+            model: Класс хранилища, который надо вернуть.
 
         Returns:
-            Bound: Repository bound to the session of the current transaction.
+            Bound: Хранилище, привязанное к сессии текущей транзакции.
 
         Raises:
-            RuntimeError: When the unit of work is used outside its block.
+            RuntimeError: Когда границу используют вне её блока.
         """
         if self._session is None:
             raise RuntimeError("the unit of work is used outside of its block")

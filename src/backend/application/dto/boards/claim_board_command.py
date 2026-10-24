@@ -1,4 +1,4 @@
-"""A board the user is taking over from the interface."""
+"""Плата, которую человек забирает из интерфейса."""
 
 from __future__ import annotations
 
@@ -7,14 +7,11 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class ClaimBoardCommand:
-    """The values of a takeover the interface is asked to perform.
+    """Значения запроса забрать плату.
 
-    Args:
-        claim_token: Token of the offer shown next to the board.
-        name: Name the user wants the board to have.
-
-    Returns:
-        None.
+    Attributes:
+        claim_token: Токен предложения, показанного рядом с платой.
+        name: Имя, которое человек хочет дать плате.
     """
 
     claim_token: str

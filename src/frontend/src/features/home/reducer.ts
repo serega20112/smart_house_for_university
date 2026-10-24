@@ -1,37 +1,47 @@
-/** Reducers turning a realtime event into a state patch. */
+/**
+ * Превращение события realtime-канала в заплатку снимка дома.
+ *
+ * Плата приносит показания каждые несколько секунд, поэтому перезапрашивать весь
+ * экран на каждое событие смысла нет: часть изменений дописывается в уже
+ * прочитанный снимок. Всё, чего заплатка выразить не может — список устройств или
+ * очередь сценариев, — честно требует чтения заново.
+ */
 
-import type { Device, HomeState, RealtimeEvent } from "../../services/types";
+import type { DeviceStatus, HomeState, RealtimeEvent } from "../../services/types";
 
 export type StatePatch = Partial<HomeState>;
 
+/** События, после которых снимок перечитывают целиком. */
+const RELOAD_EVENTS: RealtimeEvent[] = [
+  "devices.updated",
+  "scenario.scheduled",
+  "scenario.started",
+  "scenario.finished",
+  "automation.updated",
+  "board.online",
+  "board.offline",
+  "board.paired",
+  "board.network_changed",
+  "board.announcement_published",
+];
+
 /**
- * Tells whether an event changes something the incremental patch cannot
- * express, such as the list of devices or the active scenarios.
+ * Сообщает, можно ли изменить снимок на месте или нужно перечитать.
+ *
+ * @param type Имя пришедшего события.
+ * @returns True, когда заплатка не выражает случившееся.
  */
 export function needsReload(type: RealtimeEvent): boolean {
-  return (
-    type === "scenario.created" ||
-    type === "scenario.started" ||
-    type === "scenario.completed" ||
-    type === "scenario.failed" ||
-    type === "devices.updated" ||
-    type === "esp.error"
-  );
+  return RELOAD_EVENTS.includes(type);
 }
 
 /**
- * Applies a single event to the home snapshot without refetching.
+ * Применяет одно событие к снимку дома без перезапроса.
  *
- * The board reports sensor values every few seconds, so a full reload per event
- * would be both slow and wasteful.
- *
- * Args:
- * state: Current snapshot.
- * type: Name of the received event.
- * payload: Data carried by the event.
-
- * Returns:
- * StatePatch: Fields to merge, empty when the event changes nothing locally.
+ * @param state Текущий снимок.
+ * @param type Имя пришедшего события.
+ * @param payload Данные, которые событие несёт.
+ * @returns Поля для слияния; пусто, когда событие ничего не меняет локально.
  */
 export function reduceEvent(
   state: HomeState,
@@ -40,64 +50,51 @@ export function reduceEvent(
 ): StatePatch {
   switch (type) {
     case "sensor.temperature_changed":
-      return numberPatch("temperature", payload);
+      return readingPatch(state, "temperature", payload);
     case "sensor.humidity_changed":
-      return numberPatch("humidity", payload);
-    case "esp.connected":
-      return typeof payload.online === "boolean" ? { esp_online: payload.online } : {};
-    case "esp.disconnected":
-      return { esp_online: false };
+      return readingPatch(state, "humidity", payload);
     case "device.state_changed":
+    case "board.relay_changed":
       return { devices: patchDeviceStatus(state.devices, payload) };
-    case "automation.state_changed":
-      return { automation: patchAutomation(state, payload) };
     default:
       return {};
   }
 }
 
-function numberPatch(
+/**
+ * Возвращает заплатку одного измеренного значения, не трогая второе.
+ *
+ * @param state Снимок, к которому применяют изменение.
+ * @param key Какое значение климата пришло.
+ * @param payload Данные события.
+ * @returns Поля для слияния.
+ */
+function readingPatch(
+  state: HomeState,
   key: "temperature" | "humidity",
   payload: Record<string, unknown>,
 ): StatePatch {
   const value = payload[key];
-  return typeof value === "number" ? { [key]: value } : {};
+  if (typeof value !== "number") {
+    return {};
+  }
+  return { reading: { ...state.reading, [key]: value } };
 }
 
-function patchDeviceStatus(devices: Device[], payload: Record<string, unknown>): Device[] {
+/**
+ * Меняет состояние одного устройства, не трогая остальные.
+ *
+ * @param devices Устройства снимка.
+ * @param payload Данные события: идентификатор и новое состояние.
+ * @returns Новый список устройств.
+ */
+function patchDeviceStatus(devices: HomeState["devices"], payload: Record<string, unknown>) {
   const deviceId = payload.device_id;
   const status = payload.status;
-  if (typeof deviceId !== "number" || typeof status !== "string") {
+  if (typeof deviceId !== "string" || typeof status !== "string") {
     return devices;
   }
   return devices.map((device) =>
-    device.id === deviceId ? { ...device, status: status as Device["status"] } : device,
+    device.id === deviceId ? { ...device, status: status as DeviceStatus } : device,
   );
-}
-
-function patchAutomation(
-  state: HomeState,
-  payload: Record<string, unknown>,
-): HomeState["automation"] {
-  const current = state.automation;
-  const number = (key: string, fallback: number): number => {
-    const value = payload[key];
-    return typeof value === "number" ? value : fallback;
-  };
-  const flag = (key: string, fallback: boolean): boolean => {
-    const value = payload[key];
-    return typeof value === "boolean" ? value : fallback;
-  };
-  return {
-    enabled: flag("enabled", current.enabled),
-    target_temperature: number("target_temperature", current.target_temperature),
-    min_temperature: number("min_temperature", current.min_temperature),
-    max_temperature: number("max_temperature", current.max_temperature),
-    target_humidity: number("target_humidity", current.target_humidity),
-    min_humidity: number("min_humidity", current.min_humidity),
-    max_humidity: number("max_humidity", current.max_humidity),
-    participating_device_ids: Array.isArray(payload.participating_device_ids)
-      ? (payload.participating_device_ids as number[])
-      : current.participating_device_ids,
-  };
 }

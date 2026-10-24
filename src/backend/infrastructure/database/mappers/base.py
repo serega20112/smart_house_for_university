@@ -1,4 +1,4 @@
-"""Shared mapping helpers used by every entity mapper."""
+"""Общие помощники отображения, нужные каждому мапперу."""
 
 from __future__ import annotations
 
@@ -11,25 +11,24 @@ from backend.infrastructure.database.tables import Base
 
 
 def row_values(table: Table, row: Base) -> dict[str, object]:
-    """Return the column values of a row as a plain mapping.
+    """Возвращает значения колонок строки простым словарём.
 
-    The repositories write through Core statements rather than through the object
-    graph of the session, so a mapped instance has to be flattened first. Keeping
-    that here means no repository has to know which columns a table happens to
-    have.
+    Хранилища пишут запросами Core, а не через объект сессионного графа, поэтому
+    отображённый экземпляр сначала надо разгладить. Держится это здесь, чтобы ни одно
+    хранилище не знало, какие колонки случайно есть у таблицы.
 
     Args:
-        table: Table the row belongs to.
-        row: Row to flatten.
+        table: Таблица, к которой относится строка.
+        row: Строка для разглаживания.
 
     Returns:
-        dict[str, object]: Column name mapped to its value.
+        dict[str, object]: Имя колонки с её значением.
     """
     return {column.name: getattr(row, column.name) for column in table.columns}
 
 
 def as_utc(value: datetime | None) -> datetime | None:
-    """Return a datetime with UTC timezone, or None when the value is None."""
+    """Возвращает момент в часовом поясе UTC или None, если значения нет."""
     if value is None:
         return None
     if value.tzinfo is None:
@@ -38,7 +37,7 @@ def as_utc(value: datetime | None) -> datetime | None:
 
 
 def parse_uuid(raw: str | UUID) -> UUID:
-    """Parse a UUID value, raising on anything that is not a UUID."""
+    """Разбирает значение UUID, падая на всём, что UUID не является."""
     if isinstance(raw, UUID):
         return raw
     return UUID(str(raw))

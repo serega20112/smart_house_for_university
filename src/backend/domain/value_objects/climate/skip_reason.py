@@ -1,4 +1,4 @@
-"""Why an automation demand was not performed."""
+"""Почему требование автоматизации не было выполнено."""
 
 from __future__ import annotations
 
@@ -6,12 +6,11 @@ from enum import StrEnum
 
 
 class SkipReason(StrEnum):
-    """Reason a climate demand was skipped during an automation cycle.
+    """Причина, по которой требование климата пропущено в цикле автоматизации.
 
-    These are the situations in which the model declines to act on a demand
-    that the calculator did emit: the home does not want automation right now,
-    a person overrode it manually, or there is no usable sensor reading to
-    drive a decision.
+    Это ситуации, в которых модель отказывается действовать по требованию, которое
+    вычислитель всё-таки выдал: дом сейчас не хочет автоматику, человек вмешался
+    руками, или пригодных показаний датчиков для решения нет.
     """
 
     AUTOMATION_DISABLED = "automation_disabled"

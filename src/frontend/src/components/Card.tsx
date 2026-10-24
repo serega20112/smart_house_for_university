@@ -1,4 +1,4 @@
-/** Card container giving the interface its visual rhythm. */
+/** Карточка: она задаёт интерфейсу зрительный ритм. */
 
 import type { ReactNode } from "react";
 

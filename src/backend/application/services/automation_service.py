@@ -1,12 +1,11 @@
-"""Keeping the climate inside the band the user configured.
+"""Держит климат внутри коридора, который настроил человек.
 
-One cycle reads the current values, asks the model which demands they produce,
-resolves a device per demand and performs it. The cycle runs for one home at a time,
-so every account stays independent even though one worker serves all of them.
+Один цикл читает нынешние значения, спрашивает модель, какие требования они порождают,
+находит на каждое требование устройство и выполняет его. Цикл идёт для одного дома за
+раз, поэтому каждый аккаунт остаётся независимым, хотя один процесс обслуживает всех.
 
-The service never opens a transaction for the whole cycle: the configuration is read
-once, then every command runs against the hardware without holding a database
-connection open.
+Сервис никогда не держит транзакцию на весь цикл: конфигурацию читают один раз, после
+чего каждая команда идёт в железо, не удерживая соединение с базой.
 """
 
 from __future__ import annotations
@@ -28,7 +27,7 @@ from backend.domain.value_objects.climate.skip_reason import SkipReason
 
 
 class AutomationService:
-    """Runs one automation cycle of a home."""
+    """Проводит один цикл автоматизации одного дома."""
 
     def __init__(
         self,
@@ -39,18 +38,15 @@ class AutomationService:
         selector: DeviceSelector,
         clock: Clock,
     ) -> None:
-        """Initialize the service.
+        """Инициализирует сервис.
 
         Args:
-            home_uow: Factory producing transactions over the configuration.
-            control: Service performing capabilities against the hardware.
-            state_store: Durable home of the volatile state.
-            demands: Model component deciding what the climate is asking for.
-            selector: Domain resolver of devices by capability.
-            clock: Source of the current time.
-
-        Returns:
-            None.
+            home_uow: Фабрика транзакций над конфигурацией.
+            control: Сервис, выполняющий способности на железе.
+            state_store: Надёжный дом изменчивого состояния.
+            demands: Часть модели, решающая, о чём просит климат.
+            selector: Доменный поиск устройств по способности.
+            clock: Источник текущего времени.
         """
         self._home_uow = home_uow
         self._control = control
@@ -60,14 +56,13 @@ class AutomationService:
         self._clock = clock
 
     async def run_cycle(self, user_id: UserId) -> AutomationCycleReport:
-        """Run one cycle and report what it did.
+        """Проводит один цикл и отчитывается, что он сделал.
 
         Args:
-            user_id: Owner whose home is being automated.
+            user_id: Владелец дома, который автоматизируют.
 
         Returns:
-            AutomationCycleReport: Demands that were carried out, or why nothing
-            was.
+            AutomationCycleReport: Выполненные требования или почему не было ни одного.
         """
         async with self._home_uow() as uow:
             settings = await uow.automation.get(user_id)
@@ -106,17 +101,17 @@ class AutomationService:
         devices: Sequence[Device],
         settings: AutomationSettings,
     ) -> SkipReason | str | None:
-        """Resolve a demand through the domain selector and perform it.
+        """Разрешает требование через доменный поиск и выполняет его.
 
         Args:
-            user_id: Owner of the home.
-            demand: Climate demand to satisfy.
-            devices: Loaded devices of the home.
-            settings: Automation settings used to filter participants.
+            user_id: Владелец дома.
+            demand: Требование климата, которое надо удовлетворить.
+            devices: Загруженные устройства дома.
+            settings: Настройка автоматизации для отсева участников.
 
         Returns:
-            None on success, a SkipReason when the domain declines, or a
-            failure reason string when the board did not answer.
+            None при успехе, SkipReason, когда модель отказывает, или строка причины
+            отказа, когда плата не ответила.
         """
         target = self._selector.first_supporting(
             devices, demand.capability, settings, automation_only=True

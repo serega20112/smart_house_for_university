@@ -1,4 +1,4 @@
-/** Screen shown to a visitor without a session. */
+/** Экран, который виден гостю без сессии. */
 
 import { useState, type FormEvent } from "react";
 
@@ -9,10 +9,10 @@ import type { Session } from "../services/types";
 type Mode = "login" | "register";
 
 /**
- * Collects the credentials of the account and starts a session.
+ * Собирает учётные данные аккаунта и заводит сессию.
  *
- * Registration and login share one form because they need the same fields, and
- * a visitor should not have to guess which button belongs to which flow.
+ * Регистрация и вход делят одну форму, потому что поля нужны те же, а гость не
+ * должен угадывать, какая кнопка к какому пути относится.
  */
 export function AuthPage() {
   const { signIn } = useSession();

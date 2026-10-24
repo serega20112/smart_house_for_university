@@ -1,16 +1,15 @@
-"""Natural language understanding.
+"""Понимание обычного текста.
 
 ``vocabulary``
-    every Russian word the pipeline knows, and the reference phrases of every
-    intent.
+    всякое русское слово, которое знает конвейер, и опорные фразы каждого намерения.
 ``parser``
-    the typed values a sentence carries.
+    типизированные значения, которые несёт предложение.
 ``embeddings``
-    the sentence encoder.
+    кодировщик предложений.
 ``classifier``
-    the nearest neighbour search over the reference phrases in Postgres.
+    поиск ближайшего соседа по опорным фразам в Postgres.
 ``remote``
-    the composite that asks a remote model first.
+    составной конвейер, сперва спрашивающий удалённую модель.
 """
 
 from backend.infrastructure.nlp.classifier import (

@@ -29,34 +29,28 @@ HOLDING_STAGES = (ScenarioStatus.PENDING.value, ScenarioStatus.RUNNING.value)
 
 
 class SqlScenarioQueries:
-    """Reads of the timed scenarios, answered without a transaction.
+    """Чтения временных сценариев без транзакции.
 
-    Args:
-        engine: Engine the reads are executed on.
-
-    Returns:
-        None.
+    Attributes:
+        engine: Движок, на котором выполняют чтения.
     """
 
     def __init__(self, engine: AsyncEngine) -> None:
-        """Initialize the queries.
+        """Инициализирует чтения.
 
         Args:
-            engine: Engine to read from.
-
-        Returns:
-            None.
+            engine: Движок, из которого читают.
         """
         self._engine = engine
 
     async def list_all(self, user_id: UserId) -> list[ScenarioView]:
-        """Return every scenario of an account.
+        """Возвращает все сценарии аккаунта.
 
         Args:
-            user_id: Owner of the scenarios.
+            user_id: Владелец сценариев.
 
         Returns:
-            list[ScenarioView]: Scenarios shaped for display.
+            list[ScenarioView]: Сценарии, приготовленные для показа.
         """
         async with self._engine.connect() as connection:
             result = await connection.execute(
@@ -68,26 +62,25 @@ class SqlScenarioQueries:
             return [await scenario_view_of(connection, row) for row in rows]
 
     async def list_holding_priority(self, user_id: UserId) -> list[ScenarioView]:
-        """Return the scenarios that still outrank automation.
+        """Возвращает сценарии, которые ещё ставят себя выше автоматики.
 
         Args:
-            user_id: Owner of the scenarios.
+            user_id: Владелец сценариев.
 
         Returns:
-            list[ScenarioView]: Pending and running scenarios.
+            list[ScenarioView]: Ожидающие и идущие сценарии.
         """
         return await self._holding(user_id)
 
     async def get(self, user_id: UserId, scenario_id: ScenarioId) -> ScenarioView | None:
-        """Return one scenario of an account.
+        """Возвращает один сценарий аккаунта.
 
         Args:
-            user_id: Owner of the scenario.
-            scenario_id: Identifier of the scenario.
+            user_id: Владелец сценария.
+            scenario_id: Идентификатор сценария.
 
         Returns:
-            ScenarioView | None: Scenario, or None when the account has no such
-            one.
+            ScenarioView | None: Сценарий или None, когда у аккаунта такого нет.
         """
         async with self._engine.connect() as connection:
             row = await first_row(
@@ -101,18 +94,17 @@ class SqlScenarioQueries:
             return await scenario_view_of(connection, row)
 
     async def latest_holding_priority(self, user_id: UserId) -> ScenarioView | None:
-        """Return the most recently scheduled scenario still holding priority.
+        """Возвращает самый свежий сценарий, всё ещё держащий приоритет.
 
-        Choosing it is a property of the stored data, ordered by the moment the
-        scenario was asked for, rather than a guess about the order of a list. Only
-        the newest row is fetched, so the answer costs the same whether the home
-        holds one scenario or a hundred.
+        Выбор следует из сохранённых данных и упорядочен по моменту просьбы, а не по
+        догадке о порядке списка. Берут только последнюю строку, поэтому ответ стоит
+        одинаково дорого — один в доме сценарий или сто.
 
         Args:
-            user_id: Owner of the scenarios.
+            user_id: Владелец сценариев.
 
         Returns:
-            ScenarioView | None: Matching scenario, or None when there is none.
+            ScenarioView | None: Подходящий сценарий или None, когда его нет.
         """
         async with self._engine.connect() as connection:
             result = await connection.execute(
@@ -130,13 +122,13 @@ class SqlScenarioQueries:
             return await scenario_view_of(connection, row)
 
     async def _holding(self, user_id: UserId) -> list[ScenarioView]:
-        """Return the scenarios of an account that still outrank automation.
+        """Возвращает сценарии аккаунта, которые ещё выше автоматики.
 
         Args:
-            user_id: Owner of the scenarios.
+            user_id: Владелец сценариев.
 
         Returns:
-            list[ScenarioView]: Pending and running scenarios, newest first.
+            list[ScenarioView]: Ожидающие и идущие сценарии, свежайшие в начале.
         """
         async with self._engine.connect() as connection:
             result = await connection.execute(
@@ -152,14 +144,14 @@ class SqlScenarioQueries:
 
 
 async def scenario_view_of(connection: AsyncConnection, row: ScenarioRow) -> ScenarioView:
-    """Return the read model of one stored scenario.
+    """Возвращает модель чтения одного сохранённого сценария.
 
     Args:
-        connection: Connection the read is executed on.
-        row: Row to shape.
+        connection: Соединение, на котором выполняют чтение.
+        row: Строка, которую превращают в образ.
 
     Returns:
-        ScenarioView: Scenario shaped for display.
+        ScenarioView: Сценарий, приготовленный для показа.
     """
     scenario = mappers.scenario_from_row(
         row,
@@ -181,14 +173,14 @@ async def scenario_view_of(connection: AsyncConnection, row: ScenarioRow) -> Sce
 async def scenario_actions_of(
     connection: AsyncConnection, row: ScenarioRow
 ) -> tuple[ScenarioAction, ...]:
-    """Return the actions of one stored scenario in the order it declares.
+    """Возвращает действия сохранённого сценария в объявленном им порядке.
 
     Args:
-        connection: Connection the read is executed on.
-        row: Row identifying the scenario.
+        connection: Соединение, на котором выполняют чтение.
+        row: Строка, называющая сценарий.
 
     Returns:
-        tuple[ScenarioAction, ...]: Actions of the scenario.
+        tuple[ScenarioAction, ...]: Действия сценария.
     """
     stored = await every_row(
         connection,
@@ -202,15 +194,15 @@ async def scenario_actions_of(
 async def captured_statuses_of(
     connection: AsyncConnection, row: ScenarioRow
 ) -> dict[DeviceId, DeviceStatus]:
-    """Return the device states captured before one scenario started.
+    """Возвращает состояния устройств, снятые до начала одного сценария.
 
     Args:
-        connection: Connection the read is executed on.
-        row: Row identifying the scenario.
+        connection: Соединение, на котором выполняют чтение.
+        row: Строка, называющая сценарий.
 
     Returns:
-        dict[DeviceId, DeviceStatus]: Device identifiers mapped to the state
-        they had.
+        dict[DeviceId, DeviceStatus]: Идентификаторы устройств с состоянием,
+        в котором они были.
     """
     stored = await every_row(
         connection,

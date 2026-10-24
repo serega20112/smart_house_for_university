@@ -24,47 +24,38 @@ Runner = AsyncConnection | AsyncSession
 
 
 class SqlClaimRepository:
-    """Storage of the boards that announced themselves and wait for an owner.
+    """Хранение плат, которые объявились и ждут хозяина.
 
-    Args:
-        session: Session the unit of work opened for this transaction.
-
-    Returns:
-        None.
+    Attributes:
+        session: Сессия, которую открыла для этой транзакции граница.
     """
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize the repository.
+        """Инициализирует хранилище.
 
         Args:
-            session: Session bound to the current transaction.
-
-        Returns:
-            None.
+            session: Сессия, привязанная к нынешней транзакции.
         """
         self._session = session
 
     async def add(self, claim: EspClaim) -> None:
-        """Store a new offer.
+        """Сохраняет новое предложение.
 
         Args:
-            claim: Offer to persist.
-
-        Returns:
-            None.
+            claim: Предложение для записи.
         """
         values = mappers.row_values(EspClaimRow.__table__, mappers.claim_to_row(claim))
         await self._session.execute(insert(EspClaimRow.__table__).values(**values))
         await self._session.flush()
 
     async def current_for(self, device_key: str) -> EspClaim | None:
-        """Return the newest open offer of a board.
+        """Возвращает самое свежее открытое предложение платы.
 
         Args:
-            device_key: Secret the board presents while connecting.
+            device_key: Секрет, который плата предъявляет при соединении.
 
         Returns:
-            EspClaim | None: Offer, or None when the board never announced itself.
+            EspClaim | None: Предложение или None, когда плата о себе не объявляла.
         """
         result = await self._session.execute(
             select(EspClaimRow)
@@ -76,28 +67,28 @@ class SqlClaimRepository:
         return None if row is None else mappers.claim_from_row(row)
 
     async def open_with_token(self, claim_token: str) -> EspClaim | None:
-        """Return the offer of a token.
+        """Возвращает предложение по его токену.
 
-        A token that was already used still resolves, so the caller can tell a
-        stale offer from a made up one instead of both reading as unknown.
+        Использованный токен тоже разрешается, чтобы вызывающий различил устаревшее
+        предложение от выдуманного, а не получил «неизвестно» на оба.
 
         Args:
-            claim_token: Token shown in the interface.
+            claim_token: Токен, показанный в интерфейсе.
 
         Returns:
-            EspClaim | None: Offer, or None when the token is unknown.
+            EspClaim | None: Предложение или None, когда токен неизвестен.
         """
         row = await first_row(self._session, EspClaimRow, EspClaimRow.claim_token == claim_token)
         return None if row is None else mappers.claim_from_row(row)
 
     async def all_open(self) -> Sequence[EspClaim]:
-        """Return every offer nobody took yet.
+        """Возвращает всякое предложение, которое ещё никто не забрал.
 
-        This is a plain read: it never removes anything, not even an offer that is
-        already over. Purging what expired is a separate command.
+        Это простое чтение: оно ничего не удаляет, даже уже просроченное. Чисткой
+        устаревших заведует отдельная команда.
 
         Returns:
-            Sequence[EspClaim]: Open offers.
+            Sequence[EspClaim]: Открытые предложения.
         """
         result = await self._session.execute(
             select(EspClaimRow)
@@ -107,18 +98,18 @@ class SqlClaimRepository:
         return [mappers.claim_from_row(row) for row in result.scalars().all()]
 
     async def take(self, claim_id: EspClaimId, user_id: UserId) -> bool:
-        """Record conditionally that an account took the offer.
+        """Выборочно записывает, что аккаунт забрал предложение.
 
-        The condition lives in the statement itself, so the store decides the
-        winner of a race instead of this code deciding it from a value it read a
-        moment earlier. The loser of the race sees False and changes nothing.
+        Условие живёт в самом запросе, поэтому победителя гонки решает хранилище, а не
+        этот код по значению, прочитанному мгновением раньше. Проигравший видит False и
+        не меняет ничего.
 
         Args:
-            claim_id: Identifier of the offer.
-            user_id: Account taking the board.
+            claim_id: Идентификатор предложения.
+            user_id: Аккаунт, который забирает плату.
 
         Returns:
-            bool: True when this call was the one that claimed it.
+            bool: True, когда именно этот вызов забрал предложение.
         """
         result = await self._session.execute(
             update(EspClaimRow)
@@ -129,15 +120,15 @@ class SqlClaimRepository:
         return bool(result.rowcount)
 
     async def delete_expired(self, before: datetime) -> int:
-        """Remove the offers that are over.
+        """Убирает предложения, которые перестали быть действительными.
 
-        This is a command and never a side effect of reading.
+        Это команда, а не побочный эффект чтения.
 
         Args:
-            before: Moment the offers have to be older than.
+            before: Момент, старее которого должны быть предложения.
 
         Returns:
-            int: Number of removed offers.
+            int: Число убранных предложений.
         """
         result = await self._session.execute(
             delete(EspClaimRow).where(EspClaimRow.expires_at < before)

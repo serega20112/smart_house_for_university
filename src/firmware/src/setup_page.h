@@ -1,11 +1,10 @@
 /**
  * @file setup_page.h
- * @brief The page the board serves while it waits to be set up.
+ * @brief Страница, которую плата отдаёт, пока её настраивают.
  *
- * The page is stored in the flash of the chip and is served from the board's own
- * access point. It is deliberately tiny: the board answers it from a few
- * kilobytes of memory while the radio is busy, and every extra byte of markup is
- * a byte the socket does not get.
+ * Страница лежит во флеше чипа и отдаётся с собственной точки доступа платы.
+ * Она намеренно крошечная: плата отвечает с нескольких килобайт памяти, пока
+ * радио занято, и каждый лишний байт разметки — байт, который не достался сокету.
  */
 
 #pragma once

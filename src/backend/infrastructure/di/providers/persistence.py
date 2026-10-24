@@ -21,6 +21,7 @@ from backend.infrastructure.database.queries import (
     SqlAutomationQueries,
     SqlBoardQueries,
     SqlDeviceQueries,
+    SqlHomeDeviceDirectory,
     SqlScenarioQueries,
 )
 from backend.infrastructure.database.unit_of_work import (
@@ -28,7 +29,6 @@ from backend.infrastructure.database.unit_of_work import (
     make_board_onboarding_unit_of_work,
     make_home_unit_of_work,
 )
-from backend.infrastructure.home_directory import SqlHomeDeviceDirectory
 
 APP = Scope.APP
 

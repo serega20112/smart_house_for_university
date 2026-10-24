@@ -26,38 +26,32 @@ Runner = AsyncConnection | AsyncSession
 
 
 class SqlAutomationRepository:
-    """Storage of the automation configuration of one account.
+    """Хранение настройки автоматизации одного аккаунта.
 
-    Args:
-        session: Session the unit of work opened for this transaction.
-
-    Returns:
-        None.
+    Attributes:
+        session: Сессия, которую открыла для этой транзакции граница.
     """
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize the repository.
+        """Инициализирует хранилище.
 
         Args:
-            session: Session bound to the current transaction.
-
-        Returns:
-            None.
+            session: Сессия, привязанная к нынешней транзакции.
         """
         self._session = session
 
     async def get(self, user_id: UserId) -> AutomationSettings | None:
-        """Return the stored configuration.
+        """Возвращает сохранённую настройку.
 
-        An account that never configured automation has no row, and this returns
-        None instead of creating one.
+        У аккаунта, который автоматизацию ни разу не настраивал, строки нет, и здесь
+        возвращают None вместо того, чтобы её завести.
 
         Args:
-            user_id: Owner of the configuration.
+            user_id: Владелец настройки.
 
         Returns:
-            AutomationSettings | None: Stored configuration, or None when the
-            account never configured automation.
+            AutomationSettings | None: Сохранённая настройка или None, когда
+                аккаунт автоматизацию не настраивал.
         """
         row = await first_row(self._session, AutomationRow, AutomationRow.user_id == user_id.value)
         if row is None:
@@ -65,21 +59,18 @@ class SqlAutomationRepository:
         return mappers.automation_from_row(row, await participants_of(self._session, user_id))
 
     async def save(self, settings: AutomationSettings) -> None:
-        """Store the automation configuration of an account.
+        """Сохраняет настройку автоматизации аккаунта.
 
-        The row is written as an upsert, so storing the configuration twice in
-        one session does not collide with itself. An existing row is refreshed
-        only when this writer read the revision the row still has, so a stale
-        writer touches nothing instead of overwriting a newer configuration.
+        Строку пишут через upsert, поэтому сохранить настройку дважды за одну сессию —
+        не столкнуть её саму с собой. Существующую строку обновляют только тогда, когда
+        этот записывающий прочитал ту ревизию, что в строке и сейчас: устаревший
+        записывающий не меняет ничего, вместо того чтобы перетереть более новую настройку.
 
         Args:
-            settings: Configuration to persist.
-
-        Returns:
-            None.
+            settings: Настройка для записи.
 
         Raises:
-            ConcurrentModificationError: When the row moved on since it was read.
+            ConcurrentModificationError: Когда строка ушла вперёд с момента чтения.
         """
         refreshed = upsert_columns(AutomationRow.__table__, "user_id", "version")
         refreshed["version"] = settings.version + 1

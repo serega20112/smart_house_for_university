@@ -1,4 +1,4 @@
-"""The network a board is told to use."""
+"""Сеть, которую плате предписано использовать."""
 
 from __future__ import annotations
 
@@ -7,18 +7,15 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class SetNetworkCommand:
-    """The values of a network change the interface is asked to perform.
+    """Значения запроса сменить сеть платы.
 
-    Args:
-        ssid: Name of the wireless network.
-        password: Password of that network, empty when the network is open.
-        host: Address of the server the board reports to.
-        server_port: Port of the ordinary interface of that server.
-        socket_port: Port of the board socket of that server.
-        socket_path: Path of the board socket of that server.
-
-    Returns:
-        None.
+    Attributes:
+        ssid: Имя беспроводной сети.
+        password: Пароль этой сети; пустой, когда сеть открыта.
+        host: Адрес сервера, которому плата докладывается.
+        server_port: Порт обычного интерфейса этого сервера.
+        socket_port: Порт доски этого сервера.
+        socket_path: Путь доски этого сервера.
     """
 
     ssid: str

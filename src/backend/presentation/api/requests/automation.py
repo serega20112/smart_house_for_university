@@ -31,9 +31,7 @@ class AutomationUpdateBody(StrictModel):
     """
 
     enabled: bool | None = None
-    target_temperature: float | None = Field(
-        default=None, ge=TEMPERATURE_MIN, le=TEMPERATURE_MAX
-    )
+    target_temperature: float | None = Field(default=None, ge=TEMPERATURE_MIN, le=TEMPERATURE_MAX)
     temperature_tolerance: float | None = Field(default=None, ge=0.0, le=TEMPERATURE_TOLERANCE_MAX)
     target_humidity: float | None = Field(default=None, ge=HUMIDITY_MIN, le=HUMIDITY_MAX)
     humidity_tolerance: float | None = Field(default=None, ge=0.0, le=HUMIDITY_TOLERANCE_MAX)

@@ -1,13 +1,13 @@
-/** Line icons for the device kinds, drawn instead of imported assets. */
+/** Значки устройств: их рисует код, а не принесённые картинки. */
 
-import type { DeviceType } from "../services/types";
+import type { DeviceKind } from "../services/types";
 
 interface IconProps {
-  type: DeviceType;
+  kind: DeviceKind;
   active: boolean;
 }
 
-const PATHS: Record<DeviceType, JSX.Element> = {
+const PATHS: Record<DeviceKind, JSX.Element> = {
   LIGHT: (
     <>
       <path d="M9 18h6M10 21h4" />
@@ -26,6 +26,12 @@ const PATHS: Record<DeviceType, JSX.Element> = {
     <>
       <path d="M12 3s5 5.5 5 9a5 5 0 0 1-10 0c0-3.5 5-9 5-9Z" />
       <path d="M9.5 14a2.5 2.5 0 0 0 2.5 2.5" />
+    </>
+  ),
+  DEHUMIDIFIER: (
+    <>
+      <path d="M12 21s-5-5.5-5-9a5 5 0 0 1 10 0c0 3.5-5 9-5 9Z" />
+      <path d="M8 5h8M10 3v4M14 3v4" />
     </>
   ),
   AIR_CONDITIONER: (
@@ -54,11 +60,17 @@ const PATHS: Record<DeviceType, JSX.Element> = {
   ),
 };
 
-export function DeviceIcon({ type, active }: IconProps) {
+/**
+ * Возвращает значок назначения устройства.
+ *
+ * @param props.kind Назначение устройства.
+ * @param props.active Нужно ли подсветить значок включённым состоянием.
+ */
+export function DeviceIcon({ kind, active }: IconProps) {
   return (
     <span className={`device__icon ${active ? "device__icon--active" : ""}`.trim()}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        {PATHS[type] ?? PATHS.OTHER}
+        {PATHS[kind] ?? PATHS.OTHER}
       </svg>
     </span>
   );

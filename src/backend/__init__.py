@@ -1,7 +1,7 @@
-"""Smart Home backend.
+"""Бэкенд умного дома.
 
-Layers are domain, application, infrastructure and presentation, with the
-dependencies always pointing inwards.
+Слои — домен, приложение, инфраструктура и презентация; зависимости всегда смотрят
+вовнутрь.
 """
 
 __version__ = "1.0.0"

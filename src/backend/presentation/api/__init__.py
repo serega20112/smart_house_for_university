@@ -22,5 +22,6 @@ api_router.include_router(v1.networks_router)
 api_router.include_router(v1.automation_router)
 api_router.include_router(v1.scenarios_router)
 api_router.include_router(v1.commands_router)
+api_router.include_router(v1.personalization_router)
 
 __all__ = ["api_router"]

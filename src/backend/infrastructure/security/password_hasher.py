@@ -34,9 +34,6 @@ class Pbkdf2PasswordHasher(PasswordHasher):
             только что записанных паролей.
         salt_bytes: Длина соли одного пароля.
         digest: Хеш, используемый внутри PBKDF2.
-
-    Returns:
-        None.
     """
 
     def __init__(
@@ -51,9 +48,6 @@ class Pbkdf2PasswordHasher(PasswordHasher):
             iterations: Число витков одного вывода.
             salt_bytes: Длина соли одного пароля.
             digest: Хеш, используемый внутри PBKDF2.
-
-        Returns:
-            None.
         """
         self._iterations = iterations
         self._salt_bytes = salt_bytes

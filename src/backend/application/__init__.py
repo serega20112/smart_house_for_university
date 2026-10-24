@@ -1,5 +1,5 @@
-"""Application layer.
+"""Прикладной слой.
 
-Use cases, the ports they depend on and the services they share. The layer knows
-nothing about the delivery mechanism, so a new interface only adds a caller.
+Сценарии использования, интерфейсы, от которых они зависят, и общие сервисы. Слой не
+знает ничего про способ доставки, поэтому новый интерфейс лишь добавляет вызывающего.
 """

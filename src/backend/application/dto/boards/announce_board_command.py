@@ -1,4 +1,4 @@
-"""What a board said about itself while dialing in."""
+"""То, что плата сказала о себе, пока дозванивалась."""
 
 from __future__ import annotations
 
@@ -7,14 +7,11 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class AnnounceBoardCommand:
-    """The identity a board presented during its handshake.
+    """Идентичность, которую плата предъявила при handshake.
 
-    Args:
-        device_key: Secret the board presented.
-        label: Short code the board reported, or an empty string.
-
-    Returns:
-        None.
+    Attributes:
+        device_key: Секрет, который плата предъявила.
+        label: Короткий код, который плата сообщила, или пустая строка.
     """
 
     device_key: str

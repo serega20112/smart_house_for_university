@@ -1,8 +1,8 @@
-"""Secret a board presents while dialing in.
+"""Секрет, который плата предъявляет при дозвоне.
 
-The key is the credential of a board, so it is a value object that refuses
-malformed input once instead of letting a typo become a board that can never
-connect.
+Ключ — учётные данные платы, поэтому это объект-значение, один раз отвергающий
+неподходящее значение вместо опечатки, из-за которой плата не смогла бы соединиться
+никогда.
 """
 
 from __future__ import annotations
@@ -19,28 +19,22 @@ PATTERN = re.compile(r"^[A-Za-z0-9]{8,64}$")
 
 @dataclass(frozen=True, slots=True, order=True)
 class PairingKey:
-    """The secret linking a board to an account.
+    """Секрет, связывающий плату с аккаунтом.
 
-    Args:
-        value: Key as presented during the handshake.
-
-    Returns:
-        None.
+    Attributes:
+        value: Ключ таким, каким его предъявили при handshake.
 
     Raises:
-        InvalidPairingKeyError: When the key is empty or malformed.
+        InvalidPairingKeyError: Когда ключ пустой или неподходящей формы.
     """
 
     value: str
 
     def __post_init__(self) -> None:
-        """Validate the shape of the key.
-
-        Returns:
-            None.
+        """Проверяет форму ключа.
 
         Raises:
-            InvalidPairingKeyError: When the key is empty or malformed.
+            InvalidPairingKeyError: Когда ключ пустой или неподходящей формы.
         """
         trimmed = self.value.strip()
         if not trimmed:
@@ -50,34 +44,34 @@ class PairingKey:
         object.__setattr__(self, "value", trimmed)
 
     def __str__(self) -> str:
-        """Return the masked form used in logs and messages.
+        """Возвращает замаскированную форму, которую пишут в журнал.
 
         Returns:
-            str: First characters followed by a fixed mask.
+            str: Первые символы и постоянная маска вместо остального.
         """
         return f"{self.value[:4]}..."
 
     @classmethod
     def generate(cls) -> Self:
-        """Produce a key for a board paired from the interface.
+        """Вырабатывает ключ плате, сопряжённой из интерфейса.
 
         Returns:
-            Self: Fresh key.
+            Self: Свежий ключ.
         """
         return cls(secrets.token_hex(16))
 
     @classmethod
     def derive_from_chip(cls, chip_id: int) -> Self:
-        """Produce the key a brand new board stores in its own flash.
+        """Вырабатывает ключ, который новая плата хранит у себя в памяти.
 
-        The chip identifier makes every board different without trusting any
-        random source at boot, and the random tail keeps two boards flashed with
-        the same firmware apart.
+        Идентификатор чипа делает каждую плату разной без доверия к какому-либо
+        источнику случайности на старте, а случайный хвост разъединяет две платы,
+        прошитые одним и тем же бинарником.
 
         Args:
-            chip_id: Identifier of the chip, unique per board.
+            chip_id: Идентификатор чипа, уникальный для каждой платы.
 
         Returns:
-            Self: Key the board will present from now on.
+            Self: Ключ, который плата будет предъявлять дальше.
         """
         return cls(f"{chip_id:06x}{secrets.token_hex(13)}")

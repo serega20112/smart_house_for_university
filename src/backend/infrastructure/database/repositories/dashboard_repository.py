@@ -22,35 +22,29 @@ Runner = AsyncConnection | AsyncSession
 
 
 class SqlDashboardRepository:
-    """Storage of the dashboard layout of one account.
+    """Хранение раскладки главного экрана одного аккаунта.
 
-    Args:
-        session: Session the unit of work opened for this transaction.
-
-    Returns:
-        None.
+    Attributes:
+        session: Сессия, которую открыла для этой транзакции граница.
     """
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize the repository.
+        """Инициализирует хранилище.
 
         Args:
-            session: Session bound to the current transaction.
-
-        Returns:
-            None.
+            session: Сессия, привязанная к нынешней транзакции.
         """
         self._session = session
 
     async def get(self, user_id: UserId) -> DashboardState | None:
-        """Return the stored layout.
+        """Возвращает сохранённую раскладку.
 
         Args:
-            user_id: Owner of the layout.
+            user_id: Владелец раскладки.
 
         Returns:
-            DashboardState | None: Stored layout, or None when the account never
-            customized it.
+            DashboardState | None: Сохранённая раскладка или None, когда аккаунт её
+            ни разу не настраивал.
         """
         row = await first_row(self._session, DashboardRow, DashboardRow.user_id == user_id.value)
         if row is None:
@@ -63,18 +57,14 @@ class SqlDashboardRepository:
         return mappers.dashboard_from_row(row, widgets)
 
     async def save(self, dashboard: DashboardState) -> None:
-        """Store the layout of an account.
+        """Сохраняет раскладку аккаунта.
 
-        The marker row carries no column of its own, so writing it twice is a
-        no-op rather than an update of nothing. The widgets are replaced
-        wholesale, because the aggregate holds the complete ordered layout rather
-        than a patch of it.
+        Отметочная строка не несёт ни одной своей колонки, поэтому записать её дважды —
+        пустяк, а не обновление ничего. Карточки заменяют целиком: агрегат держит
+        законченный упорядоченный набор, а не заплатку к нему.
 
         Args:
-            dashboard: Layout to persist.
-
-        Returns:
-            None.
+            dashboard: Раскладка для записи.
         """
         values = mappers.row_values(DashboardRow.__table__, mappers.dashboard_to_row(dashboard))
         await self._session.execute(

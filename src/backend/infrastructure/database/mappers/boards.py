@@ -17,13 +17,13 @@ from backend.infrastructure.database.tables import (
 
 
 def board_to_row(board: EspDevice) -> EspDeviceRow:
-    """Build the row describing a paired board.
+    """Строит строку, описывающую сопряжённую плату.
 
     Args:
-        board: Board to serialize.
+        board: Плата для сериализации.
 
     Returns:
-        EspDeviceRow: New row describing the board.
+        EspDeviceRow: Новая строка, описывающая плату.
     """
     return EspDeviceRow(
         id=board.id.value,
@@ -37,13 +37,13 @@ def board_to_row(board: EspDevice) -> EspDeviceRow:
 
 
 def board_from_row(row: EspDeviceRow) -> EspDevice:
-    """Build the board a row describes.
+    """Строит плату, описанную строкой.
 
     Args:
-        row: Row to deserialize.
+        row: Строка для десериализации.
 
     Returns:
-        EspDevice: Restored board.
+        EspDevice: Восстановленная плата.
     """
     return EspDevice(
         id=EspDeviceId.parse(row.id),
@@ -57,13 +57,13 @@ def board_from_row(row: EspDeviceRow) -> EspDevice:
 
 
 def claim_to_row(claim: EspClaim) -> EspClaimRow:
-    """Build the row describing an announced board waiting for an owner.
+    """Строит строку, описывающую объявленную плату без хозяина.
 
     Args:
-        claim: Offer to serialize.
+        claim: Предложение для сериализации.
 
     Returns:
-        EspClaimRow: New row describing the offer.
+        EspClaimRow: Новая строка, описывающая предложение.
     """
     return EspClaimRow(
         id=claim.id.value,
@@ -77,13 +77,13 @@ def claim_to_row(claim: EspClaim) -> EspClaimRow:
 
 
 def claim_from_row(row: EspClaimRow) -> EspClaim:
-    """Build the offer a row describes.
+    """Строит предложение, описанное строкой.
 
     Args:
-        row: Row to deserialize.
+        row: Строка для десериализации.
 
     Returns:
-        EspClaim: Restored offer.
+        EspClaim: Восстановленное предложение.
     """
     return EspClaim(
         id=EspClaimId.parse(row.id),
@@ -97,13 +97,13 @@ def claim_from_row(row: EspClaimRow) -> EspClaim:
 
 
 def network_to_row(network: BoardNetwork) -> BoardNetworkRow:
-    """Build the row describing the network of a board.
+    """Строит строку, описывающую сеть платы.
 
     Args:
-        network: Network to serialize.
+        network: Сеть для сериализации.
 
     Returns:
-        BoardNetworkRow: New row describing the network.
+        BoardNetworkRow: Новая строка, описывающая сеть.
     """
     profile = network.profile
     return BoardNetworkRow(
@@ -120,13 +120,13 @@ def network_to_row(network: BoardNetwork) -> BoardNetworkRow:
 
 
 def network_from_row(row: BoardNetworkRow) -> BoardNetwork:
-    """Build the network a row describes.
+    """Строит сеть, описанную строкой.
 
     Args:
-        row: Row to deserialize.
+        row: Строка для десериализации.
 
     Returns:
-        BoardNetwork: Restored network.
+        BoardNetwork: Восстановленная сеть.
     """
     return BoardNetwork(
         board_id=EspDeviceId.parse(row.board_id),
@@ -141,21 +141,3 @@ def network_from_row(row: BoardNetworkRow) -> BoardNetwork:
         ),
         updated_at=as_utc(row.updated_at),
     )
-
-
-from backend.infrastructure.database.mappers.accounts import (  # noqa: E402
-    user_from_row,
-    user_to_row,
-)
-from backend.infrastructure.database.mappers.base import (  # noqa: E402
-    parse_uuid,
-    row_values,
-)
-
-__all__ = [
-    "as_utc",
-    "parse_uuid",
-    "row_values",
-    "user_from_row",
-    "user_to_row",
-]

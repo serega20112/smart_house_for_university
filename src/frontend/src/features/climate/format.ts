@@ -1,4 +1,4 @@
-/** Clock formatted for the cards. */
+/** Время и климатические значения, отформатированные для карточек. */
 
 export function formatTemperature(value: number | null): string {
   return value === null ? "—" : `${value.toFixed(1)}°C`;

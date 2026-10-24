@@ -1,12 +1,12 @@
-"""Static web interface of the smart home.
+"""Статический веб-интерфейс умного дома.
 
-Serves the built frontend from the backend so the whole product runs from a
-single process and a single origin. Unknown paths fall back to the application
-shell, which is what a client side router needs.
+Отдаёт собранный интерфейс из бэкенда, чтобы цельный продукт жил из одного
+процесса и из одного источника. Неизвестные пути отдают оболочку приложения: именно
+так работает клиентский маршрутизатор.
 
-The location of the build is resolved from the environment first and then from
-the layout of the image, so the same code runs from a checkout and from a
-container without a rebuild.
+Где лежит сборка, сначала читается из окружения, а потом достраивается из раскладки
+репозитория и из раскладки образа, поэтому один и тот же код запускается и из
+рабочей копии, и из контейнера — без пересборки.
 """
 
 from __future__ import annotations
@@ -19,6 +19,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 INDEX_FILE = "index.html"
+ASSETS_DIRECTORY = "assets"
+FRONTEND_DIST_VARIABLE = "FRONTEND_DIST"
 
 CANDIDATES: tuple[Path, ...] = (
     Path("/src/frontend/dist"),
@@ -28,12 +30,12 @@ CANDIDATES: tuple[Path, ...] = (
 
 
 def resolve_dist() -> Path | None:
-    """Return the directory holding the built interface.
+    """Возвращает каталог со собранным интерфейсом.
 
     Returns:
-        Path | None: Directory with the build, or None when it is missing.
+        Path | None: Каталог сборки либо None, если её нет.
     """
-    configured = os.getenv("FRONTEND_DIST")
+    configured = os.getenv(FRONTEND_DIST_VARIABLE)
     if configured:
         return Path(configured)
     for candidate in CANDIDATES:
@@ -43,41 +45,44 @@ def resolve_dist() -> Path | None:
 
 
 def mount_frontend(app: FastAPI, dist: Path | None = None) -> bool:
-    """Serve the built interface from the root of the application.
+    """Раздаёт собранный интерфейс из корня приложения.
 
     Args:
-        app: Application to attach the interface to.
-        dist: Directory holding the built frontend, resolved automatically when
-            not given.
+        app: Приложение, к которому интерфейс подвязывают.
+        dist: Каталог с собранным интерфейсом; если не указан — находится сам.
 
     Returns:
-        bool: True when the interface was found and mounted.
+        bool: True, когда интерфейс найден и подключён.
     """
     directory = dist or resolve_dist()
     if directory is None or not (directory / INDEX_FILE).is_file():
         return False
 
     root = directory.resolve()
-    app.mount("/assets", StaticFiles(directory=root / "assets"), name="assets")
+    app.mount(
+        f"/{ASSETS_DIRECTORY}",
+        StaticFiles(directory=root / ASSETS_DIRECTORY),
+        name=ASSETS_DIRECTORY,
+    )
 
     @app.get("/", include_in_schema=False)
     async def index() -> FileResponse:
-        """Return the application shell.
+        """Возвращает оболочку приложения.
 
         Returns:
-            FileResponse: The built index page.
+            FileResponse: Собранный index.
         """
         return FileResponse(root / INDEX_FILE)
 
     @app.get("/{path:path}", include_in_schema=False)
     async def fallback(path: str) -> FileResponse:
-        """Return a static file when it exists, the shell otherwise.
+        """Возвращает статический файл, если он есть, иначе — оболочку.
 
         Args:
-            path: Requested path relative to the interface root.
+            path: Запрошенный путь относительно корня интерфейса.
 
         Returns:
-            FileResponse: Static file or the application shell.
+            FileResponse: Статический файл или оболочка приложения.
         """
         candidate = (root / path).resolve()
         if candidate.is_file() and candidate.is_relative_to(root):

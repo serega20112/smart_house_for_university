@@ -1,13 +1,12 @@
-"""Keeping the live state of a home in step with its boards.
+"""Держит живое состояние дома в ладу с его платами.
 
-This is a single service that consumes everything the boards report. It replaced a
-pair of classes whose only job was to hand dependencies to each other: there is one
-object, it lives as long as the application, and it serves every board of every
-account.
+Это один сервис, который потребляёт всё, что сообщают платы. Он заменил пару классов,
+чья работа была лишь передавать зависимости друг другу: объект один, живёт он столько же,
+сколько приложение, и служит каждой плате каждого аккаунта.
 
-The service owns no state of its own. Everything it learns is written straight to
-the state store, which is what makes a restart invisible to the user and lets
-several workers agree on what the relays are doing.
+Своего состояния сервис не ведёт. Всё, что он узнаёт, пишется прямо в хранилище
+состояния — поэтому перезапуск незаметен человеку и несколько процессов могут договориться
+о том, что делают реле.
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ from backend.domain.value_objects.climate.climate_reading import ClimateReading
 
 
 class HomeStateService(BoardReport):
-    """Applies everything the boards report and announces what changed."""
+    """Применяет всё, о чём сообщают платы, и объявляет изменившееся."""
 
     def __init__(
         self,
@@ -36,19 +35,16 @@ class HomeStateService(BoardReport):
         clock: Clock,
         devices_of_home: HomeDeviceDirectory,
     ) -> None:
-        """Initialize the service.
+        """Инициализирует сервис.
 
         Args:
-            state_store: Durable home of the volatile state.
-            realtime: Publisher of events to the open clients.
-            notifier: Delivery channel for notifications.
-            notifications: Builds the wording of every message.
-            clock: Source of the current time.
-            devices_of_home: Cheap reads of the configuration, so a relay report can
-                be translated into a device name.
-
-        Returns:
-            None.
+            state_store: Надёжный дом изменчивого состояния.
+            realtime: Издатель событий в открытые соединения.
+            notifier: Канал доставки уведомлений.
+            notifications: Строит формулировки каждого сообщения.
+            clock: Источник текущего времени.
+            devices_of_home: Дешёвые чтения конфигурации, чтобы сообщение о реле
+                переводилось в имя устройства.
         """
         self._state_store = state_store
         self._realtime = realtime
@@ -58,14 +54,11 @@ class HomeStateService(BoardReport):
         self._devices = devices_of_home
 
     async def on_connected(self, user_id: UserId, board_id: EspDeviceId) -> None:
-        """Handle a new board connection.
+        """Реагирует на новое соединение платы.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
-
-        Returns:
-            None.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
         """
         was_online = await self._state_store.record_board_online(user_id, True, self._clock.now())
         await self._realtime.publish(user_id, EventName.BOARD_ONLINE, {"board_id": str(board_id)})
@@ -73,14 +66,11 @@ class HomeStateService(BoardReport):
             await self._notifier.notify(user_id, self._notifications.board_online())
 
     async def on_disconnected(self, user_id: UserId, board_id: EspDeviceId) -> None:
-        """Handle a lost board connection.
+        """Реагирует на потерю соединения платы.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
-
-        Returns:
-            None.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
         """
         await self._state_store.record_board_online(user_id, False, self._clock.now())
         await self._realtime.publish(user_id, EventName.BOARD_OFFLINE, {"board_id": str(board_id)})
@@ -89,15 +79,12 @@ class HomeStateService(BoardReport):
     async def on_relay_states(
         self, user_id: UserId, board_id: EspDeviceId, states: list[bool]
     ) -> None:
-        """Apply reported relay positions and announce the devices that changed.
+        """Принимает сообщённые положения реле и объявляет изменившиеся устройства.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
-            states: Contact positions ordered by channel.
-
-        Returns:
-            None.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
+            states: Положения контактов по порядку каналов.
         """
         changed_channels = await self._state_store.record_relay_report(
             user_id, states, self._clock.now()
@@ -125,15 +112,12 @@ class HomeStateService(BoardReport):
     async def on_reading(
         self, user_id: UserId, board_id: EspDeviceId, reading: ClimateReading
     ) -> None:
-        """Apply a sensor report and announce what changed.
+        """Принимает сообщение датчиков и объявляет изменившееся.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
-            reading: Measured values.
-
-        Returns:
-            None.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
+            reading: Измеренные значения.
         """
         del board_id
         changed = await self._state_store.record_background_reading(
@@ -153,16 +137,13 @@ class HomeStateService(BoardReport):
     async def on_error(
         self, user_id: UserId, board_id: EspDeviceId, code: str, message: str
     ) -> None:
-        """Publish an error reported by a board.
+        """Публикует отказ, о котором сообщила плата.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
-            code: Machine readable error code.
-            message: Human readable error description.
-
-        Returns:
-            None.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
+            code: Машинночитаемый код отказа.
+            message: Описание отказа человеческими словами.
         """
         await self._realtime.publish(
             user_id,

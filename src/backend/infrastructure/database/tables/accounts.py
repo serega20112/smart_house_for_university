@@ -19,18 +19,15 @@ from backend.infrastructure.database.tables.base import Base
 
 
 class UserRow(Base):
-    """Stored account of one person.
+    """Сохранённый аккаунт одного человека.
 
-    Args:
-        id: Identifier assigned by the domain aggregate.
-        email: Normalized login, unique across the whole system.
-        password_hash: Stored form of the password, produced by the hasher and
-            never inspected by the model.
-        display_name: Name shown in the interface.
-        created_at: Moment the account was created.
-
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор, выданный агрегатом домена.
+        email: Приведённый логин, один на всю систему.
+        password_hash: Сохранённая форма пароля, построенная хешером и никогда не
+            разбираемая моделью.
+        display_name: Имя, показанное в интерфейсе.
+        created_at: Момент создания аккаунта.
     """
 
     __tablename__ = "users"

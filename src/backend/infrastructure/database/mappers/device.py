@@ -14,14 +14,7 @@ from backend.infrastructure.database.tables import (
 
 
 def device_to_row(device: Device) -> DeviceRow:
-    """Build the row describing a logical device.
-
-    Args:
-        device: Device to serialize.
-
-    Returns:
-        DeviceRow: New row describing the device.
-    """
+    """Строит строку, описывающую логическое устройство."""
     return DeviceRow(
         id=device.id.value,
         user_id=device.user_id.value,
@@ -35,14 +28,10 @@ def device_to_row(device: Device) -> DeviceRow:
 
 
 def device_from_row(row: DeviceRow, capabilities: frozenset[Capability]) -> Device:
-    """Build the device a row and its capability rows describe.
+    """Строит устройство, описанное его строкой и строками способностей.
 
     Args:
-        row: Row to deserialize.
-        capabilities: Capabilities read from ``device_capabilities``.
-
-    Returns:
-        Device: Restored device.
+        capabilities: Способности, прочитанные из ``device_capabilities``.
     """
     return Device(
         id=DeviceId.parse(row.id),
@@ -58,13 +47,9 @@ def device_from_row(row: DeviceRow, capabilities: frozenset[Capability]) -> Devi
 
 
 def capability_rows(device: Device) -> list[DeviceCapabilityRow]:
-    """Build one row per capability of a logical device.
+    """Строит по строке на каждую способность логического устройства.
 
-    Args:
-        device: Device to serialize.
-
-    Returns:
-        list[DeviceCapabilityRow]: Capability rows of the device.
+    Порядок задают явно, иначе множество давало бы разный файл на каждом запуске.
     """
     return [
         DeviceCapabilityRow(device_id=device.id.value, capability=capability.value)

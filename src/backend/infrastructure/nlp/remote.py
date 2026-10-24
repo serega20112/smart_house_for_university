@@ -1,13 +1,13 @@
-"""Asking a remote model first and falling back to the local pipeline.
+"""Сперва спрашивает удалённую модель, потом переходит на местный конвейер.
 
-When the deployment runs a model service of its own, that service already holds
-the models a sentence needs. Chaining it is therefore a composition
-concern, not a rule of any service: :class:`RemoteFirstUnderstanding` wraps a
-remote client and a local port and asks the remote one first.
+Когда развёртывание держит собственную службу моделей, та уже содержит модели, нужные
+предложению. Поэтому связка с ней — вопрос композции, а не правило какого-либо сервиса:
+:class:`RemoteFirstUnderstanding` оборачивает удалённый клиент и местный интерфейс и
+сначала спрашивает удалённый.
 
-Only the two outcomes a remote model can legitimately produce are handled: an
-answer, or a statement that it is unavailable. Anything else is a bug and keeps
-propagating instead of being turned into a silent downgrade.
+Обрабатываются ровно два исхода, которые удалённая модель вправе выдать: ответ или
+заявление, что она недоступна. Всё остальное — ошибка, и она продолжается как ошибка
+вместо молчаливого понижения.
 """
 
 from __future__ import annotations
@@ -32,23 +32,17 @@ UNDERSTAND_PATH = "/understand"
 
 
 class RemoteUnderstandingUnavailable(RuntimeError):
-    """The remote model could not answer.
+    """Удалённая модель не смогла ответить.
 
     Args:
-        reason: Machine readable reason.
-
-    Returns:
-        None.
+        reason: Машинночитаемая причина.
     """
 
     def __init__(self, reason: str) -> None:
-        """Initialize the failure.
+        """Инициализирует отказ.
 
         Args:
-            reason: Machine readable reason.
-
-        Returns:
-            None.
+            reason: Машинночитаемая причина.
         """
         super().__init__(reason)
         self.reason = reason
@@ -56,21 +50,18 @@ class RemoteUnderstandingUnavailable(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class RemoteAnswer:
-    """One structured command as the remote model reported it.
+    """Одна структурированная команда в том виде, её передала удалённая модель.
 
-    Args:
-        intent: Intent name or None when the sentence is not a command.
-        confidence: How sure the remote model is.
-        device_name: Device name fragment found in the sentence.
-        device_kinds: Device kinds the sentence could be about.
-        capability: Capability the sentence asks for.
-        temperature: Requested temperature, or None.
-        humidity: Requested humidity, or None.
-        delay_minutes: Requested delay, or None.
-        target: Requested area, or None.
-
-    Returns:
-        None.
+    Attributes:
+        intent: Название намерения или None, когда предложение не команда.
+        confidence: Насколько уверена удалённая модель.
+        device_name: Кусок имени устройства, найденный в предложении.
+        device_kinds: Назначения устройств, о которых могло идти речь.
+        capability: Способность, о которой просит предложение.
+        temperature: Запрошенная температура, или None.
+        humidity: Запрошенная влажность, или None.
+        delay_minutes: Запрошенная задержка, или None.
+        target: Запрошенное место, или None.
     """
 
     intent: str | None
@@ -85,44 +76,38 @@ class RemoteAnswer:
 
 
 class RemoteUnderstandingClient:
-    """Asks the machine that runs the models what a sentence means.
+    """Спрашивает у машины, крутящей модели, что значит предложение.
 
-    Args:
-        client: Connection to the model host.
-        base_url: Address of the model host.
-        timeout_sec: Timeout of a single request in seconds.
-
-    Returns:
-        None.
+    Attributes:
+        client: Соединение с хостом моделей.
+        base_url: Адрес хоста моделей.
+        timeout_sec: Таймаут одного запроса в секундах.
     """
 
     def __init__(self, client: httpx.AsyncClient, base_url: str, timeout_sec: float) -> None:
-        """Initialize the client.
+        """Инициализирует клиент.
 
         Args:
-            client: Connection to the model host.
-            base_url: Address of the model host.
-            timeout_sec: Timeout of a single request in seconds.
-
-        Returns:
-            None.
+            client: Соединение с хостом моделей.
+            base_url: Адрес хоста моделей.
+            timeout_sec: Таймаут одного запроса в секундах.
         """
         self._client = client
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout_sec
 
     async def ask(self, text: str) -> RemoteAnswer | None:
-        """Ask the remote model to understand a sentence.
+        """Просит удалённую модель понять предложение.
 
         Args:
-            text: Sentence as the interface received it.
+            text: Предложение таким, каким его получил интерфейс.
 
         Returns:
-            RemoteAnswer | None: Structured command, or None when the sentence
-            does not describe a command at all.
+            RemoteAnswer | None: Структурированная команда, или None, когда
+            предложение вообще ни о какой команде не говорит.
 
         Raises:
-            RemoteUnderstandingUnavailable: When the remote model cannot answer.
+            RemoteUnderstandingUnavailable: Когда удалённая модель не может ответить.
         """
         try:
             response = await self._client.post(
@@ -138,41 +123,35 @@ class RemoteUnderstandingClient:
 
 
 class RemoteFirstUnderstanding(CommandUnderstandingPort):
-    """Asks the remote model first and the local pipeline second.
+    """Сначала спрашивает удалённую модель, потом местный конвейер.
 
-    Args:
-        remote: Client of the machine that runs the models, or None when the
-            deployment does not have one.
-        local: Pipeline used whenever the remote model has no answer.
-
-    Returns:
-        None.
+    Attributes:
+        remote: Клиент машины, крутящей модели, или None, когда развёртывание её
+            не имеет.
+        local: Конвейер, используемый всякий раз, когда у удалённой модели ответа нет.
     """
 
     def __init__(
         self, remote: RemoteUnderstandingClient | None, local: CommandUnderstandingPort
     ) -> None:
-        """Initialize the composite.
+        """Инициализирует составной интерфейс.
 
         Args:
-            remote: Client of the machine that runs the models, or None when the
-                deployment does not have one.
-            local: Pipeline used whenever the remote model has no answer.
-
-        Returns:
-            None.
+            remote: Клиент машины, крутящей модели, или None, когда развёртывание её
+                не имеет.
+            local: Конвейер, используемый всякий раз, когда у удалённой модели ответа нет.
         """
         self._remote = remote
         self._local = local
 
     async def understand(self, text: str) -> CommandUnderstanding:
-        """Interpret a sentence.
+        """Толкует предложение.
 
         Args:
-            text: Raw sentence as the interface received it.
+            text: Предложение в сыром виде, каким его получил интерфейс.
 
         Returns:
-            CommandUnderstanding: What the pipeline made of it.
+            CommandUnderstanding: То, что из него сделал конвейер.
         """
         answer = await self._remote_answer(text)
         if answer is None:
@@ -180,13 +159,13 @@ class RemoteFirstUnderstanding(CommandUnderstandingPort):
         return understanding_of(answer)
 
     async def is_confident_enough(self, understanding: CommandUnderstanding) -> bool:
-        """Return whether an understanding may be carried out.
+        """Сообщает, можно ли выполненное понимание пускать в дело.
 
         Args:
-            understanding: Result of the pipeline.
+            understanding: Результат конвейера.
 
         Returns:
-            bool: True when the command may proceed.
+            bool: True, когда команде можно идти дальше.
         """
         return await self._local.is_confident_enough(understanding)
 

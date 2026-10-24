@@ -1,4 +1,9 @@
-/** Devices page: one editor per logical device. */
+/**
+ * Страница устройств: по редактору на каждое логическое устройство.
+ *
+ * Свободный канал здесь выбирают по списку, который вернул сервер: придумывать
+ * нумерацию реле интерфейс не берётся, их число знает железо.
+ */
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -7,7 +12,10 @@ import { DeviceEditor } from "../features/devices/DeviceEditor";
 import { useRealtime } from "../services/realtime";
 import { needsReload } from "../features/home/reducer";
 import * as api from "../services/api";
-import type { Capability, Device, DeviceType } from "../services/types";
+import type { Capability, Device, DeviceKind } from "../services/types";
+
+/** Число каналов реле одной платы: больше шести устройств плата не потянет. */
+const CHANNELS = [1, 2, 3, 4, 5, 6];
 
 export function DevicesPage() {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -35,10 +43,15 @@ export function DevicesPage() {
     },
   });
 
-  const taken = devices.map((device) => device.physical_channel);
+  const taken = devices.map((device) => device.channel);
 
+  /**
+   * Заводит устройство на первом свободном канале.
+   *
+   * @returns Ничего: список перечитывается после ответа сервера.
+   */
   async function create(): Promise<void> {
-    const free = [1, 2, 3, 4, 5, 6].find((channel) => !taken.includes(channel));
+    const free = CHANNELS.find((channel) => !taken.includes(channel));
     if (free === undefined) {
       setError("Свободных каналов не осталось");
       return;
@@ -46,8 +59,8 @@ export function DevicesPage() {
     try {
       await api.createDevice({
         name: `Устройство ${free}`,
-        type: "OTHER" as DeviceType,
-        physical_channel: free,
+        kind: "OTHER" as DeviceKind,
+        channel: free,
         capabilities: ["ON", "OFF"] as Capability[],
         automation_enabled: false,
       });

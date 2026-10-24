@@ -24,35 +24,29 @@ Runner = AsyncConnection | AsyncSession
 
 
 class SqlBoardNetworkRepository:
-    """Storage of the network each board is told to use.
+    """Хранение сети, которую предписано использовать каждой плате.
 
-    Args:
-        session: Session the unit of work opened for this transaction.
-
-    Returns:
-        None.
+    Attributes:
+        session: Сессия, которую открыла для этой транзакции граница.
     """
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize the repository.
+        """Инициализирует хранилище.
 
         Args:
-            session: Session bound to the current transaction.
-
-        Returns:
-            None.
+            session: Сессия, привязанная к нынешней транзакции.
         """
         self._session = session
 
     async def get(self, board_id: EspDeviceId) -> BoardNetwork | None:
-        """Return the network of one board.
+        """Возвращает сеть одной платы.
 
         Args:
-            board_id: Identifier of the board.
+            board_id: Идентификатор платы.
 
         Returns:
-            BoardNetwork | None: Network of that board, or None when it was
-            never configured.
+            BoardNetwork | None: Сеть этой платы или None, когда её ни разу не
+                настраивали.
         """
         row = await first_row(
             self._session, BoardNetworkRow, BoardNetworkRow.board_id == board_id.value
@@ -60,16 +54,13 @@ class SqlBoardNetworkRepository:
         return None if row is None else mappers.network_from_row(row)
 
     async def save(self, network: BoardNetwork) -> None:
-        """Store the network of a board.
+        """Сохраняет сеть платы.
 
-        The row is written whole, so a change of any of the values replaces the
-        previous ones instead of leaving a part of the old network behind.
+        Строку пишут целиком, поэтому изменение любого значения заменяет прежние, а не
+        оставляет часть старой сети лежать рядом с новой.
 
         Args:
-            network: Network to persist.
-
-        Returns:
-            None.
+            network: Сеть для записи.
         """
         values = mappers.row_values(BoardNetworkRow.__table__, mappers.network_to_row(network))
         await self._session.execute(
@@ -83,13 +74,13 @@ class SqlBoardNetworkRepository:
         await self._session.flush()
 
     async def delete(self, board_id: EspDeviceId) -> bool:
-        """Remove the network of a board.
+        """Убирает сеть платы.
 
         Args:
-            board_id: Identifier of the board.
+            board_id: Идентификатор платы.
 
         Returns:
-            bool: True when a network was removed.
+            bool: True, когда сеть убрали.
         """
         result = await self._session.execute(
             delete(BoardNetworkRow).where(BoardNetworkRow.board_id == board_id.value)

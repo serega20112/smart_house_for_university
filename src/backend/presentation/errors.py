@@ -127,9 +127,6 @@ def install_error_handlers(app: FastAPI) -> None:
 
     Args:
         app: Приложение, к которому подвязывают обработчики.
-
-    Returns:
-        None.
     """
 
     @app.exception_handler(errors.ApplicationError)

@@ -32,12 +32,13 @@ from dishka.integrations.arq import DISHKA_APP_CONTAINER_KEY, setup_dishka
 
 from backend.application.interface.queries.account_queries import AccountQueries
 from backend.application.interface.services.distributed_lock import DistributedLock
+from backend.application.interface.services.notification_factory import NotificationFactory
 from backend.application.services.automation_service import AutomationService
 from backend.application.services.board_onboarding import BoardOnboardingService
 from backend.application.services.scenarios.advancing import ScenarioAdvancer
 from backend.config.settings import Settings
 from backend.domain.identifiers import UserId
-from backend.infrastructure.di.container import make_container
+from backend.infrastructure.di import build_dishka_container
 from backend.infrastructure.logging import configure_logging, get_logger
 
 log = get_logger("worker")
@@ -99,17 +100,25 @@ class WorkerContext:
     loops: list[asyncio.Task[None]] = field(default_factory=list)
 
 
-def worker_settings(settings: Settings) -> type[Any]:
+def worker_settings(
+    settings: Settings,
+    notifications: NotificationFactory | None = None,
+) -> type[Any]:
     """Собирает класс настроек, с которым запускается ARQ.
+
+    Формулировки уведомлений приходят извне, а не выдумываются здесь: без них
+    контейнер собирает молчаливые сообщения, и рабочий не сможет сказать человеку,
+    что сценарий завершился.
 
     Args:
         settings: Конфигурация, с которой работает рабочий.
+        notifications: Строит формулировки уведомлений этого процесса.
 
     Returns:
         type[Any]: Класс, из которого ARQ берёт аргументы рабочего.
     """
     built = _worker_class(settings)
-    setup_dishka(make_container(settings), built)
+    setup_dishka(build_dishka_container(settings, notifications=notifications), built)
     return built
 
 
@@ -318,15 +327,22 @@ async def _run_guarded(user_id: UserId, run: UserJob, timeout_sec: int) -> None:
         log.exception("worker.user_failed", user=str(user_id))
 
 
-async def run_worker(settings: Settings) -> None:
+def run_worker(
+    settings: Settings,
+    notifications: NotificationFactory | None = None,
+) -> None:
     """Запускает рабочий до его остановки.
+
+    ARQ сам ведёт цикл событий, поэтому функция обычная, а не корутина: иначе
+    вызывающий получил бы обещание вместо запущенного процесса.
 
     Args:
         settings: Конфигурация, с которой работает рабочий.
+        notifications: Строит формулировки уведомлений этого процесса.
     """
     from arq.worker import run_worker as run
 
-    run(worker_settings(settings))
+    run(worker_settings(settings, notifications))
 
 
 def container_of(ctx: dict[str, Any]) -> AsyncContainer:

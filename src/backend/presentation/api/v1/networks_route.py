@@ -74,7 +74,5 @@ async def write_board_network(
     Returns:
         BoardNetworkResponse: Сеть такой, какой она сохранена.
     """
-    network = await use_case.execute(
-        user_id, EspDeviceId.parse(board_id), network_command(body)
-    )
+    network = await use_case.execute(user_id, EspDeviceId.parse(board_id), network_command(body))
     return network_of(network)

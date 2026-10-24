@@ -1,13 +1,12 @@
-"""Register a new account.
+"""Регистрирует новый аккаунт.
 
-A new account is not an empty row. It gets its identifier, its home, its devices
-and a dashboard, so the very first request already returns a complete personalized
-projection.
+Новый аккаунт — не пустая строка. Он получает идентификатор, свой дом, свои устройства и
+панель, поэтому первый же запрос отдаёт законченную персональную проекцию.
 
-This use case does not know any of that. It creates the account, which records the
-fact that it exists, and hands that fact to the dispatcher. Whatever cares about
-new accounts does the rest, and a second module that needs to welcome new users
-subscribes without touching this file.
+Этот сценарий ничего из того не знает. Он создаёт аккаунт, тот записывает факт
+собственного существования, и сценарий передаёт этот факт раздатчику. Остальное делает
+тот, кого касаются новые аккаунты, а второй модуль, которому нужно приветствовать
+вошедших, подписывается, не трогая этот файл.
 """
 
 from __future__ import annotations
@@ -26,7 +25,7 @@ from backend.domain.value_objects.account.email import Email
 
 
 class RegisterAccountUseCase:
-    """Creates an account and opens a session for it."""
+    """Создаёт аккаунт и открывает для него сессию."""
 
     def __init__(
         self,
@@ -36,17 +35,14 @@ class RegisterAccountUseCase:
         dispatcher: DomainEventDispatcher,
         clock: Clock,
     ) -> None:
-        """Initialize the use case.
+        """Инициализирует сценарий.
 
         Args:
-            account_uow: Factory producing transactions over the accounts.
-            hasher: Turns a plain password into a stored form.
-            tokens: Issues the session token.
-            dispatcher: Announces the fact that the account exists.
-            clock: Source of the current time.
-
-        Returns:
-            None.
+            account_uow: Фабрика транзакций над аккаунтами.
+            hasher: Превращает пароль в открытом виде в сохраняемую форму.
+            tokens: Выдаёт токен сессии.
+            dispatcher: Объявляет факт существования аккаунта.
+            clock: Источник текущего времени.
         """
         self._account_uow = account_uow
         self._hasher = hasher
@@ -55,21 +51,21 @@ class RegisterAccountUseCase:
         self._clock = clock
 
     async def execute(self, command: RegisterAccountCommand) -> AuthenticatedSession:
-        """Create the account and open a session for it.
+        """Создаёт аккаунт и открывает для него сессию.
 
         Args:
-            command: What the person typed.
+            command: То, что набрал человек.
 
         Returns:
-            AuthenticatedSession: Profile and session token.
+            AuthenticatedSession: Профиль и токен сессии.
 
         Raises:
-            EmailAlreadyTakenError: When the login is already registered. The
-            uniqueness is enforced by the store, so two simultaneous registrations
-            cannot both succeed.
-            InvalidEmailError: When the login is malformed.
-            InvalidDisplayNameError: When the name is empty or too long.
-            WeakPasswordError: When the password is too short.
+            EmailAlreadyTakenError: Когда логин уже зарегистрирован. За
+                единственностью следит хранилище, поэтому две одновременные
+                регистрации не пройдут обе.
+            InvalidEmailError: Когда логин неподходящей формы.
+            InvalidDisplayNameError: Когда имя пустое или слишком длинное.
+            WeakPasswordError: Когда пароль слишком короткий.
         """
         user = User.register(
             email=Email.parse(command.email),

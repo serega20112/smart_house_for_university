@@ -1,4 +1,4 @@
-/** Page shell with the navigation between the screens. */
+/** Оболочка страницы с переходом между экранами. */
 
 import { NavLink, Outlet } from "react-router-dom";
 

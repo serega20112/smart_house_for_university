@@ -1,8 +1,8 @@
-"""Presentation layer.
+"""Слой презентации.
 
-Everything the outside world talks to: the REST API, the realtime WebSocket and
-the Telegram bot. This layer maps domain objects onto transport payloads and
-holds no business rules.
+Всё, с чем говорит внешний мир: REST API, интерфейс реального времени по WebSocket
+и бот мессенджера. Этот слой переводит объекты домена в пакеты транспорта и не
+держит ни одного правила дома.
 """
 
 from backend.presentation.app_factory import create_app

@@ -1,13 +1,12 @@
-"""Failures that belong to the application layer.
+"""Отказы, которые относятся к прикладному слою.
 
-The domain declares what the model refuses; this module declares what the
-application refuses once it has met the outside world. A login that does not match
-a stored hash is not an invariant of an aggregate, and neither is a duplicate
-login or a device that a repository could not find, so none of them belong to the
-domain.
+Домен объявляет то, что отвергает модель; этот модуль объявляет то, что отвергает
+приложение, познакомившись с внешним миром. Логин, не совпавший с сохранённым хешем, —
+не неизменяемое условие агрегата, как и повторный логин, и устройство, которое
+хранилище не нашло, поэтому ничто из этого домену не принадлежит.
 
-Presentation maps each type of this module onto an HTTP status once, in one
-handler table. Nothing else in the system needs to know a status code.
+Презентация один раз ставит каждый тип этого модуля против HTTP-статуса в одной таблице
+обработчиков. Больше никто в системе не должен знать ни одного кода ответа.
 """
 
 from __future__ import annotations
@@ -35,20 +34,14 @@ __all__ = [
 
 
 class ApplicationError(Exception):
-    """Base class of every failure produced by the application layer."""
+    """Общий класс каждого отказа, порождённого прикладным слоем."""
 
 
 class InvalidCredentialsError(ApplicationError):
-    """The login does not match a stored account.
+    """Логин не совпадает с сохранённым аккаунтом.
 
-    The same error answers both an unknown login and a wrong password, so the
-    reply never reveals whether an account exists.
-
-    Args:
-        None.
-
-    Returns:
-        None.
+    Одна и та же ошибка отвечает и на неизвестный логин, и на неверный пароль, чтобы
+    ответ никогда не выдавал, существует ли аккаунт.
     """
 
     def __init__(self) -> None:
@@ -56,13 +49,10 @@ class InvalidCredentialsError(ApplicationError):
 
 
 class EmailAlreadyTakenError(ApplicationError):
-    """Another account already uses the requested login.
+    """Запрошенный логин уже использует другой аккаунт.
 
     Args:
-        email: Requested login.
-
-    Returns:
-        None.
+        email: Запрошенный логин.
     """
 
     def __init__(self, email: str) -> None:
@@ -71,13 +61,10 @@ class EmailAlreadyTakenError(ApplicationError):
 
 
 class AccountNotFoundError(ApplicationError):
-    """No account matches the requested identifier.
+    """Ни один аккаунт не совпал с запрошенным идентификатором.
 
     Args:
-        user_id: Identifier that could not be resolved.
-
-    Returns:
-        None.
+        user_id: Идентификатор, который не удалось разрешить.
     """
 
     def __init__(self, user_id: UserId) -> None:
@@ -86,13 +73,10 @@ class AccountNotFoundError(ApplicationError):
 
 
 class DeviceNotFoundError(ApplicationError):
-    """The account has no device with that identifier.
+    """У аккаунта нет устройства с таким идентификатором.
 
     Args:
-        device_id: Identifier that could not be resolved.
-
-    Returns:
-        None.
+        device_id: Идентификатор, который не удалось разрешить.
     """
 
     def __init__(self, device_id: DeviceId) -> None:
@@ -101,13 +85,10 @@ class DeviceNotFoundError(ApplicationError):
 
 
 class ScenarioNotFoundError(ApplicationError):
-    """The account has no scenario with that identifier.
+    """У аккаунта нет сценария с таким идентификатором.
 
     Args:
-        scenario_id: Identifier that could not be resolved.
-
-    Returns:
-        None.
+        scenario_id: Идентификатор, который не удалось разрешить.
     """
 
     def __init__(self, scenario_id: ScenarioId) -> None:
@@ -116,13 +97,10 @@ class ScenarioNotFoundError(ApplicationError):
 
 
 class BoardNotFoundError(ApplicationError):
-    """The account has no board with that identifier.
+    """У аккаунта нет платы с таким идентификатором.
 
     Args:
-        board_id: Identifier that could not be resolved.
-
-    Returns:
-        None.
+        board_id: Идентификатор, который не удалось разрешить.
     """
 
     def __init__(self, board_id: EspDeviceId) -> None:
@@ -131,13 +109,10 @@ class BoardNotFoundError(ApplicationError):
 
 
 class ClaimNotFoundError(ApplicationError):
-    """No open offer carries the presented token.
+    """Ни одно открытое предложение не несёт предъявленный токен.
 
     Args:
-        token: Token that could not be resolved.
-
-    Returns:
-        None.
+        token: Идентификатор, который не удалось разрешить.
     """
 
     def __init__(self, token: str) -> None:
@@ -146,13 +121,10 @@ class ClaimNotFoundError(ApplicationError):
 
 
 class BoardUnreachableError(ApplicationError):
-    """The board behind a device did not answer.
+    """Плата за устройством не ответила.
 
     Args:
-        reason: Machine readable reason reported by the transport.
-
-    Returns:
-        None.
+        reason: Машинночитаемая причина, которую сообщил транспорт.
     """
 
     def __init__(self, reason: str) -> None:
@@ -161,19 +133,16 @@ class BoardUnreachableError(ApplicationError):
 
 
 class ConcurrentModificationError(ApplicationError):
-    """Another writer changed an aggregate under this one.
+    """Другой записывающий изменил агрегат под этим.
 
-    A writer that read an older revision of a row has no say in how the row
-    looks now: the store refuses its stale write. The caller is expected to read
-    the fresh snapshot and state its intent again rather than to overwrite a
-    change it never saw.
+    Тот, кто прочитал старую ревизию строки, не вправе решать, как строка выглядит
+    сейчас: хранилище отвергает его устаревшую запись. От вызывающего ждут, что он
+    перечитает свежий снимок и повторит намерение, а не перетрёт изменение, которого
+    не видел.
 
     Args:
-        aggregate: Human readable name of the aggregate.
-        aggregate_id: Identifier of the aggregate that moved on.
-
-    Returns:
-        None.
+        aggregate: Человекочитаемое имя агрегата.
+        aggregate_id: Идентификатор агрегата, который ушёл вперёд.
     """
 
     def __init__(self, aggregate: str, aggregate_id: object) -> None:
@@ -210,14 +179,11 @@ class BoardAlreadyClaimedError(ApplicationError):
 
 
 class CommandNotUnderstoodError(ApplicationError):
-    """The free form command cannot be carried out as it stands.
+    """Написанную свободную команду нельзя выполнить как она есть.
 
     Args:
-        reason: Why the command cannot be carried out.
-        details: What the user has to add or change.
-
-    Returns:
-        None.
+        reason: Почему команду нельзя выполнить.
+        details: Что человеку надо добавить или изменить.
     """
 
     def __init__(self, reason: ClarificationReason, **details: Any) -> None:

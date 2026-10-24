@@ -22,20 +22,17 @@ from backend.infrastructure.database.tables.base import Base
 
 
 class EspDeviceRow(Base):
-    """Board paired with one account.
+    """Плата, сопряжённая с одним аккаунтом.
 
-    Args:
-        id: Identifier assigned by the domain aggregate.
-        user_id: Owner of the board.
-        name: Name shown to the user.
-        pairing_key: Secret the board presents while connecting, unique across
-            the system because it is the credential of the board.
-        created_at: Moment the board was paired.
-        last_seen_at: Moment of the last successful handshake, or None.
-        current_ssid: Network the board reported being on, or None.
-
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор, выданный агрегатом домена.
+        user_id: Владелец платы.
+        name: Имя, показанное человеку.
+        pairing_key: Секрет, который плата предъявляет при соединении; он один на всю
+            систему, потому что это и есть учётные данные платы.
+        created_at: Момент сопряжения платы.
+        last_seen_at: Момент последнего успешного handshake, или None.
+        current_ssid: Сеть, о которой сообщила плата, или None.
     """
 
     __tablename__ = "esp_devices"
@@ -51,22 +48,20 @@ class EspDeviceRow(Base):
 
 
 class EspClaimRow(Base):
-    """Board that announced itself and waits for an account to take it.
-    A board may announce itself more than once, so the device key is indexed
-    rather than unique: every announcement is its own row with its own token.
+    """Плата, которая объявила о себе и ждёт, что её заберёт аккаунт.
 
-    Args:
-        id: Identifier assigned by the domain aggregate.
-        device_key: Secret the board presents while connecting.
-        label: Short code shown in the interface.
-        claim_token: Token of this particular announcement, unique because it is
-            what a person types.
-        announced_at: Moment the board announced itself.
-        expires_at: Moment the offer stops being valid.
-        claimed_by: Account that took the offer, or None while it is open.
+    Плата вправе объявить о себе не один раз, поэтому ключ устройства индексируют, а не
+    делают уникальным: каждое объявление — своя строка со своим токеном.
 
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор, выданный агрегатом домена.
+        device_key: Секрет, который плата предъявляет при соединении.
+        label: Короткий код, показанный в интерфейсе.
+        claim_token: Токен именно этого объявления; уникален, потому что его человек
+            и вводит.
+        announced_at: Момент, когда плата объявила о себе.
+        expires_at: Момент, после которого предложение недействительно.
+        claimed_by: Аккаунт, забравший предложение, или None пока оно открыто.
     """
 
     __tablename__ = "esp_claims"
@@ -88,27 +83,24 @@ class EspClaimRow(Base):
 
 
 class BoardNetworkRow(Base):
-    """Network one board is told to use.
+    """Сеть, которую предписано использовать одной плате.
 
-    The board keeps the same values in its own flash, and this row is the copy the
-    interface shows and the copy the board is asked for again when it comes back
-    after a change it could not apply. The password of the network is a secret: it
-    lives here because the board has to be handed it one more time in that case,
-    and it never leaves the server in an answer.
+    Те же значения плата хранит у себя в памяти, а эта строка — копия, которую показывает
+    интерфейс, и та же копия, которую плате отдают заново, когда она вернулась после
+    изменения, которое сама применить не смогла. Пароль сети — секрет: он живёт здесь,
+    потому что в таком случае плате его нужно выдать ещё раз, и с сервера в ответе он не
+    уходит никогда.
 
-    Args:
-        board_id: Board the network belongs to.
-        user_id: Owner of the board.
-        ssid: Name of the wireless network.
-        password: Password of that network.
-        host: Address of the server the board reports to.
-        server_port: Port of the ordinary interface of that server.
-        socket_port: Port of the board socket of that server.
-        socket_path: Path of the board socket of that server.
-        updated_at: Moment the settings were written.
-
-    Returns:
-        None.
+    Attributes:
+        board_id: Плата, к которой относится сеть.
+        user_id: Владелец платы.
+        ssid: Имя беспроводной сети.
+        password: Пароль этой сети.
+        host: Адрес сервера, которому плата докладывается.
+        server_port: Порт обычного интерфейса этого сервера.
+        socket_port: Порт доски этого сервера.
+        socket_path: Путь доски этого сервера.
+        updated_at: Момент записи настроек.
     """
 
     __tablename__ = "board_networks"

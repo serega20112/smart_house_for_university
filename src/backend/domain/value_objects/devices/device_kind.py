@@ -1,8 +1,8 @@
-"""Kinds of logical device.
+"""Назначения логических устройств.
 
-The kind describes what a device is for. It carries no knowledge of how a device
-is named in any language: recognising the word "лампа" belongs to the language
-pipeline, never to the model.
+Назначение говорит, для чего устройство. О том, как назвать его на каком-либо
+языке, оно не знает ничего: распознать слово «лампа» — дело конвейера понимания
+речи, а не модели.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from enum import StrEnum
 
 
 class DeviceKind(StrEnum):
-    """What a logical device is for."""
+    """Для чего служит логическое устройство."""
 
     LIGHT = "LIGHT"
     FAN = "FAN"
@@ -24,20 +24,20 @@ class DeviceKind(StrEnum):
 
     @classmethod
     def parse(cls, raw: object) -> DeviceKind:
-        """Read a kind from a value received from the outside.
+        """Читает назначение из значения, пришедшего извне.
 
-        An unknown name is refused rather than replaced by OTHER, because OTHER
-        means "the user chose to have a device of an unknown kind" and is not the
-        same as "the request contained a typo".
+        Неизвестное имя отвергается, а не заменяется OTHER: OTHER означает, что
+        человек сам завёл устройство непонятного назначения, а не то, что в запросе
+        опечатка.
 
         Args:
-            raw: Kind name or enum member.
+            raw: Имя назначения или его член перечисления.
 
         Returns:
-            DeviceKind: Parsed kind.
+            DeviceKind: Прочитанное назначение.
 
         Raises:
-            ValueError: When the value does not name a kind.
+            ValueError: Когда значение не называет назначение.
         """
         if isinstance(raw, cls):
             return raw

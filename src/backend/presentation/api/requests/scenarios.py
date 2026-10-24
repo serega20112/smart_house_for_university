@@ -32,9 +32,7 @@ class ScenarioCreateBody(StrictModel):
     capability: Capability
     delay_minutes: int | None = Field(default=None, ge=0, le=DELAY_MAX_MINUTES)
     target: str | None = None
-    target_temperature: float | None = Field(
-        default=None, ge=TEMPERATURE_MIN, le=TEMPERATURE_MAX
-    )
+    target_temperature: float | None = Field(default=None, ge=TEMPERATURE_MIN, le=TEMPERATURE_MAX)
     completion_behavior: CompletionBehavior = CompletionBehavior.LEAVE_TO_AUTOMATION
     duration_minutes: int | None = Field(default=None, ge=1, le=DURATION_MAX_MINUTES)
 

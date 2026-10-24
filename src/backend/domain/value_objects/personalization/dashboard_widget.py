@@ -1,4 +1,4 @@
-"""One entry of a dashboard layout."""
+"""Одна карточка раскладки главного экрана."""
 
 from __future__ import annotations
 
@@ -14,18 +14,15 @@ MAX_TITLE_LENGTH = 60
 
 @dataclass(frozen=True, slots=True)
 class DashboardWidget:
-    """A component to render, optionally fed by one device.
+    """Компонент для вывода, необязательно питаемый одним устройством.
 
-    Args:
-        kind: Which generic component to draw.
-        device_id: Device feeding the component, or None for a global one.
-        title: Personal title overriding the component default.
-
-    Returns:
-        None.
+    Attributes:
+        kind: Какой из готовых компонентов рисовать.
+        device_id: Устройство, которым его питают, или None для общего.
+        title: Личный заголовок поверх значения по умолчанию.
 
     Raises:
-        InvalidDashboardLayoutError: When the title is longer than allowed.
+        InvalidDashboardLayoutError: Когда заголовок длиннее разрешённого.
     """
 
     kind: WidgetKind
@@ -33,17 +30,11 @@ class DashboardWidget:
     title: str | None = None
 
     def __post_init__(self) -> None:
-        """Validate the widget on its own.
-
-        Args:
-            None.
-
-        Returns:
-            None.
+        """Проверяет карточку саму по себе.
 
         Raises:
-            InvalidDashboardLayoutError: When the title is too long or a widget
-            that needs a device does not name one.
+            InvalidDashboardLayoutError: Когда заголовок пустой или слишком длинный,
+            или когда карточке устройства не назвали устройство.
         """
         if self.title is not None:
             trimmed = self.title.strip()
@@ -54,12 +45,12 @@ class DashboardWidget:
             raise InvalidDashboardLayoutError("a device widget must name a device")
 
     def rename(self, title: str | None) -> Self:
-        """Return the same widget under a different title.
+        """Возвращает ту же карточку под другим заголовком.
 
         Args:
-            title: New personal title or None to fall back to the default.
+            title: Новый личный заголовок или None ради значения по умолчанию.
 
         Returns:
-            Self: Widget with the new title.
+            Self: Карточка с новым заголовком.
         """
         return DashboardWidget(kind=self.kind, device_id=self.device_id, title=title)

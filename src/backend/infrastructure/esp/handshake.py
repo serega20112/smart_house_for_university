@@ -82,9 +82,6 @@ async def offer_claim(connection: ServerConnection, offered: BoardAnnouncement) 
     Args:
         connection: Соединение не сопряжённой платы.
         offered: Открытое предложение этой платы.
-
-    Returns:
-        None.
     """
     frame = protocol.ClaimFrame(label=offered.label, ttl_sec=offered.ttl_sec)
     with suppress(Exception):

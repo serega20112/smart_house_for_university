@@ -1,28 +1,34 @@
-/** Typed access to the backend REST API. */
+/**
+ * Типизированный доступ к REST API бэкенда.
+ *
+ * Клиент знает только пути и формы: он кладёт токен в заголовок, разбирает ответ
+ * и превращает отказ сервера в ошибку с человеческими словами. Никакого решения
+ * о том, что разрешено и что из этого следует, здесь нет — этим занимается бэкенд.
+ */
 
 import type {
   Automation,
+  Board,
+  BoardClaim,
   BoardNetwork,
   Capability,
   CommandResult,
   Dashboard,
   Device,
-  DeviceStatus,
-  DeviceType,
-  EspClaim,
-  EspDevice,
-  ExecutionResult,
+  DeviceKind,
   HomeState,
+  OperationResult,
+  PairedBoard,
   Preferences,
   Scenario,
   Session,
-  SettingsResult,
   UserProfile,
   Widget,
 } from "./types";
 import { getToken, unauthorized } from "./session";
 
 const BASE = "/api";
+const NO_CONTENT = 204;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE}${path}`, {
@@ -39,6 +45,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     throw new Error(await errorText(response));
   }
+  // Ответ без тела — законный исход: удаление или выход. Читать у него нечего.
+  if (response.status === NO_CONTENT) {
+    return undefined as T;
+  }
   return (await response.json()) as T;
 }
 
@@ -51,6 +61,12 @@ async function errorText(response: Response): Promise<string> {
   }
 }
 
+/**
+ * Создаёт аккаунт и открывает для него сессию.
+ *
+ * @param payload Электронная почта, пароль и имя для интерфейса.
+ * @returns Токен сессии и профиль нового аккаунта.
+ */
 export function register(payload: {
   email: string;
   password: string;
@@ -62,6 +78,12 @@ export function register(payload: {
   });
 }
 
+/**
+ * Авторизует аккаунт и выдаёт токен сессии.
+ *
+ * @param payload Электронная почта и пароль.
+ * @returns Токен сессии и профиль вошедшего аккаунта.
+ */
 export function login(payload: { email: string; password: string }): Promise<Session> {
   return request<Session>("/auth/login", {
     method: "POST",
@@ -69,81 +91,280 @@ export function login(payload: { email: string; password: string }): Promise<Ses
   });
 }
 
-export function logout(): Promise<{ status: string }> {
-  return request<{ status: string }>("/auth/logout", { method: "POST" });
+/**
+ * Закрывает текущую сессию.
+ *
+ * @returns Подтверждение выхода.
+ */
+export function logout(): Promise<OperationResult> {
+  return request<OperationResult>("/auth/logout", { method: "POST" });
 }
 
+/**
+ * Возвращает аккаунт текущей сессии.
+ *
+ * @returns Профиль вошедшего аккаунта.
+ */
 export function fetchProfile(): Promise<UserProfile> {
   return request<UserProfile>("/auth/me");
 }
 
+/**
+ * Возвращает весь главный экран одним снимком.
+ *
+ * @returns Снимок дома текущего аккаунта.
+ */
 export function fetchHomeState(): Promise<HomeState> {
   return request<HomeState>("/state");
 }
 
+/**
+ * Возвращает настроенные устройства с их текущим состоянием.
+ *
+ * @returns Устройства аккаунта.
+ */
 export function fetchDevices(): Promise<Device[]> {
   return request<Device[]>("/devices");
 }
 
+/**
+ * Просит устройство выполнить способность.
+ *
+ * @param deviceId Идентификатор устройства.
+ * @param capability Способность, которую нужно выполнить.
+ * @returns Устройство в состоянии, которого оно достигло.
+ */
+export function performCapability(
+  deviceId: string,
+  capability: Capability,
+): Promise<Device> {
+  return request<Device>(`/devices/${deviceId}/capabilities/${capability}`, {
+    method: "POST",
+  });
+}
+
+/**
+ * Регистрирует новое логическое устройство.
+ *
+ * @param payload Описание устройства.
+ * @returns Созданное устройство.
+ */
+export function createDevice(payload: {
+  name: string;
+  kind: DeviceKind;
+  channel: number;
+  capabilities: Capability[];
+  enabled?: boolean;
+  automation_enabled?: boolean;
+}): Promise<Device> {
+  return request<Device>("/devices", { method: "POST", body: JSON.stringify(payload) });
+}
+
+/**
+ * Применяет частичное изменение устройства.
+ *
+ * @param deviceId Идентификатор устройства.
+ * @param payload Поля, которые нужно изменить.
+ * @returns Обновлённое устройство.
+ */
+export function updateDevice(
+  deviceId: string,
+  payload: Partial<{
+    name: string;
+    kind: DeviceKind;
+    channel: number;
+    capabilities: Capability[];
+    enabled: boolean;
+    automation_enabled: boolean;
+  }>,
+): Promise<Device> {
+  return request<Device>(`/devices/${deviceId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Удаляет устройство.
+ *
+ * @param deviceId Идентификатор устройства.
+ * @returns Ничего: отказ сервера приходит исключением.
+ */
+export function deleteDevice(deviceId: string): Promise<void> {
+  return request<void>(`/devices/${deviceId}`, { method: "DELETE" });
+}
+
+/**
+ * Возвращает настройку автоматизации текущего аккаунта.
+ *
+ * @returns Настройка аккаунта.
+ */
 export function fetchAutomation(): Promise<Automation> {
   return request<Automation>("/automation");
 }
 
+/**
+ * Применяет частичное изменение настройки автоматизации.
+ *
+ * @param payload Поля, которые нужно изменить.
+ * @returns Настройка такой, какой она стала.
+ */
+export function updateAutomation(payload: Partial<{
+  enabled: boolean;
+  target_temperature: number;
+  temperature_tolerance: number;
+  target_humidity: number;
+  humidity_tolerance: number;
+  participating_device_ids: string[];
+}>): Promise<Automation> {
+  return request<Automation>("/automation", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Возвращает все сценарии текущего аккаунта.
+ *
+ * @returns Сценарии аккаунта.
+ */
 export function fetchScenarios(): Promise<Scenario[]> {
   return request<Scenario[]>("/scenarios");
 }
 
+/**
+ * Отменяет сценарий.
+ *
+ * @param scenarioId Идентификатор сценария.
+ * @returns Отменённый сценарий.
+ */
+export function cancelScenario(scenarioId: string): Promise<Scenario> {
+  return request<Scenario>(`/scenarios/${scenarioId}`, { method: "DELETE" });
+}
+
+/**
+ * Возвращает настройки интерфейса вошедшего аккаунта.
+ *
+ * @returns Настройки такие, какие сохранены.
+ */
 export function fetchPreferences(): Promise<Preferences> {
   return request<Preferences>("/preferences");
 }
 
-export function updatePreferences(payload: Partial<Preferences>): Promise<unknown> {
-  return request("/preferences", { method: "PATCH", body: JSON.stringify(payload) });
+/**
+ * Применяет частичное изменение настроек интерфейса.
+ *
+ * @param payload Поля, которые человек хочет изменить.
+ * @returns Настройки такими, какими они стали.
+ */
+export function updatePreferences(payload: Partial<Preferences>): Promise<Preferences> {
+  return request<Preferences>("/preferences", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
+/**
+ * Возвращает раскладку главного экрана вошедшего аккаунта.
+ *
+ * @returns Виджеты в порядке вывода.
+ */
 export function fetchDashboard(): Promise<Dashboard> {
   return request<Dashboard>("/dashboard");
 }
 
-export function updateDashboard(widgets: Widget[]): Promise<unknown> {
-  return request("/dashboard", {
+/**
+ * Заменяет раскладку главного экрана целиком.
+ *
+ * @param widgets Виджеты в новом порядке.
+ * @returns Сохранённая раскладка.
+ */
+export function updateDashboard(widgets: Widget[]): Promise<Dashboard> {
+  return request<Dashboard>("/dashboard", {
     method: "PATCH",
     body: JSON.stringify({ widgets }),
   });
 }
 
-export function fetchEspDevices(): Promise<EspDevice[]> {
-  return request<EspDevice[]>("/esp-devices");
+/**
+ * Возвращает платы, сопряжённые с текущим аккаунтом.
+ *
+ * @returns Платы аккаунта с живой доступностью.
+ */
+export function fetchBoards(): Promise<Board[]> {
+  return request<Board[]>("/esp-devices");
 }
 
-export function pairEspDevice(payload: {
+/**
+ * Сопрягает плату и один раз показывает её ключ.
+ *
+ * @param payload Имя платы и, возможно, выбранный человеком ключ.
+ * @returns Сопряжённая плата вместе с её ключом.
+ */
+export function pairBoard(payload: {
   name: string;
   pairing_key?: string;
-}): Promise<{ status: string; message: string; data: EspDevice }> {
-  return request("/esp-devices", { method: "POST", body: JSON.stringify(payload) });
+}): Promise<PairedBoard> {
+  return request<PairedBoard>("/esp-devices", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
-export function fetchEspClaims(): Promise<EspClaim[]> {
-  return request<EspClaim[]>("/esp-devices/claims");
+/**
+ * Возвращает платы, которые ждут, что их заберут.
+ *
+ * @returns Предложения с токеном, кодом и сроком.
+ */
+export function fetchBoardClaims(): Promise<BoardClaim[]> {
+  return request<BoardClaim[]>("/esp-devices/claims");
 }
 
-export function claimEspDevice(payload: {
+/**
+ * Забирает объявленную плату за текущим аккаунтом.
+ *
+ * @param payload Токен предложения и выбранное имя платы.
+ * @returns Плата, которая теперь сопряжена.
+ */
+export function claimBoard(payload: {
   claim_token: string;
   name: string;
-}): Promise<{ status: string; message: string }> {
-  return request("/esp-devices/claims", { method: "POST", body: JSON.stringify(payload) });
+}): Promise<Board> {
+  return request<Board>("/esp-devices/claims", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
-export function unpairEspDevice(deviceId: string): Promise<{ status: string; message: string }> {
-  return request(`/esp-devices/${deviceId}`, { method: "DELETE" });
+/**
+ * Убирает плату из текущего аккаунта.
+ *
+ * @param boardId Идентификатор платы.
+ * @returns Ничего: плата удалена, и показывать там нечего.
+ */
+export function revokeBoard(boardId: string): Promise<void> {
+  return request<void>(`/esp-devices/${boardId}`, { method: "DELETE" });
 }
 
-export function fetchBoardNetwork(deviceId: string): Promise<BoardNetwork | null> {
-  return request<BoardNetwork | null>(`/esp-devices/${deviceId}/network`);
+/**
+ * Возвращает сеть, которую предписано использовать плате.
+ *
+ * @param boardId Идентификатор платы.
+ * @returns Сеть платы.
+ */
+export function fetchBoardNetwork(boardId: string): Promise<BoardNetwork> {
+  return request<BoardNetwork>(`/esp-devices/${boardId}/network`);
 }
 
+/**
+ * Сообщает плате сеть, которую та должна использовать.
+ *
+ * @param boardId Идентификатор платы.
+ * @param payload Сеть, которую должна использовать плата.
+ * @returns Сеть такой, какой она сохранена.
+ */
 export function updateBoardNetwork(
-  deviceId: string,
+  boardId: string,
   payload: {
     ssid: string;
     password: string;
@@ -153,94 +374,18 @@ export function updateBoardNetwork(
     socket_path: string;
   },
 ): Promise<BoardNetwork> {
-  return request<BoardNetwork>(`/esp-devices/${deviceId}/network`, {
+  return request<BoardNetwork>(`/esp-devices/${boardId}/network`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
 }
 
-export function turnDeviceOn(deviceId: number): Promise<ExecutionResult> {
-  return request<ExecutionResult>(`/devices/${deviceId}/on`, { method: "POST" });
-}
-
-export function turnDeviceOff(deviceId: number): Promise<ExecutionResult> {
-  return request<ExecutionResult>(`/devices/${deviceId}/off`, { method: "POST" });
-}
-
-export function setDeviceMode(
-  deviceId: number,
-  mode: Capability,
-): Promise<ExecutionResult> {
-  return request<ExecutionResult>(`/devices/${deviceId}/mode`, {
-    method: "POST",
-    body: JSON.stringify({ mode }),
-  });
-}
-
-export function createDevice(payload: {
-  name: string;
-  type: DeviceType;
-  physical_channel: number;
-  capabilities: Capability[];
-  automation_enabled: boolean;
-}): Promise<{ status: string; message: string; data: Device }> {
-  return request("/devices", { method: "POST", body: JSON.stringify(payload) });
-}
-
-export function updateDevice(
-  deviceId: number,
-  payload: Partial<{
-    name: string;
-    type: DeviceType;
-    physical_channel: number;
-    capabilities: Capability[];
-    enabled: boolean;
-    automation_enabled: boolean;
-  }>,
-): Promise<{ status: string; message: string; data: Device }> {
-  return request(`/devices/${deviceId}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
-}
-
-export function deleteDevice(
-  deviceId: number,
-): Promise<{ status: string; message: string }> {
-  return request(`/devices/${deviceId}`, { method: "DELETE" });
-}
-
-export interface AutomationUpdate {
-  enabled?: boolean;
-  target_temperature?: number;
-  temperature_tolerance?: number;
-  target_humidity?: number;
-  humidity_tolerance?: number;
-  participating_device_ids?: number[];
-}
-
-export function updateAutomation(payload: AutomationUpdate): Promise<SettingsResult> {
-  return request("/automation", { method: "PUT", body: JSON.stringify(payload) });
-}
-
-export function setAutomationEnabled(enabled: boolean): Promise<SettingsResult> {
-  return request(`/automation/${enabled ? "enable" : "disable"}`, { method: "POST" });
-}
-
-export function cancelScenario(
-  scenarioId: number,
-): Promise<{ status: string; message: string }> {
-  return request(`/scenarios/${scenarioId}`, { method: "DELETE" });
-}
-
+/**
+ * Отправляет написанную команду и возвращает то, что она дала.
+ *
+ * @param text Предложение таким, каким его ввели.
+ * @returns Ответ на команду.
+ */
 export function sendCommand(text: string): Promise<CommandResult> {
-  return request("/commands", { method: "POST", body: JSON.stringify({ text }) });
+  return request<CommandResult>("/commands", { method: "POST", body: JSON.stringify({ text }) });
 }
-
-export const statusOrder: Record<DeviceStatus, number> = {
-  COOL: 0,
-  HEAT: 1,
-  ON: 2,
-  OFF: 3,
-  UNAVAILABLE: 4,
-};

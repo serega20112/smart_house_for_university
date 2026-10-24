@@ -1,6 +1,6 @@
 /**
  * @file config_store.cpp
- * @brief Reading and writing the settings a board keeps in its own flash.
+ * @brief Чтение и запись настроек, которые плата хранит у себя во флеше.
  */
 
 #include "config_store.h"
@@ -10,34 +10,48 @@
 
 namespace {
 
-/** Offset of the network name inside the network block. */
+/** Смещение имени сети внутри блока сети. */
 const size_t SSID_OFFSET = NETWORK_OFFSET;
 
-/** Offset of the network password inside the network block. */
+/** Смещение пароля сети внутри блока сети. */
 const size_t PASSWORD_OFFSET = SSID_OFFSET + NETWORK_SSID_SIZE;
 
-/** Offset of the server address inside the network block. */
+/** Смещение адреса сервера внутри блока сети. */
 const size_t HOST_OFFSET = PASSWORD_OFFSET + NETWORK_PASSWORD_SIZE;
 
-/** Offset of the interface port of the server inside the network block. */
+/** Смещение порта интерфейса сервера внутри блока сети. */
 const size_t SERVER_PORT_OFFSET = HOST_OFFSET + NETWORK_HOST_SIZE;
 
-/** Offset of the socket port of the server inside the network block. */
+/** Смещение порта сокета сервера внутри блока сети. */
 const size_t SOCKET_PORT_OFFSET = SERVER_PORT_OFFSET + sizeof(uint16_t);
 
-/** Offset of the socket path inside the network block. */
+/** Смещение пути сокета внутри блока сети. */
 const size_t SOCKET_PATH_OFFSET = SOCKET_PORT_OFFSET + sizeof(uint16_t);
 
-/** Offset of the flag telling whether the board was set up. */
+/** Смещение признака того, что плату настроили. */
 const size_t PROVISIONED_OFFSET = SOCKET_PATH_OFFSET + NETWORK_PATH_SIZE;
 
 /**
- * @brief Copy a fixed size string out of the flash.
+ * @brief Пишет один байт, только если он отличается от лежащего в памяти.
  *
- * @param offset Where the string starts.
- * @param out Buffer the string is copied into.
- * @param capacity Size of that buffer.
- * @return None.
+ * @param offset Куда байт должен лечь.
+ * @param value Значение для записи.
+ * @return True, когда запись в память действительно понадобилась.
+ */
+bool writeByteIfChanged(size_t offset, uint8_t value) {
+    if (EEPROM.read(offset) == value) {
+        return false;
+    }
+    EEPROM.write(offset, value);
+    return true;
+}
+
+/**
+ * @brief Читает строку фиксированной длины из флеш-памяти.
+ *
+ * @param offset Где строка начинается.
+ * @param out Буфер, куда строка копируется.
+ * @param capacity Размер этого буфера.
  */
 void readString(size_t offset, char *out, size_t capacity) {
     size_t index = 0;
@@ -53,27 +67,30 @@ void readString(size_t offset, char *out, size_t capacity) {
 }
 
 /**
- * @brief Write a string into the flash.
+ * @brief Пишет строку во флеш-память, не трогая неизменившиеся байты.
  *
- * @param offset Where the string starts.
- * @param value String to store.
- * @param capacity Size of the field the string is stored in.
- * @return None.
+ * @param offset Где строка начинается.
+ * @param value Строка для сохранения.
+ * @param capacity Размер поля, в которое она кладётся.
+ * @return True, когда хотя бы один байт поля изменился.
  */
-void writeString(size_t offset, const char *value, size_t capacity) {
+bool writeString(size_t offset, const char *value, size_t capacity) {
+    bool changed = false;
     size_t index = 0;
     while (index + 1 < capacity && value[index] != '\0') {
-        EEPROM.write(offset + index, static_cast<uint8_t>(value[index]));
+        if (writeByteIfChanged(offset + index, static_cast<uint8_t>(value[index]))) {
+            changed = true;
+        }
         index++;
     }
-    EEPROM.write(offset + index, 0);
+    return writeByteIfChanged(offset + index, 0) || changed;
 }
 
 /**
- * @brief Read a port out of the flash.
+ * @brief Читает порт из флеш-памяти.
  *
- * @param offset Where the port starts.
- * @return Port that was stored.
+ * @param offset Где порт начинается.
+ * @return Сохранённый порт.
  */
 uint16_t readPort(size_t offset) {
     uint8_t low = EEPROM.read(offset);
@@ -82,15 +99,30 @@ uint16_t readPort(size_t offset) {
 }
 
 /**
- * @brief Write a port into the flash.
+ * @brief Пишет порт во флеш-память, не трогая неизменившиеся байты.
  *
- * @param offset Where the port starts.
- * @param value Port to store.
- * @return None.
+ * @param offset Где порт начинается.
+ * @param value Порт для сохранения.
+ * @return True, когда хотя бы один байт изменился.
  */
-void writePort(size_t offset, uint16_t value) {
-    EEPROM.write(offset, static_cast<uint8_t>(value & 0xFF));
-    EEPROM.write(offset + 1, static_cast<uint8_t>((value >> 8) & 0xFF));
+bool writePort(size_t offset, uint16_t value) {
+    bool changed = writeByteIfChanged(offset, static_cast<uint8_t>(value & 0xFF));
+    return writeByteIfChanged(offset + 1, static_cast<uint8_t>((value >> 8) & 0xFF)) || changed;
+}
+
+/**
+ * @brief Отдаёт флеш-память обратно, если в неё что-то легло.
+ *
+ * commit() перезаписывает сектор целиком, поэтому вызывается он ровно один раз и
+ * только после реальных изменений: иначе каждое переподключение платы стирало бы
+ * ресурс памяти впустую.
+ *
+ * @param changed True, если между чтением и сейчас что-то изменилось.
+ */
+void commitIfChanged(bool changed) {
+    if (changed) {
+        EEPROM.commit();
+    }
 }
 
 }  // namespace
@@ -114,13 +146,15 @@ size_t configStoreReadDeviceKey(char *out, size_t capacity) {
 }
 
 void configStoreWriteDeviceKey(const char *key) {
+    bool changed = false;
     size_t index = 0;
     while (key[index] != '\0') {
-        EEPROM.write(DEVICE_KEY_OFFSET + index, static_cast<uint8_t>(key[index]));
+        if (writeByteIfChanged(DEVICE_KEY_OFFSET + index, static_cast<uint8_t>(key[index]))) {
+            changed = true;
+        }
         index++;
     }
-    EEPROM.write(DEVICE_KEY_OFFSET + index, 0);
-    EEPROM.commit();
+    commitIfChanged(writeByteIfChanged(DEVICE_KEY_OFFSET + index, 0) || changed);
 }
 
 bool configStoreIsClaimed() {
@@ -128,8 +162,7 @@ bool configStoreIsClaimed() {
 }
 
 void configStoreSetClaimed(bool claimed) {
-    EEPROM.write(CLAIMED_FLAG_OFFSET, claimed ? 1 : 0);
-    EEPROM.commit();
+    commitIfChanged(writeByteIfChanged(CLAIMED_FLAG_OFFSET, claimed ? 1 : 0));
 }
 
 bool configStoreLoadNetwork(NetworkConfig &out) {
@@ -153,12 +186,12 @@ bool configStoreLoadNetwork(NetworkConfig &out) {
 }
 
 void configStoreSaveNetwork(const NetworkConfig &config) {
-    writeString(SSID_OFFSET, config.ssid, sizeof(config.ssid));
-    writeString(PASSWORD_OFFSET, config.password, sizeof(config.password));
-    writeString(HOST_OFFSET, config.serverHost, sizeof(config.serverHost));
-    writePort(SERVER_PORT_OFFSET, config.serverPort);
-    writePort(SOCKET_PORT_OFFSET, config.socketPort);
-    writeString(SOCKET_PATH_OFFSET, config.socketPath, sizeof(config.socketPath));
-    EEPROM.write(PROVISIONED_OFFSET, config.provisioned ? 1 : 0);
-    EEPROM.commit();
+    bool changed = writeString(SSID_OFFSET, config.ssid, sizeof(config.ssid));
+    changed = writeString(PASSWORD_OFFSET, config.password, sizeof(config.password)) || changed;
+    changed = writeString(HOST_OFFSET, config.serverHost, sizeof(config.serverHost)) || changed;
+    changed = writePort(SERVER_PORT_OFFSET, config.serverPort) || changed;
+    changed = writePort(SOCKET_PORT_OFFSET, config.socketPort) || changed;
+    changed = writeString(SOCKET_PATH_OFFSET, config.socketPath, sizeof(config.socketPath))
+              || changed;
+    commitIfChanged(writeByteIfChanged(PROVISIONED_OFFSET, config.provisioned ? 1 : 0) || changed);
 }

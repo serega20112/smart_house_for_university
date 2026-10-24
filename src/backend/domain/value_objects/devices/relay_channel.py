@@ -1,8 +1,8 @@
-"""Number of a physical relay channel.
+"""Номер физического канала реле.
 
-A channel is a position on the board, so it is a value object rather than a bare
-integer: it refuses an impossible number once, at construction, instead of letting
-an out of range relay number travel through a use case into a command.
+Канал — это место на плате, поэтому это объект-значение, а не голое целое: он один
+раз при построении отвергает невозможный номер вместо того, чтобы номер вне диапазона
+прошёл через сценарий приложения и попал в команду плате.
 """
 
 from __future__ import annotations
@@ -17,36 +17,26 @@ PHYSICAL_RELAY_LIMIT = 32
 
 @dataclass(frozen=True, slots=True, order=True)
 class RelayChannel:
-    """One physical relay channel of a board.
+    """Один физический канал реле платы.
 
-    Args:
-        number: Channel number, starting at one.
-
-    Returns:
-        None.
+    Attributes:
+        number: Номер канала, начиная с первого.
 
     Raises:
-        InvalidRelayChannelError: When the board has no such channel.
+        InvalidRelayChannelError: Когда такого канала на плате нет.
     """
 
     number: int
 
     def __post_init__(self) -> None:
-        """Validate that the board has this channel.
-
-        Returns:
-            None.
+        """Проверяет, что такой канал на плате есть.
 
         Raises:
-            InvalidRelayChannelError: When the number is outside the hardware.
+            InvalidRelayChannelError: Когда номер вне возможностей железа.
         """
         if not FIRST_CHANNEL <= self.number <= PHYSICAL_RELAY_LIMIT:
             raise InvalidRelayChannelError(self.number, PHYSICAL_RELAY_LIMIT)
 
     def __int__(self) -> int:
-        """Return the channel number.
-
-        Returns:
-            int: Channel number.
-        """
+        """Возвращает номер канала."""
         return self.number

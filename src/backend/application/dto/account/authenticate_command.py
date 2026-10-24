@@ -1,4 +1,4 @@
-"""Credentials presented at login."""
+"""Учётные данные, предъявленные при входе."""
 
 from __future__ import annotations
 
@@ -7,14 +7,11 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class AuthenticateCommand:
-    """Credentials the person presented to sign in.
+    """Учётные данные, которыми человек представляется, входя.
 
-    Args:
-        email: Login of the account.
-        password: Plain password.
-
-    Returns:
-        None.
+    Attributes:
+        email: Логин аккаунта.
+        password: Пароль в открытом виде.
     """
 
     email: str

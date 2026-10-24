@@ -1,6 +1,6 @@
 /**
  * @file provisioning.cpp
- * @brief The access point the board raises until it is told where to go.
+ * @brief Точка доступа, которую плата поднимает, пока ей не сказали, куда идти.
  */
 
 #include "provisioning.h"
@@ -13,21 +13,30 @@
 
 namespace {
 
-/** Prefix of the name of the access point. */
+/** Начало имени точки доступа. */
 static const char ACCESS_POINT_PREFIX[] = "SmartHome-Setup-";
 
 /**
- * @brief Build the name of the access point out of the chip identifier.
+ * @brief Строит имя точки доступа из идентификатора чипа.
  *
- * The identifier is printed on the board, so the name tells a person which of
- * the two boards in the room is the one asking to be set up.
+ * Идентификатор напечатан на плате, поэтому имя говорит человеку, какая из двух
+ * плат в комнате требует настройки.
  *
- * @param out Buffer the name is written into.
- * @param capacity Size of that buffer.
- * @return None.
+ * @param out Буфер, куда записывается имя.
+ * @param capacity Размер этого буфера.
  */
 void buildAccessPointName(char *out, size_t capacity) {
     snprintf(out, capacity, "%s%06X", ACCESS_POINT_PREFIX, ESP.getChipId());
+}
+
+/**
+ * @brief Пробел ли этот знак (включая переводы строк формы)?
+ *
+ * @param symbol Знак, пришедший из поля формы.
+ * @return True для пробела, табуляции и любого перевода строки.
+ */
+bool isBlank(char symbol) {
+    return symbol == ' ' || symbol == '\t' || symbol == '\r' || symbol == '\n';
 }
 
 }  // namespace
@@ -94,7 +103,9 @@ void Provisioning::handleSubmit() {
     config.provisioned = true;
 
     if (config.ssid[0] == '\0' || !networkHostIsNumeric(config.serverHost)) {
-        Serial.println("[setup] the form was refused, a network name and a numeric address are needed");
+        Serial.println(
+            "[setup] the form was refused, a network name and a numeric address are needed"
+        );
         servePage();
         return;
     }
@@ -122,17 +133,26 @@ size_t Provisioning::readField(const char *name, char *out, size_t capacity) {
     if (!_server->hasArg(name)) {
         return 0;
     }
-    // The value is read by reference and copied into a fixed buffer: a String of
-    // its own would sit on the heap, and this chip dies of the fragmentation
-    // that leaves behind.
+    // Значение читается по ссылке и копируется в фиксированный буфер: собственная
+    // String осталась бы в куче, а от оставленного ею фрагментирования эта микросхема
+    // и погибает (Exception 29, LoadStoreError).
+    //
+    // Из текста убираются только ведущие и хвостовые пробелы. Имя сети «My Sweet
+    // Home» и пароль «password 123» пробелы содержат, и вырезание их из середины
+    // записало бы в память другую сеть: плата не смогла бы к ней подключиться и
+    // ушла бы в вечный возврат к странице настройки.
     const String &value = _server->arg(name);
+    size_t first = 0;
+    size_t last = value.length();
+    while (first < last && isBlank(value[first])) {
+        first++;
+    }
+    while (last > first && isBlank(value[last - 1])) {
+        last--;
+    }
     size_t written = 0;
-    for (size_t index = 0; index < value.length() && written + 1 < capacity; index++) {
-        char symbol = value[index];
-        if (symbol == ' ' || symbol == '\t' || symbol == '\r' || symbol == '\n') {
-            continue;
-        }
-        out[written++] = symbol;
+    for (size_t index = first; index < last && written + 1 < capacity; index++) {
+        out[written++] = value[index];
     }
     out[written] = '\0';
     return written;

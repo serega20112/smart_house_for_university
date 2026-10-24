@@ -1,4 +1,4 @@
-"""Register a new logical device."""
+"""Заводит новое логическое устройство."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from backend.domain.value_objects.devices.relay_channel import RelayChannel
 
 
 class CreateDeviceUseCase:
-    """Adds a device bound to a free relay channel of the board."""
+    """Добавляет устройство, привязанное к свободному каналу реле платы."""
 
     def __init__(
         self,
@@ -24,16 +24,13 @@ class CreateDeviceUseCase:
         dispatcher: DomainEventDispatcher,
         state_store: HomeStateStore,
     ) -> None:
-        """Initialize the use case.
+        """Инициализирует сценарий.
 
         Args:
-            home_uow: Factory producing transactions over the configuration.
-            realtime: Publisher of events to the open clients.
-            dispatcher: Announces the fact that the configuration changed.
-            state_store: Durable home of the volatile state.
-
-        Returns:
-            None.
+            home_uow: Фабрика транзакций над конфигурацией.
+            realtime: Издатель событий в открытые соединения.
+            dispatcher: Объявляет факт изменения конфигурации.
+            state_store: Надёжный дом изменчивого состояния.
         """
         self._home_uow = home_uow
         self._realtime = realtime
@@ -41,19 +38,19 @@ class CreateDeviceUseCase:
         self._state_store = state_store
 
     async def execute(self, user_id: UserId, command: CreateDeviceCommand) -> DeviceView:
-        """Add a device.
+        """Добавляет устройство.
 
         Args:
-            user_id: Owner resolved from the session.
-            command: Device description.
+            user_id: Владелец, разрешённый из сессии.
+            command: Описание устройства.
 
         Returns:
-            DeviceView: The created device, carrying the status the volatile
-            state reports for it right now.
+            DeviceView: Созданное устройство с состоянием, которое об нём знает
+            изменчивое состояние прямо сейчас.
 
         Raises:
-            ChannelConflictError: When the relay channel is already wired to
-            another device of the same account.
+            ChannelConflictError: Когда канал реле уже подключён к другому устройству
+            того же аккаунта.
         """
         async with self._home_uow() as uow:
             device = Device.create(

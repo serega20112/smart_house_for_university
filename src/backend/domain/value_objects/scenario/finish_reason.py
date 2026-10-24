@@ -1,19 +1,13 @@
-"""Why a scenario stopped acting."""
+"""Почему сценарий перестал действовать."""
 
 from enum import StrEnum
 
 
 class FinishReason(StrEnum):
-    """Why a scenario stopped acting on the home.
+    """Причина, по которой сценарий перестал действовать в доме.
 
-    The wording the interface and the notifications see is exactly the value,
-    so a reason that comes back as text in a row reads as a vocabulary here.
-
-    Args:
-        None.
-
-    Returns:
-        None.
+    Экран и уведомления видят ровно это значение, поэтому причина, вернувшаяся из
+    строки текстом, читается здесь как словарь терминов.
     """
 
     GOAL_REACHED = "goal_reached"

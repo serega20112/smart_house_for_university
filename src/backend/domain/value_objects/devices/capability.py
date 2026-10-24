@@ -1,8 +1,8 @@
-"""Capabilities a logical device can be asked to perform.
+"""Способности, которые логическому устройству можно приказать выполнить.
 
-A capability is a command, not a state. Naming the actions instead of the relay
-numbers is what lets the same automation rule work for any wiring, and it is why
-the board protocol never appears in the model.
+Способность — это команда, а не состояние. Называть действия вместо номеров реле
+позволяет одному правилу автоматизации работать при любой проводке, и именно поэтому
+протокол платы не заходит в модель.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from enum import StrEnum
 
 
 class Capability(StrEnum):
-    """Something the backend may ask a device to do."""
+    """Действие, которое бэкенд может попросить устройство выполнить."""
 
     ON = "ON"
     OFF = "OFF"
@@ -22,33 +22,33 @@ class Capability(StrEnum):
 
     @property
     def energizes_relay(self) -> bool:
-        """Return whether performing the capability closes the relay contact.
+        """Сообщает, замыкает ли выполнение способности контакт реле.
 
-        Switching something off releases the contact, everything else closes it.
-        The answer is what the hardware adapter needs, and keeping it here means
-        the adapter does not have to know the vocabulary.
+        Выключение контакт размыкает, всё остальное — замыкает. Ответ нужен
+        адаптеру железа, и держится он здесь, чтобы адаптеру не нужно было знать
+        словарь способностей.
 
         Returns:
-            bool: True when the relay has to be closed.
+            bool: True, когда контакт нужно замкнуть.
         """
         return self is not Capability.OFF
 
     @classmethod
     def parse(cls, raw: object) -> Capability:
-        """Read a capability from a value received from the outside.
+        """Читает способность из значения, пришедшего извне.
 
-        Unlike a lenient parser this one refuses an unknown name: silently turning
-        a typo into a missing capability hides a broken request instead of
-        answering it.
+        Этот разбор, в отличие от снисходительного, неизвестное имя отвергает:
+        молча превратить опечатку в «нет такой способности» значит спрятать сломанный
+        запрос вместо ответа на него.
 
         Args:
-            raw: Capability name or enum member.
+            raw: Имя способности или её член перечисления.
 
         Returns:
-            Capability: Parsed capability.
+            Capability: Прочитанная способность.
 
         Raises:
-            ValueError: When the value does not name a capability.
+            ValueError: Когда значение не называет способность.
         """
         if isinstance(raw, cls):
             return raw
@@ -58,14 +58,7 @@ class Capability(StrEnum):
 
 
 class ControlSource(StrEnum):
-    """Origin of a command, ordered from the highest to the lowest priority.
-
-    Args:
-        None.
-
-    Returns:
-        None.
-    """
+    """Источник команды, от самого важного к самому простому."""
 
     EMERGENCY = "EMERGENCY"
     SCENARIO = "SCENARIO"

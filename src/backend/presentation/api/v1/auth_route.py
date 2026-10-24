@@ -87,9 +87,7 @@ async def logout() -> OperationResponse:
 
 
 @router.get("/me", response_model=UserResponse)
-async def read_session(
-    user_id: CurrentUserId, queries: FromDishka[AccountQueries]
-) -> UserResponse:
+async def read_session(user_id: CurrentUserId, queries: FromDishka[AccountQueries]) -> UserResponse:
     """Возвращает аккаунт текущей сессии.
 
     Args:

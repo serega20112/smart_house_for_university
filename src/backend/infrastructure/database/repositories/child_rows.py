@@ -25,14 +25,14 @@ Runner = AsyncConnection | AsyncSession
 async def capabilities_of(
     runner: Runner, device_ids: Sequence[UUID]
 ) -> dict[UUID, frozenset[Capability]]:
-    """Return the capabilities of every device of a lookup.
+    """Возвращает способности всякого устройства из выборки.
 
     Args:
-        runner: Session or connection the lookup runs on.
-        device_ids: Devices the caller is about to return.
+        runner: Сессия или соединение, на котором идёт выборка.
+        device_ids: Устройства, которые вызывающий собирается вернуть.
 
     Returns:
-        dict[UUID, frozenset[Capability]]: Capabilities grouped by device.
+        dict[UUID, frozenset[Capability]]: Способности, разложенные по устройствам.
     """
     if not device_ids:
         return {}
@@ -48,14 +48,15 @@ async def capabilities_of(
 
 
 async def participants_of(runner: Runner, user_id: UserId) -> frozenset[DeviceId]:
-    """Return the devices automation is allowed to drive.
+    """Возвращает устройства, которыми автоматизации разрешено управлять.
 
     Args:
-        runner: Session or connection the lookup runs on.
-        user_id: Owner of the configuration.
+        runner: Сессия или соединение, на котором идёт выборка.
+        user_id: Владелец настройки.
 
     Returns:
-        frozenset[DeviceId]: Participating devices, empty for every opted in one.
+        frozenset[DeviceId]: Участвующие устройства; пусто — значит «каждое
+        согласившееся».
     """
     result = await runner.execute(
         select(AutomationParticipantRow.device_id).where(

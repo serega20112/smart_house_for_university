@@ -1,12 +1,12 @@
-"""Reading the parameters out of a sentence.
+"""Вынимает параметры из предложения.
 
-Extraction is a separate stage from classification. The classifier decides *what*
-was asked for; this module decides *with what*: the number, the delay, the
-device and the capability, each as the typed value the application expects rather
-than as a raw number a caller has to guess the unit of.
+Выписывание — отдельная стадия, не смешанная с классификацией. Классификатор решает
+*что* попросили; этот модуль решает *чем*: число, задержку, устройство и способность —
+каждое тем типизированным значением, которого ждёт приложение, а не голым числом, к
+которому вызывающему надо самому догадаться о единице измерения.
 
-The words it matches come from :mod:`backend.infrastructure.nlp.vocabulary` and
-from nowhere else.
+Слова для сравнения берутся из :mod:`backend.infrastructure.nlp.vocabulary` и больше
+ниоткуда.
 """
 
 from __future__ import annotations
@@ -53,19 +53,16 @@ WORD_NUMBERS: dict[str, int] = {
 
 @dataclass(frozen=True, slots=True)
 class SentenceFacts:
-    """What could be read out of a sentence before any model was asked.
+    """Что удалось прочитать из предложения, ещё не спрашивая ни одну модель.
 
-    Args:
-        device_name: Device word found in the sentence.
-        device_kinds: Device kinds the sentence could be about.
-        capability: Capability the sentence asks for.
-        temperature: Requested temperature, rejected when it is impossible.
-        humidity: Requested humidity, rejected when it is impossible.
-        delay_minutes: Requested delay before a scenario starts.
-        target: Requested area.
-
-    Returns:
-        None.
+    Attributes:
+        device_name: Слово об устройстве, найденное в предложении.
+        device_kinds: Назначения устройств, о которых могло идти речь.
+        capability: Способность, о которой просит предложение.
+        temperature: Запрошенная температура; невозможную модель не принимает.
+        humidity: Запрошенная влажность; невозможную модель не принимает.
+        delay_minutes: Запрошенная задержка перед началом сценария.
+        target: Запрошенное место.
     """
 
     device_name: str | None = None
@@ -78,16 +75,16 @@ class SentenceFacts:
 
 
 class SentenceParser:
-    """Reads numbers, durations and device references out of a sentence."""
+    """Вычитывает из предложения числа, длительности и ссылки на устройства."""
 
     def parse(self, text: str) -> SentenceFacts:
-        """Read everything a sentence carries.
+        """Вычитывает всё, что есть в предложении.
 
         Args:
-            text: Raw sentence as the interface received it.
+            text: Предложение в сыром виде, каким его получил интерфейс.
 
         Returns:
-            SentenceFacts: Typed values found in the sentence.
+            SentenceFacts: Типизированные значения, найденные в предложении.
         """
         normalized = normalize(text)
         kinds = vocabulary.kinds_in(normalized)
@@ -103,13 +100,14 @@ class SentenceParser:
 
 
 def normalize(text: str) -> str:
-    """Return a sentence in the shape the vocabulary matches.
+    """Приводит предложение к виду, с которым сравнивает словарь.
 
     Args:
-        text: Raw sentence as the interface received it.
+        text: Предложение в сыром виде, каким его получил интерфейс.
 
     Returns:
-        str: Lowercased sentence with single spaces and no punctuation.
+        str: Предложение в нижнем регистре, с одинарными пробелами и без знаков
+            препинания.
     """
     cleaned = "".join(
         " " if not character.isalnum() and character not in "%°" else character

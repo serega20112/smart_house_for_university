@@ -47,9 +47,6 @@ class EspConnection:
         handshake_timeout_sec: Сколько секунд ждётся первый кадр платы.
         ping_interval_sec: Интервал служебных кадров поддержки соединения.
         ping_timeout_sec: Сколько секунд ждётся ответ на такой кадр.
-
-    Returns:
-        None.
     """
 
     def __init__(
@@ -76,9 +73,6 @@ class EspConnection:
             handshake_timeout_sec: Сколько секунд ждётся первый кадр платы.
             ping_interval_sec: Интервал служебных кадров поддержки соединения.
             ping_timeout_sec: Сколько секунд ждётся ответ на такой кадр.
-
-        Returns:
-            None.
         """
         self._report = report
         self._onboarding = onboarding
@@ -93,11 +87,7 @@ class EspConnection:
         self._server: Server | None = None
 
     async def start(self) -> None:
-        """Начинает слушать платы.
-
-        Returns:
-            None.
-        """
+        """Начинает слушать платы."""
         self._server = await serve(
             self._serve_client,
             self._host,
@@ -108,11 +98,7 @@ class EspConnection:
         log.info("esp.server_started", host=self._host, port=self._port, path=self._path)
 
     async def stop(self) -> None:
-        """Закрывает все соединения плат и перестаёт слушать.
-
-        Returns:
-            None.
-        """
+        """Закрывает все соединения плат и перестаёт слушать."""
         for session in self._registry.every():
             await session.close()
         self._registry.clear()
@@ -183,11 +169,7 @@ class EspConnection:
         return await self._execute(user_id, board_id, frame_of)
 
     async def request_state(self, user_id: UserId, board_id: EspDeviceId) -> None:
-        """Просит плату заново сообщить всё, что она знает.
-
-        Returns:
-            None.
-        """
+        """Просит плату заново сообщить всё, что она знает."""
         await self._send(user_id, board_id, protocol.GetStateFrame())
 
     async def confirm_ownership(self, user_id: UserId, board_id: EspDeviceId) -> None:
@@ -196,9 +178,6 @@ class EspConnection:
         Подтверждение уходит в каждом успешном handshake намеренно: плата,
         пропустившая момент взятия, узнаёт о нём при следующем подключении, а
         повторная запись ничего не стоит.
-
-        Returns:
-            None.
         """
         await self._send(user_id, board_id, protocol.ClaimedFrame())
 
@@ -254,11 +233,7 @@ class EspConnection:
         return await session.deliver(frame)
 
     async def _serve_client(self, connection: ServerConnection) -> None:
-        """Принимает одно соединение платы: путь, handshake, затем разбор кадров.
-
-        Returns:
-            None.
-        """
+        """Принимает одно соединение платы: путь, handshake, затем разбор кадров."""
         if not handshake.matches_path(connection, self._path):
             await connection.close(code=handshake.CLOSE_WRONG_PATH, reason="unknown path")
             return
@@ -277,9 +252,6 @@ class EspConnection:
         Args:
             connection: Соединение платы.
             identity: Владелец и идентификатор, полученные в handshake.
-
-        Returns:
-            None.
         """
         session = self._registry.open(identity.user_id, identity.board_id, connection)
         await self._report.on_connected(identity.user_id, identity.board_id)

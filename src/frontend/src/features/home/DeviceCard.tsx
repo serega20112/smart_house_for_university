@@ -1,41 +1,54 @@
-/** Compact device card with its switch and optional mode selector. */
+/**
+ * Компактная карточка устройства с переключателем и выбором режима.
+ *
+ * Карточка умеет ровно то, что разрешило приложение: список способностей приходит
+ * с сервера, и никаких догадок о том, что устройство «наверное умеет выключаться»,
+ * здесь не строится.
+ */
 
 import { Badge } from "../../components/Badge";
 import { DeviceIcon } from "../../components/DeviceIcon";
 import { Toggle } from "../../components/Toggle";
 import * as api from "../../services/api";
-import type { Capability, Device } from "../../services/types";
+import type { Capability, Device, DeviceKind, DeviceStatus } from "../../services/types";
 
-const MODE_LABELS: Record<Capability, string> = {
+const CAPABILITY_LABELS: Record<Capability, string> = {
   ON: "Вкл",
   OFF: "Выкл",
   COOL: "Охлаждение",
   HEAT: "Нагрев",
+  HUMIDIFY: "Увлажнение",
+  DEHUMIDIFY: "Осушение",
 };
 
-const TYPE_LABELS: Record<Device["type"], string> = {
+const KIND_LABELS: Record<DeviceKind, string> = {
   LIGHT: "Свет",
   FAN: "Вентилятор",
   HUMIDIFIER: "Увлажнитель",
+  DEHUMIDIFIER: "Осушитель",
   AIR_CONDITIONER: "Кондиционер",
   HEATER: "Обогреватель",
   OUTLET: "Розетка",
   OTHER: "Прочее",
 };
 
-const STATUS_LABELS: Record<Device["status"], string> = {
-  ON: "Включено",
+const STATUS_LABELS: Record<DeviceStatus, string> = {
   OFF: "Выключено",
-  COOL: "Охлаждение",
-  HEAT: "Нагрев",
+  ACTIVE: "Включено",
+  COOLING: "Охлаждение",
+  HEATING: "Нагрев",
+  HUMIDIFYING: "Увлажнение",
+  DEHUMIDIFYING: "Осушение",
   UNAVAILABLE: "Недоступно",
 };
 
-const STATUS_TONES: Record<Device["status"], "ok" | "warn" | "idle" | "bad"> = {
-  ON: "ok",
+const STATUS_TONES: Record<DeviceStatus, "ok" | "warn" | "idle" | "bad"> = {
   OFF: "idle",
-  COOL: "ok",
-  HEAT: "warn",
+  ACTIVE: "ok",
+  COOLING: "ok",
+  HEATING: "ok",
+  HUMIDIFYING: "ok",
+  DEHUMIDIFYING: "ok",
   UNAVAILABLE: "bad",
 };
 
@@ -46,15 +59,22 @@ interface DeviceCardProps {
   onChanged: () => void;
 }
 
+/**
+ * Рисует одно устройство и просит выполнить его способность.
+ *
+ * @param props.device Устройство со списком способностей и живым состоянием.
+ * @param props.title Личный заголовок поверх имени устройства.
+ * @param props.onError Вызывается с человеческим текстом отказа.
+ * @param props.onChanged Вызывается после того, как что-то изменилось.
+ */
 export function DeviceCard({ device, title, onError, onChanged }: DeviceCardProps) {
   const unavailable = device.status === "UNAVAILABLE";
-  const active =
-    device.status === "ON" || device.status === "COOL" || device.status === "HEAT";
+  const active = device.status !== "OFF" && !unavailable;
   const modes = device.capabilities.filter((capability) => capability !== "OFF");
 
-  async function run(action: () => Promise<unknown>): Promise<void> {
+  async function run(capability: Capability): Promise<void> {
     try {
-      await action();
+      await api.performCapability(device.id, capability);
       onChanged();
     } catch (exc) {
       onError(exc instanceof Error ? exc.message : "Команда не выполнена");
@@ -66,11 +86,11 @@ export function DeviceCard({ device, title, onError, onChanged }: DeviceCardProp
       <span className="device__glow" data-status={device.status} />
 
       <header className="device__head">
-        <DeviceIcon type={device.type} active={active} />
+        <DeviceIcon kind={device.kind} active={active} />
         <div className="device__headline">
           <h3 className="device__name">{title ?? device.name}</h3>
           <p className="device__meta">
-            {TYPE_LABELS[device.type]} · Relay {device.physical_channel}
+            {KIND_LABELS[device.kind]} · Канал {device.channel}
           </p>
         </div>
         <Badge tone={STATUS_TONES[device.status]} label={STATUS_LABELS[device.status]} />
@@ -82,12 +102,12 @@ export function DeviceCard({ device, title, onError, onChanged }: DeviceCardProp
             <button
               key={mode}
               type="button"
-              aria-pressed={device.status === mode}
-              className={`chip ${device.status === mode ? "chip--active" : ""}`.trim()}
+              aria-pressed={device.capabilities.includes(mode)}
+              className={`chip ${device.status === modeToStatus(mode) ? "chip--active" : ""}`.trim()}
               disabled={unavailable}
-              onClick={() => void run(() => api.setDeviceMode(device.id, mode))}
+              onClick={() => void run(mode)}
             >
-              {MODE_LABELS[mode]}
+              {CAPABILITY_LABELS[mode]}
             </button>
           ))}
         </div>
@@ -99,13 +119,27 @@ export function DeviceCard({ device, title, onError, onChanged }: DeviceCardProp
           checked={active}
           disabled={unavailable || !device.enabled}
           label={`Переключить ${device.name}`}
-          onChange={(next) =>
-            void run(() =>
-              next ? api.turnDeviceOn(device.id) : api.turnDeviceOff(device.id),
-            )
-          }
+          onChange={(next) => void run(next ? "ON" : "OFF")}
         />
       </div>
     </article>
   );
+}
+
+/**
+ * Возвращает состояние, которого устройство ждёт от способности, чтобы подсветить
+ * уже выбранный режим.
+ *
+ * @param capability Способность, которую карточка предлагает нажать.
+ * @returns Состояние совпадения или None, когда сравнивать не с чем.
+ */
+function modeToStatus(capability: Capability): DeviceStatus | null {
+  const statuses: Partial<Record<Capability, DeviceStatus>> = {
+    ON: "ACTIVE",
+    COOL: "COOLING",
+    HEAT: "HEATING",
+    HUMIDIFY: "HUMIDIFYING",
+    DEHUMIDIFY: "DEHUMIDIFYING",
+  };
+  return statuses[capability] ?? null;
 }

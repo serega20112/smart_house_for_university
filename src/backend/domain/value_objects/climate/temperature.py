@@ -1,8 +1,8 @@
-"""Temperature value object.
+"""Объект-значение температуры.
 
-The model refuses to hold a temperature it cannot believe, so a use case never
-compares raw numbers against the physical limits and never reports an out of range
-value it accepted a moment earlier.
+Модель отказывается хранить температуру, которой нельзя верить, поэтому сценарию
+приложения не сравнивать сырые числа с физическими границами и не сообщать значение,
+которое он сам же принял мгновением раньше.
 """
 
 from __future__ import annotations
@@ -18,50 +18,47 @@ MAX_CELSIUS = 80.0
 
 @dataclass(frozen=True, slots=True, order=True)
 class Temperature:
-    """A temperature in degrees Celsius.
+    """Температура в градусах Цельсия.
 
-    Args:
-        celsius: Measured or requested value.
-
-    Returns:
-        None.
+    Attributes:
+        celsius: Измеренное или запрошенное значение.
 
     Raises:
-        InvalidTemperatureError: When the value is outside the physical range.
+        InvalidTemperatureError: Когда значение вне физически возможного диапазона.
     """
 
     celsius: float
 
     def __post_init__(self) -> None:
-        """Validate the physical range of the value.
-
-        Returns:
-            None.
+        """Проверяет физический диапазон значения.
 
         Raises:
-            InvalidTemperatureError: When the value is outside the range.
+            InvalidTemperatureError: Когда значение вне диапазона.
         """
         if not MIN_CELSIUS <= self.celsius <= MAX_CELSIUS:
             raise InvalidTemperatureError(self.celsius)
 
     def shifted_by(self, delta: float) -> Self:
-        """Return the temperature a number of degrees away from this one.
+        """Возвращает температуру на несколько градусов дальше от этой.
+
+        Значение проходит ту же проверку диапазона, что и сконструированное напрямую:
+        сдвиг не способ протащить за пределы физически возможного.
 
         Args:
-            delta: Offset in degrees Celsius.
+            delta: Смещение в градусах Цельсия.
 
         Returns:
-            Self: Shifted value.
+            Self: Сдвинутое значение.
         """
         return type(self)(self.celsius + delta)
 
     def distance_to(self, other: Temperature) -> float:
-        """Return how far this value lies from another one.
+        """Возвращает расстояние от этого значения до другого.
 
         Args:
-            other: Value to measure the distance to.
+            other: Значение, до которого меряют расстояние.
 
         Returns:
-            float: Absolute difference in degrees Celsius.
+            float: Разница в градусах Цельсия по модулю.
         """
         return abs(self.celsius - other.celsius)

@@ -1,4 +1,4 @@
-/** Application entry point. */
+/** Точка входа приложения. */
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -15,10 +15,10 @@ import { ScenariosPage } from "./pages/ScenariosPage";
 import "./styles/app.css";
 
 /**
- * Shows the sign in screen until the session is known.
+ * Показывает экран входа, пока сессия неизвестна.
  *
- * Rendering the routes before the session is resolved would fire requests
- * without a token, so the gate is deliberately part of the tree.
+ * Отрисовать маршруты до того, как сессия разрешена, означало бы уйти запросами без
+ * токена, поэтому вход нарочно стоит в самом дереве.
  */
 function Gate() {
   const { profile, ready } = useSession();

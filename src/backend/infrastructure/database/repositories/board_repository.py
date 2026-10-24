@@ -24,47 +24,38 @@ Runner = AsyncConnection | AsyncSession
 
 
 class SqlBoardRepository:
-    """Storage of the boards paired with accounts.
+    """Хранение плат, сопряжённых с аккаунтами.
 
-    Args:
-        session: Session the unit of work opened for this transaction.
-
-    Returns:
-        None.
+    Attributes:
+        session: Сессия, которую открыла для этой транзакции граница.
     """
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize the repository.
+        """Инициализирует хранилище.
 
         Args:
-            session: Session bound to the current transaction.
-
-        Returns:
-            None.
+            session: Сессия, привязанная к нынешней транзакции.
         """
         self._session = session
 
     async def add(self, board: EspDevice) -> None:
-        """Store a newly paired board.
+        """Сохраняет только что сопряжённую плату.
 
         Args:
-            board: Board to persist.
-
-        Returns:
-            None.
+            board: Плата для записи.
         """
         values = mappers.row_values(EspDeviceRow.__table__, mappers.board_to_row(board))
         await self._session.execute(insert(EspDeviceRow.__table__).values(**values))
         await self._session.flush()
 
     async def list_all(self, user_id: UserId) -> Sequence[EspDevice]:
-        """Return every board of an account.
+        """Возвращает все платы аккаунта.
 
         Args:
-            user_id: Owner of the boards.
+            user_id: Владелец плат.
 
         Returns:
-            Sequence[EspDevice]: Boards of the account.
+            Sequence[EspDevice]: Платы аккаунта.
         """
         result = await self._session.execute(
             select(EspDeviceRow)
@@ -74,14 +65,14 @@ class SqlBoardRepository:
         return [mappers.board_from_row(row) for row in result.scalars().all()]
 
     async def get(self, user_id: UserId, board_id: EspDeviceId) -> EspDevice | None:
-        """Return one board of an account.
+        """Возвращает одну плату аккаунта.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
 
         Returns:
-            EspDevice | None: Board, or None when the account has no such one.
+            EspDevice | None: Плата или None, когда у аккаунта такой нет.
         """
         row = await first_row(
             self._session,
@@ -92,16 +83,16 @@ class SqlBoardRepository:
         return None if row is None else mappers.board_from_row(row)
 
     async def get_by_key(self, pairing_key: str) -> EspDevice | None:
-        """Return the board presenting a pairing key.
+        """Возвращает плату, предъявившую ключ сопряжения.
 
-        This is the lookup the board handshake resolves before anything else: the
-        key the board presents is what turns a connection into a home.
+        Это тот поиск, которым handshake платы разрешается прежде всего: именно ключ,
+        который плата предъявляет, превращает соединение в чей-то дом.
 
         Args:
-            pairing_key: Secret presented during the handshake.
+            pairing_key: Секрет, предъявленный при handshake.
 
         Returns:
-            EspDevice | None: Board, or None when the key is unknown.
+            EspDevice | None: Плата или None, когда ключ неизвестен.
         """
         row = await first_row(self._session, EspDeviceRow, EspDeviceRow.pairing_key == pairing_key)
         return None if row is None else mappers.board_from_row(row)
@@ -109,20 +100,17 @@ class SqlBoardRepository:
     async def mark_seen(
         self, board_id: EspDeviceId, seen_at: datetime, ssid: str | None = None
     ) -> None:
-        """Record that a board has just connected.
+        """Записывает, что плата подключилась только что.
 
-        Only the timestamp and the network are written. The board is not read
-        first and is not written back whole, so two handshakes of the same board
-        cannot overwrite each other's configuration.
+        Пишут только отметку времени и сеть. Плату не читают заранее и не возвращают
+        целиком, поэтому два handshake одной платы не могут перетереть настройку друг
+        друга.
 
         Args:
-            board_id: Identifier of the board.
-            seen_at: Moment of the successful handshake.
-            ssid: Network the board reported being on, or None when it did not
-                report one and the previous answer stays.
-
-        Returns:
-            None.
+            board_id: Идентификатор платы.
+            seen_at: Момент успешного handshake.
+            ssid: Сеть, о которой сообщила плата, или None, когда она ничего не
+                сообщила и прежний ответ остаётся.
         """
         values: dict[str, object] = {"last_seen_at": seen_at}
         if ssid is not None:
@@ -133,14 +121,14 @@ class SqlBoardRepository:
         await self._session.flush()
 
     async def delete(self, user_id: UserId, board_id: EspDeviceId) -> bool:
-        """Remove a board of an account.
+        """Убирает плату аккаунта.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
 
         Returns:
-            bool: True when a board was removed.
+            bool: True, когда плату убрали.
         """
         result = await self._session.execute(
             delete(EspDeviceRow).where(

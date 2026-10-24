@@ -1,7 +1,8 @@
-"""Login of an account.
+"""Логин аккаунта.
 
-The login is self validating: an account cannot be built around a value the model
-would refuse, so no use case has to remember to call a validator before saving.
+Логин проверяет сам себя: аккаунт не может быть построен вокруг значения, которое
+модель отвергает, поэтому никому в сценарии приложения не нужно помнить о вызове
+валидатора перед сохранением.
 """
 
 from __future__ import annotations
@@ -17,28 +18,24 @@ MAX_LENGTH = 254
 
 @dataclass(frozen=True, slots=True, order=True)
 class Email:
-    """A normalized login.
+    """Приведённый к одному виду логин.
 
-    Args:
-        value: Lowercase address without surrounding spaces.
-
-    Returns:
-        None.
+    Attributes:
+        value: Адрес без окружающих пробелов, в нижнем регистре.
 
     Raises:
-        InvalidEmailError: When the value is empty, too long or malformed.
+        InvalidEmailError: Когда значение пустое, слишком длинное или не похоже на
+            адрес.
     """
 
     value: str
 
     def __post_init__(self) -> None:
-        """Normalize and validate the login.
-
-        Returns:
-            None.
+        """Приводит логин к одному виду и проверяет его.
 
         Raises:
-            InvalidEmailError: When the value is empty, too long or malformed.
+            InvalidEmailError: Когда значение пустое, слишком длинное или не похоже на
+                адрес.
         """
         normalized = self.value.strip().lower()
         if not normalized:
@@ -51,15 +48,15 @@ class Email:
 
     @classmethod
     def parse(cls, raw: str) -> Email:
-        """Build a login from what a person typed.
+        """Строит логин из того, что набрал человек.
 
         Args:
-            raw: Raw text entered by the user.
+            raw: Текст, введённый без какой-либо подготовки.
 
         Returns:
-            Email: Normalized login.
+            Email: Приведённый логин.
 
         Raises:
-            InvalidEmailError: When the text is not a usable login.
+            InvalidEmailError: Когда текст не годится как логин.
         """
         return cls(raw)

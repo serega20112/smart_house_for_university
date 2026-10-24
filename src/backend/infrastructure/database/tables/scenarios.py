@@ -23,24 +23,20 @@ from backend.infrastructure.database.tables.base import Base
 
 
 class ScenarioRow(Base):
-    """Stored timed scenario of one account.
+    """Сохранённый отложенный сценарий одного аккаунта.
 
-    Args:
-        id: Identifier assigned by the domain aggregate.
-        user_id: Owner of the scenario.
-        status: Lifecycle stage, stored as text.
-        created_at: Moment the scenario was asked for.
-        start_at: Moment the scenario starts acting.
-        duration_minutes: How long it may run, or None when it is unbounded.
-        target: Area or object the user named, or None.
-        completion_behavior: What happens with the devices afterwards, stored as
-            text.
-        version: Revision of the row, bumped on every update. A scenario that
-            moves from an obsolete snapshot touches nothing instead of
-            overwriting what an API call changed meanwhile.
-
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор, выданный агрегатом домена.
+        user_id: Владелец сценария.
+        status: Этап жизни, лежащий текстом.
+        created_at: Момент, когда о сценарии попросили.
+        start_at: Момент, когда сценарий начинает действовать.
+        duration_minutes: Сколько ему разрешено идти, или None без границы.
+        target: Место или предмет, который назвал человек, или None.
+        completion_behavior: Что будет с устройствами после; лежит текстом.
+        version: Ревизия строки, поднимаемая при каждой записи. Сценарий, идущий по
+            устаревшему снимку, не трогает ничего вместо того, чтобы перетереть то, что
+            успела изменить заявка API.
     """
 
     __tablename__ = "scenarios"
@@ -62,18 +58,15 @@ class ScenarioRow(Base):
 
 
 class ScenarioActionRow(Base):
-    """One action performed when a scenario starts.
+    """Одно действие, выполняемое в момент начала сценария.
 
-    Args:
-        id: Identifier of the stored action, meaningful to the store only.
-        scenario_id: Scenario the action belongs to.
-        position: Zero based place of the action inside the scenario.
-        capability: Capability the action asks for, stored as text.
-        target_temperature: Temperature the action aims for, or None when it only
-            switches something.
-
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор сохранённого действия, значимый только для хранилища.
+        scenario_id: Сценарий, к которому относится действие.
+        position: Место действия внутри сценария, считая от нуля.
+        capability: Способность, о которой просит действие; лежит текстом.
+        target_temperature: Температура, к которой действие идёт, или None, когда оно
+            только что-то переключает.
     """
 
     __tablename__ = "scenario_actions"
@@ -87,15 +80,12 @@ class ScenarioActionRow(Base):
 
 
 class ScenarioCapturedStatusRow(Base):
-    """State one device had before a scenario started.
+    """Состояние одного устройства до начала сценария.
 
-    Args:
-        scenario_id: Scenario the state was captured for.
-        device_id: Device the state belongs to.
-        status: State of the device, stored as text.
-
-    Returns:
-        None.
+    Attributes:
+        scenario_id: Сценарий, ради которого состояние снимали.
+        device_id: Устройство, к которому состояние относится.
+        status: Состояние устройства, лежащее текстом.
     """
 
     __tablename__ = "scenario_captured_statuses"

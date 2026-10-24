@@ -24,79 +24,52 @@ from backend.infrastructure.database.unit_of_work.base import SqlUnitOfWork
 
 
 class SqlHomeUnitOfWork(SqlUnitOfWork, HomeUnitOfWork):
-    """Transaction over the configuration of one home.
+    """Транзакция над конфигурацией одного дома.
 
-    Args:
-        session_factory: Factory producing the session of the block.
-
-    Returns:
-        None.
+    Attributes:
+        session_factory: Фабрика, дающая сессию блока.
     """
 
     @property
     def devices(self) -> DeviceRepository:
-        """Return the device repository bound to the current transaction.
-
-        Returns:
-            DeviceRepository: Device repository.
-        """
+        """Хранилище устройств нынешней транзакции."""
         return self.repository(SqlDeviceRepository)
 
     @property
     def automation(self) -> AutomationRepository:
-        """Return the automation repository bound to the current transaction.
-
-        Returns:
-            AutomationRepository: Automation repository.
-        """
+        """Хранилище настройки автоматизации нынешней транзакции."""
         return self.repository(SqlAutomationRepository)
 
     @property
     def scenarios(self) -> ScenarioRepository:
-        """Return the scenario repository bound to the current transaction.
-
-        Returns:
-            ScenarioRepository: Scenario repository.
-        """
+        """Хранилище сценариев нынешней транзакции."""
         return self.repository(SqlScenarioRepository)
 
     @property
     def dashboard(self) -> DashboardRepository:
-        """Return the dashboard repository bound to the current transaction.
-
-        Returns:
-            DashboardRepository: Dashboard repository.
-        """
+        """Хранилище раскладки экрана нынешней транзакции."""
         return self.repository(SqlDashboardRepository)
 
     @property
     def preferences(self) -> PreferencesRepository:
-        """Return the preferences repository bound to the current transaction.
-
-        Returns:
-            PreferencesRepository: Preferences repository.
-        """
+        """Хранилище настроек интерфейса нынешней транзакции."""
         return self.repository(SqlPreferencesRepository)
 
 
 def make_home_unit_of_work(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> HomeUnitOfWorkFactory:
-    """Build the factory producing units of work over a home.
+    """Строит фабрику границ транзакции над домом.
 
     Args:
-        session_factory: Factory producing sessions.
+        session_factory: Фабрика сессий.
 
     Returns:
-        HomeUnitOfWorkFactory: Callable handing out a fresh unit of work.
+        HomeUnitOfWorkFactory: Вызываемый объект, дающий свежую границу.
     """
 
     def factory() -> SqlHomeUnitOfWork:
-        """Create a new unit of work over the configuration of a home.
-
-        Returns:
-            SqlHomeUnitOfWork: Unit of work bound to its own session.
-        """
+        """Создаёт новую границу над конфигурацией дома."""
         return SqlHomeUnitOfWork(session_factory)
 
     return factory

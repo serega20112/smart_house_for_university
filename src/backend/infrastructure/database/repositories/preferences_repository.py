@@ -20,35 +20,29 @@ Runner = AsyncConnection | AsyncSession
 
 
 class SqlPreferencesRepository:
-    """Storage of the interface preferences of one account.
+    """Хранение настроек интерфейса одного аккаунта.
 
-    Args:
-        session: Session the unit of work opened for this transaction.
-
-    Returns:
-        None.
+    Attributes:
+        session: Сессия, которую открыла для этой транзакции граница.
     """
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize the repository.
+        """Инициализирует хранилище.
 
         Args:
-            session: Session bound to the current transaction.
-
-        Returns:
-            None.
+            session: Сессия, привязанная к нынешней транзакции.
         """
         self._session = session
 
     async def get(self, user_id: UserId) -> UserPreferences | None:
-        """Return the stored preferences.
+        """Возвращает сохранённые настройки.
 
         Args:
-            user_id: Owner of the preferences.
+            user_id: Владелец настроек.
 
         Returns:
-            UserPreferences | None: Stored preferences, or None when the account
-            never changed them.
+            UserPreferences | None: Сохранённые настройки или None, когда аккаунт их
+            ни разу не менял.
         """
         row = await first_row(
             self._session, PreferencesRow, PreferencesRow.user_id == user_id.value
@@ -56,13 +50,10 @@ class SqlPreferencesRepository:
         return None if row is None else mappers.preferences_from_row(row)
 
     async def save(self, preferences: UserPreferences) -> None:
-        """Store the preferences of an account.
+        """Сохраняет настройки аккаунта.
 
         Args:
-            preferences: Preferences to persist.
-
-        Returns:
-            None.
+            preferences: Настройки для записи.
         """
         values = mappers.row_values(
             PreferencesRow.__table__, mappers.preferences_to_row(preferences)

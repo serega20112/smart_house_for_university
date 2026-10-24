@@ -1,10 +1,10 @@
-"""Onboarding of boards, in one place.
+"""Обживание плат в одном месте.
 
-Announcing, taking, pairing, listing and revoking a board is one lifecycle with
-five steps, so it is one cohesive service rather than five micro classes that each
-open their own transaction and pass a status tuple back. Reading the list of
-offers never deletes anything: removing what is over is an explicit command the
-background worker runs.
+Объявить плату, забрать её, сопрячь, перечислить и отозвать — одна жизнь из пяти
+шагов, поэтому здесь один связный сервис, а не пять микроклассов, каждый из которых
+открывает свою транзакцию и возвращает кортеж статуса. Чтение списка предложений
+никого не удаляет: убрать просроченное — явная команда, которую запускает фоновый
+процесс.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ from backend.domain.value_objects.boards.pairing_key import PairingKey
 
 
 class BoardOnboardingService:
-    """Owns the whole lifecycle of the boards of the system."""
+    """Владеет всей жизнью плат системы."""
 
     def __init__(
         self,
@@ -45,18 +45,15 @@ class BoardOnboardingService:
         clock: Clock,
         claim_ttl_sec: int,
     ) -> None:
-        """Initialize the service.
+        """Инициализирует сервис.
 
         Args:
-            onboarding_uow: Factory producing transactions over the boards.
-            queries: Cheap reads used to answer what the interface asks for.
-            boards: Gateway telling whether a board is connected.
-            realtime: Publisher of events to the open clients.
-            clock: Source of the current time.
-            claim_ttl_sec: How long an offer stays valid.
-
-        Returns:
-            None.
+            onboarding_uow: Фабрика транзакций над платами.
+            queries: Дешёвые чтения для ответов на вопросы интерфейса.
+            boards: Шлюз, знающий, подключена ли плата сейчас.
+            realtime: Издатель событий в открытые соединения.
+            clock: Источник текущего времени.
+            claim_ttl_sec: Сколько времени предложение остаётся действительным.
         """
         self._uow = onboarding_uow
         self._queries = queries
@@ -66,17 +63,17 @@ class BoardOnboardingService:
         self._claim_ttl_sec = claim_ttl_sec
 
     async def announce(self, command: AnnounceBoardCommand) -> EspClaim:
-        """Publish or refresh the offer of a board nobody owns.
+        """Публикует или обновляет предложение платы, у которой нет хозяина.
 
-        A board that announces itself again while its offer is still open keeps the
-        same offer, so the code the user is looking at stays the code the board is
-        asking for instead of turning into a race between two unseen tokens.
+        Плата, объявившаяся снова, пока её предложение открыто, получает то же
+        предложение: код, который человек видит на экране, остаётся кодом, о котором
+        просит плата, вместо гонки двух невидимых токенов.
 
         Args:
-            command: Key and label the board presented.
+            command: Ключ и код, которые плата предъявила.
 
         Returns:
-            EspClaim: Open offer of that board.
+            EspClaim: Открытое предложение этой платы.
         """
         key = PairingKey(command.device_key)
         now = self._clock.now()
@@ -98,22 +95,22 @@ class BoardOnboardingService:
         return offer
 
     async def claim(self, user_id: UserId, command: ClaimBoardCommand) -> BoardView:
-        """Take an announced board for an account.
+        """Забирает объявленную плату за аккаунтом.
 
-        The takeover is the only way a board becomes owned, and it writes the offer
-        and the board in the same transaction, so the very next dial in of the board
-        already resolves to an account.
+        Забирание — единственный способ, которым плата обретает владельца, и оно пишет
+        предложение вместе с платой в одной транзакции, поэтому следующий дозвон платы
+        уже разрешается в аккаунт.
 
         Args:
-            user_id: Account taking the board.
-            command: Token of the offer and the chosen name.
+            user_id: Аккаунт, который забирает плату.
+            command: Токен предложения и выбранное имя.
 
         Returns:
-            BoardView: The board that is now owned.
+            BoardView: Плата, которая теперь принадлежит аккаунту.
 
         Raises:
-            ClaimNotFoundError: When the token is unknown.
-            ClaimExpiredError: When the offer is over.
+            ClaimNotFoundError: Когда токен неизвестен.
+            ClaimExpiredError: Когда предложение больше недействительно.
             BoardAlreadyClaimedError: Когда плату раньше забрал кто-то другой.
         """
         now = self._clock.now()
@@ -140,17 +137,17 @@ class BoardOnboardingService:
         return BoardView(id=board.id, name=board.name, online=False, last_seen_at=None)
 
     async def pair(self, user_id: UserId, command: PairBoardCommand) -> PairedBoard:
-        """Pair a board from the interface and return its key exactly once.
+        """Сопрягает плату из интерфейса и ровно один раз отдаёт её ключ.
 
         Args:
-            user_id: Account the board belongs to.
-            command: Board name and an optional key chosen by the user.
+            user_id: Аккаунту, которому будет принадлежать плата.
+            command: Имя платы и необязательный выбранный человеком ключ.
 
         Returns:
-            PairedBoard: The board together with the key it has to present.
+            PairedBoard: Плата вместе с ключом, который она должна предъявлять.
 
         Raises:
-            InvalidPairingKeyError: When a provided key is malformed.
+            InvalidPairingKeyError: Когда переданный ключ неподходящей формы.
         """
         key = (
             PairingKey.generate()
@@ -171,17 +168,14 @@ class BoardOnboardingService:
         )
 
     async def revoke(self, user_id: UserId, board_id: EspDeviceId) -> None:
-        """Remove a board from an account.
+        """Убирает плату из аккаунта.
 
         Args:
-            user_id: Owner of the board.
-            board_id: Identifier of the board.
-
-        Returns:
-            None.
+            user_id: Владелец платы.
+            board_id: Идентификатор платы.
 
         Raises:
-            BoardNotFoundError: When the account has no such board.
+            BoardNotFoundError: Когда такой платы у аккаунта нет.
         """
         async with self._uow() as uow:
             removed = await uow.boards.delete(user_id, board_id)
@@ -189,13 +183,13 @@ class BoardOnboardingService:
             raise BoardNotFoundError(board_id)
 
     async def purge_expired_claims(self) -> int:
-        """Remove the offers that are over.
+        """Убирает предложения, которые перестали быть действительными.
 
-        This is an explicit command the background worker runs, which is why a
-        plain listing of the offers changes nothing in the database.
+        Это явная команда фонового процесса, поэтому простое перечисление
+        предложений в базе ничего не меняет.
 
         Returns:
-            int: Number of removed offers.
+            int: Число убранных предложений.
         """
         async with self._uow() as uow:
             return await uow.claims.delete_expired(self._clock.now())

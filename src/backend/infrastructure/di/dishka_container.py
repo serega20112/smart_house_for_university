@@ -27,6 +27,7 @@ from backend.infrastructure.di.providers import (
     HomeProvider,
     LanguageProvider,
     PersistenceProvider,
+    PersonalizationProvider,
     ScenarioProvider,
     SecurityProvider,
     TelegramProvider,
@@ -52,6 +53,7 @@ PROVIDERS = (
     AccountProvider(),
     DeviceProvider(),
     BoardProvider(),
+    PersonalizationProvider(),
 )
 
 

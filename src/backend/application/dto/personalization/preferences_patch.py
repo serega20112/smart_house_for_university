@@ -1,4 +1,4 @@
-"""A partial change of the interface preferences."""
+"""Частичное изменение настроек интерфейса."""
 
 from __future__ import annotations
 
@@ -13,16 +13,13 @@ from backend.domain.aggregates.preferences.user_preferences import (
 
 @dataclass(frozen=True, slots=True)
 class PreferencesPatch:
-    """The fields of the preferences a person wants to change.
+    """Поля настроек, которые человек хочет изменить.
 
-    Args:
-        temperature_unit: New unit or None.
-        theme: New theme or None.
-        language: New language or None.
-        show_command_chat: New visibility flag or None.
-
-    Returns:
-        None.
+    Attributes:
+        temperature_unit: Новая единица или None.
+        theme: Новая тема или None.
+        language: Новый язык или None.
+        show_command_chat: Новый признак показа или None.
     """
 
     temperature_unit: TemperatureUnit | None = None

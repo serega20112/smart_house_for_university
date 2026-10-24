@@ -1,12 +1,12 @@
 """Модели ответов HTTP API и перевод образов прикладного слоя в тела ответов."""
 
-from backend.presentation.api.responses.automation import AutomationResponse, automation_of
 from backend.presentation.api.responses.auth import (
     SessionResponse,
     UserResponse,
     profile_of,
     session_of,
 )
+from backend.presentation.api.responses.automation import AutomationResponse, automation_of
 from backend.presentation.api.responses.boards import (
     BoardClaimResponse,
     BoardNetworkResponse,
@@ -29,6 +29,13 @@ from backend.presentation.api.responses.home import (
     ReadingResponse,
     snapshot_of,
 )
+from backend.presentation.api.responses.personalization import (
+    DashboardResponse,
+    DashboardWidgetResponse,
+    PreferencesResponse,
+    dashboard_of,
+    preferences_of,
+)
 from backend.presentation.api.responses.scenarios import (
     ScenarioActionResponse,
     ScenarioResponse,
@@ -42,10 +49,13 @@ __all__ = [
     "BoardPairedResponse",
     "BoardResponse",
     "CommandResponse",
+    "DashboardResponse",
+    "DashboardWidgetResponse",
     "DeviceResponse",
     "HealthResponse",
     "HomeStateResponse",
     "OperationResponse",
+    "PreferencesResponse",
     "ReadingResponse",
     "ScenarioActionResponse",
     "ScenarioResponse",
@@ -56,9 +66,11 @@ __all__ = [
     "board_of",
     "claim_of",
     "command_of",
+    "dashboard_of",
     "device_of",
     "network_of",
     "paired_of",
+    "preferences_of",
     "profile_of",
     "scenario_of",
     "session_of",

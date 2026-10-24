@@ -1,9 +1,9 @@
 /**
- * Main screen.
+ * Главный экран.
  *
- * The page itself holds no knowledge about a particular home: which cards are
- * shown, in which order and under which name comes entirely from the dashboard
- * stored for the signed in account.
+ * Сама страница о конкретном доме не знает ничего: какие карточки показать, в
+ * каком порядке и под каким именем — всё это приходит из раскладки, сохранённой за
+ * вошедшим аккаунтом.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -16,14 +16,28 @@ import { Dashboard } from "../features/home/Dashboard";
 import { SystemBar } from "../features/home/SystemBar";
 import { useHomeState } from "../features/home/useHomeState";
 import * as api from "../services/api";
-import type { Widget } from "../services/types";
+import type { Automation, Widget } from "../services/types";
+
+const DEFAULT_TITLE = "Главная";
+
+/**
+ * Возвращает текстом диапазон, в котором автоматизации позволено держать цель.
+ *
+ * @param automation Настройка, из которой берутся цель и допуск.
+ * @returns Фраза вида «21.0–23.0°C».
+ */
+function formatBand(automation: Automation): string {
+  const from = automation.target_temperature - automation.temperature_tolerance;
+  const to = automation.target_temperature + automation.temperature_tolerance;
+  return `${from.toFixed(1)}–${to.toFixed(1)}°C`;
+}
 
 export function HomePage() {
   const { profile, preferences, refreshPreferences } = useSession();
   const { state, loading, error, connection, refresh } = useHomeState();
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
-  const [unit, setUnit] = useState(preferences?.temperature_unit ?? "C");
+  const [unit, setUnit] = useState<"C" | "F">(preferences?.temperature_unit ?? "C");
 
   const loadWidgets = useCallback(async () => {
     try {
@@ -49,7 +63,7 @@ export function HomePage() {
       <header className="page__head">
         <div>
           <h1 className="page__title">
-            {profile ? `Привет, ${profile.display_name}` : "Главная"}
+            {profile ? `Привет, ${profile.display_name}` : DEFAULT_TITLE}
           </h1>
           <p className="page__subtitle">Состояние дома в реальном времени</p>
         </div>
@@ -86,22 +100,18 @@ export function HomePage() {
             </div>
             <div className="facts__row">
               <dt>Диапазон</dt>
-              <dd>
-                {state.automation.min_temperature.toFixed(1)}–
-                {state.automation.max_temperature.toFixed(1)}°C
-              </dd>
+              <dd>{formatBand(state.automation)}</dd>
             </div>
             <div className="facts__row">
               <dt>Влажность</dt>
               <dd>
-                {state.automation.target_humidity.toFixed(0)}% ·{" "}
-                {state.automation.min_humidity.toFixed(0)}–
-                {state.automation.max_humidity.toFixed(0)}%
+                {state.automation.target_humidity.toFixed(0)}% · ±
+                {state.automation.humidity_tolerance.toFixed(0)}%
               </dd>
             </div>
             <div className="facts__row">
               <dt>Ручное управление</dt>
-              <dd>{state.manual_override ? "приоритет" : "нет"}</dd>
+              <dd>{state.automation_suspended ? "приоритет" : "нет"}</dd>
             </div>
           </dl>
         </Card>

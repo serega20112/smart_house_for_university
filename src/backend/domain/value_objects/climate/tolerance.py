@@ -1,9 +1,9 @@
-"""How far a measurement may drift from its target.
+"""Насколько измерение может отойти от своей цели.
 
-A tolerance is a value object rather than a bare number, because a negative
-tolerance is not a small tolerance: it is a band that can never be reached and
-its sign is easy to lose while it travels through a use case. The object refuses
-an impossible value once, at construction, and carries it afterwards.
+Допуск — объект-значение, а не голое число: отрицательный допуск это не «очень
+маленький допуск», а коридор, который невозможно достичь, а его знак легко потерять,
+пока число идёт через сценарий приложения. Объект отвергает невозможное значение один
+раз, при построении, и после этого носит его спокойно.
 """
 
 from __future__ import annotations
@@ -13,28 +13,24 @@ from dataclasses import dataclass
 from backend.domain.exceptions import InvalidToleranceError
 
 MAX_TOLERANCE = 50.0
-"""Largest tolerance any measured value may carry."""
+"""Самый большой допуск, который может нести любое измерение."""
 
 
 @dataclass(frozen=True, slots=True)
 class Tolerance:
-    """How far a measurement may drift from its target.
+    """Насколько измерение может отойти от своей цели.
 
     Attributes:
-        value: Width of the tolerated band, never negative.
-
+        value: Ширина допустимого коридора, никогда не отрицательная.
     """
 
     value: float
 
     def __post_init__(self) -> None:
-        """Validate the width of the band.
-
-        Returns:
-            None.
+        """Проверяет ширину коридора.
 
         Raises:
-            InvalidToleranceError: When the width is negative or too large.
+            InvalidToleranceError: Когда ширина отрицательная или слишком большая.
         """
         if self.value < 0:
             raise InvalidToleranceError(self.value)
@@ -42,9 +38,5 @@ class Tolerance:
             raise InvalidToleranceError(self.value)
 
     def __float__(self) -> float:
-        """Return the width of the band.
-
-        Returns:
-            float: Width of the band.
-        """
+        """Возвращает ширину коридора."""
         return self.value

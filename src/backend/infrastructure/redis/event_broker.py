@@ -1,14 +1,13 @@
-"""Realtime events over Redis Pub/Sub.
+"""События протокола через Redis Pub/Sub.
 
-An event reaches one account through its own channel and a fact that belongs to
-nobody in particular through the global channel. Subscribers read both streams
-from a blocking client, which is why :class:`RedisSubscriber` owns its own
-synchronous connection instead of borrowing the asynchronous one: ``pubsub.listen``
-blocks, and blocking the event loop of a request would be worse than a second
-connection.
+Событие доходит до одного аккаунта через его собственный канал, а факт, который ни к
+кому конкретно не обращён, — через общий канал. Подписчики читают оба потока блокирующим
+клиентом, поэтому :class:`RedisSubscriber` владеет собственным синхронным соединением, а
+не одалживает асинхронное: ``pubsub.listen`` блокирует, и блокировать цикл событий
+запросом было бы хуже второго соединения.
 
-Nothing here knows about sockets. The websocket hub of the presentation layer
-consumes the async iterable and forwards the events wherever it likes.
+Здесь никто не знает про сокеты. Асинхронный итерируемый поток потребляет концентратор
+вебсокетов презентационного слоя и раздаёт события куда ему угодно.
 """
 
 from __future__ import annotations
@@ -37,15 +36,12 @@ CLOSING = object()
 
 @dataclass(frozen=True, slots=True)
 class PublishedEvent:
-    """One event that reached a channel.
+    """Одно событие, дошедшее до канала.
 
-    Args:
-        user_id: Owner the event was addressed to, or None for a global event.
-        event: Stable machine readable event name.
-        payload: JSON serializable event data.
-
-    Returns:
-        None.
+    Attributes:
+        user_id: Владелец, которому событие адресовали, или None для общего.
+        event: Постоянное машинночитаемое имя события.
+        payload: Данные события, сериализуемые в JSON.
     """
 
     user_id: UserId | None
@@ -54,51 +50,39 @@ class PublishedEvent:
 
 
 class RedisEventBroker(RealtimePublisher):
-    """Publishes events into one channel per account plus a global channel.
+    """Публикует события в канал одного аккаунта плюс общий канал.
 
-    Args:
-        redis: Asynchronous connection the events are written to.
-        key_prefix: Namespace every channel of this adapter starts with.
-
-    Returns:
-        None.
+    Attributes:
+        redis: Асинхронное соединение, куда пишут события.
+        key_prefix: Пространство имён, с которого начинается каждый канал адаптера.
     """
 
     def __init__(self, redis: AsyncRedis, key_prefix: str) -> None:
-        """Initialize the broker.
+        """Инициализирует издатель.
 
         Args:
-            redis: Asynchronous connection the events are written to.
-            key_prefix: Namespace every channel of this adapter starts with.
-
-        Returns:
-            None.
+            redis: Асинхронное соединение, куда пишут события.
+            key_prefix: Пространство имён, с которого начинается каждый канал адаптера.
         """
         self._redis = redis
         self._prefix = key_prefix
 
     async def publish(self, user_id: UserId, event: str, payload: dict[str, Any]) -> None:
-        """Send an event to the clients of one account.
+        """Отправляет событие клиентам одного аккаунта.
 
         Args:
-            user_id: Owner the event belongs to.
-            event: Stable machine readable event name.
-            payload: JSON serializable event data.
-
-        Returns:
-            None.
+            user_id: Владелец, к которому событие относится.
+            event: Постоянное машинночитаемое имя события.
+            payload: Данные события, сериализуемые в JSON.
         """
         await self._redis.publish(self._user_channel(user_id), _encode(user_id, event, payload))
 
     async def broadcast(self, event: str, payload: dict[str, Any]) -> None:
-        """Send an event to every connected client.
+        """Отправляет событие каждому подключённому клиенту.
 
         Args:
-            event: Stable machine readable event name.
-            payload: JSON serializable event data.
-
-        Returns:
-            None.
+            event: Постоянное машинночитаемое имя события.
+            payload: Данные события, сериализуемые в JSON.
         """
         await self._redis.publish(self._global_channel(), _encode(None, event, payload))
 
@@ -112,45 +96,39 @@ class RedisEventBroker(RealtimePublisher):
 
 
 class RedisSubscriber:
-    """Blocking subscriber presented as an async iterable.
+    """Блокирующий подписчик, представленный как асинхронный итерируемый поток.
 
-    The blocking ``pubsub.listen`` loop runs on its own thread and hands every
-    message to the event loop through an unbounded queue, so a consumer may
-    simply ``async for`` over the stream from inside a request handler.
+    Цикл блокирующего ``pubsub.listen`` крутится на собственном потоке и передаёт
+    каждое сообщение в цикл событий через неограниченную очередь, поэтому потребитель
+    может просто писать ``async for`` по потоку из обработчика запроса.
 
-    Args:
-        url: Connection URL of a synchronous Redis client.
-        password: Password of the connection, or None when it is open.
-        key_prefix: Namespace every channel of this adapter starts with.
-
-    Returns:
-        None.
+    Attributes:
+        url: Адрес подключения синхронного клиента Redis.
+        password: Пароль подключения или None, когда соединение открытое.
+        key_prefix: Пространство имён, с которого начинается каждый канал адаптера.
     """
 
     def __init__(self, url: str, password: str | None, key_prefix: str) -> None:
-        """Initialize the subscriber.
+        """Инициализирует подписчика.
 
         Args:
-            url: Connection URL of a synchronous Redis client.
-            password: Password of the connection, or None when it is open.
-            key_prefix: Namespace every channel of this adapter starts with.
-
-        Returns:
-            None.
+            url: Адрес подключения синхронного клиента Redis.
+            password: Пароль подключения или None, когда соединение открытое.
+            key_prefix: Пространство имён, с которого начинается каждый канал адаптера.
         """
         self._url = url
         self._password = password
         self._prefix = key_prefix
 
     async def stream(self, user_id: UserId | None = None) -> AsyncIterator[PublishedEvent]:
-        """Yield every event addressed to an account and to everybody.
+        """Отдаёт всякое событие, адресованное аккаунту и всем сразу.
 
         Args:
-            user_id: Owner whose channel is subscribed to, or None to subscribe
-                to the global channel only.
+            user_id: Владелец, на чей канал подписываются, или None, чтобы подписаться
+                только на общий канал.
 
         Yields:
-            PublishedEvent: Events as they arrive, in arrival order.
+            PublishedEvent: События по мере прихода, в порядке прихода.
         """
         channels = self._channels(user_id)
         client = redis.Redis.from_url(self._url, password=self._password)

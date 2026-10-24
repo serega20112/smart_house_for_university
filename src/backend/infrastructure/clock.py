@@ -1,9 +1,9 @@
-"""System clock adapter.
+"""Адаптер системных часов.
 
-The model never reads the clock, so every timestamp in the system arrives from
-this one adapter. A test replaces it with a fixed implementation of
-:class:`~backend.application.ports.services.Clock` instead of freezing time
-globally.
+Модель часы не читает, поэтому каждая метка времени в системе приходит из этого
+единственного адаптера. Тест заменяет его своей реализацией
+:class:`~backend.application.interface.services.clock.Clock`, а не замораживает
+время на весь процесс.
 """
 
 from __future__ import annotations
@@ -14,12 +14,8 @@ from backend.application.interface.services.clock import Clock
 
 
 class SystemClock(Clock):
-    """Clock reading the system time in UTC."""
+    """Часы, читающие системное время в UTC."""
 
     def now(self) -> datetime:
-        """Return the current moment in UTC.
-
-        Returns:
-            datetime: Current moment.
-        """
+        """Возвращает текущий момент в UTC."""
         return datetime.now(UTC)

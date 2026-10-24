@@ -1,4 +1,4 @@
-"""What happens with the devices once a scenario is finished."""
+"""Что случится с устройствами, когда сценарий закончится."""
 
 from __future__ import annotations
 
@@ -8,29 +8,22 @@ from backend.domain.value_objects.devices.device_status import DeviceStatus
 
 
 class CompletionBehavior(StrEnum):
-    """How a finished scenario leaves the home behind.
-
-    Args:
-        None.
-
-    Returns:
-        None.
-    """
+    """Как закончившийся сценарий оставляет дом."""
 
     LEAVE_TO_AUTOMATION = "LEAVE_TO_AUTOMATION"
     SWITCH_EVERYTHING_OFF = "SWITCH_EVERYTHING_OFF"
     RESTORE_CAPTURED_STATE = "RESTORE_CAPTURED_STATE"
 
     def status_to_apply(self, captured_status: DeviceStatus | None) -> DeviceStatus | None:
-        """Return the state a device has to be put back into.
+        """Возвращает состояние, в которое устройство нужно вернуть.
 
         Args:
-            captured_status: State the device had before the scenario started,
-                or None when nothing was captured for it.
+            captured_status: Состояние устройства до начала сценария, или None,
+                когда для него ничего не снимали.
 
         Returns:
-            DeviceStatus | None: State to restore, or None when the device has to
-            be left alone.
+            DeviceStatus | None: Состояние возврата, или None, когда устройство
+            оставят в покое.
         """
         if self is CompletionBehavior.LEAVE_TO_AUTOMATION:
             return None
@@ -40,16 +33,16 @@ class CompletionBehavior(StrEnum):
 
     @classmethod
     def parse(cls, raw: object) -> CompletionBehavior:
-        """Read a behavior from a value received from the outside.
+        """Читает поведение из значения, пришедшего извне.
 
         Args:
-            raw: Behavior name or enum member.
+            raw: Имя поведения или его член перечисления.
 
         Returns:
-            CompletionBehavior: Parsed behavior.
+            CompletionBehavior: Прочитанное поведение.
 
         Raises:
-            ValueError: When the value does not name a behavior.
+            ValueError: Когда значение не называет поведение.
         """
         if isinstance(raw, cls):
             return raw

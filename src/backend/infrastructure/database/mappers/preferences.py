@@ -15,14 +15,7 @@ from backend.infrastructure.database.tables import (
 
 
 def preferences_to_row(preferences: UserPreferences) -> PreferencesRow:
-    """Build the row describing the interface preferences of an account.
-
-    Args:
-        preferences: Preferences to serialize.
-
-    Returns:
-        PreferencesRow: New row describing the preferences.
-    """
+    """Строит строку, описывающую настройки интерфейса аккаунта."""
     return PreferencesRow(
         user_id=preferences.user_id.value,
         temperature_unit=preferences.temperature_unit.value,
@@ -33,14 +26,7 @@ def preferences_to_row(preferences: UserPreferences) -> PreferencesRow:
 
 
 def preferences_from_row(row: PreferencesRow) -> UserPreferences:
-    """Build the preferences a row describes.
-
-    Args:
-        row: Row to deserialize.
-
-    Returns:
-        UserPreferences: Restored preferences.
-    """
+    """Строит настройки, описанные строкой."""
     return UserPreferences(
         user_id=UserId.parse(row.user_id),
         temperature_unit=TemperatureUnit(row.temperature_unit),

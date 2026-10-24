@@ -1,86 +1,86 @@
 /**
  * @file network_config.h
- * @brief The network a board belongs to and the server it reports to.
+ * @brief Сеть, к которой относится плата, и сервер, которому она докладывает.
  *
- * Every board learns these values from the person who owns it: the board asks
- * for them on its own access point, keeps them in its own flash and never asks
- * again. The same binary is therefore flashed on every board and nobody opens
- * the IDE to write a password into it.
+ * Эти значения плата получает от своего владельца: спрашивает их сама на своей
+ * точке доступа, хранит в памяти чипа и больше никогда не переспрашивает. Поэтому
+ * одна и та же прошивка уходит всем, и никто не открывает IDE, чтобы вписать туда
+ * пароль.
  *
- * The type is an aggregate of fixed character arrays on purpose. A board that
- * joins a network allocates memory for it, and on this chip a heap that moves
- * around ends in a crash with Exception (29) LoadStoreError.
+ * Тип намеренно агрегат из фиксированных массивов знаков. Выход в сеть — это
+ * аллокации, а на этой микросхеме куча, которая ходит туда-сюда, кончается
+ * падением с Exception (29) LoadStoreError.
  */
 
 #pragma once
 
 #include <Arduino.h>
 
-/** Maximum length of a network name including the terminating zero. */
+/** Наибольшая длина имени сети вместе с нулём. */
 static const size_t NETWORK_SSID_SIZE = 33;
 
-/** Maximum length of a network password including the terminating zero. */
+/** Наибольшая длина пароля сети вместе с нулём. */
 static const size_t NETWORK_PASSWORD_SIZE = 65;
 
-/** Maximum length of a numeric address including the terminating zero. */
+/** Наибольшая длина числового адреса вместе с нулём. */
 static const size_t NETWORK_HOST_SIZE = 16;
 
-/** Maximum length of the path of the board socket including the zero. */
+/** Наибольшая длина пути сокета платы вместе с нулём. */
 static const size_t NETWORK_PATH_SIZE = 24;
 
-/** Port of the interface of the server the board talks to. */
+/** Порт интерфейса сервера, с которым говорит плата. */
 static const uint16_t DEFAULT_SERVER_PORT = 8000;
 
-/** Port of the board socket of the server, one above the ordinary one. */
+/** Порт сокета платы на сервере: на единицу выше обычного. */
 static const uint16_t DEFAULT_SOCKET_PORT = DEFAULT_SERVER_PORT + 1;
 
-/** Path of the board socket of the server. */
+/** Путь сокета платы на сервере. */
 static const char DEFAULT_SOCKET_PATH[] = "/ws/board";
 
 /**
- * @brief Everything a board needs to reach its server.
+ * @brief Всё, что плате нужно, чтобы достать свой сервер.
  */
 struct NetworkConfig {
-    /** Name of the network the board joins. */
+    /** Имя сети, в которую плата входит. */
     char ssid[NETWORK_SSID_SIZE];
 
-    /** Password of that network, empty for an open one. */
+    /** Пароль этой сети, пустой для открытой. */
     char password[NETWORK_PASSWORD_SIZE];
 
-    /** Numeric address of the server the board reports to. */
+    /** Числовой адрес сервера, которому плата докладывает. */
     char serverHost[NETWORK_HOST_SIZE];
 
-    /** Port of the interface of that server. */
+    /** Порт интерфейса этого сервера. */
     uint16_t serverPort;
 
-    /** Port of the board socket of that server. */
+    /** Порт сокета платы на этом сервере. */
     uint16_t socketPort;
 
-    /** Path of the board socket of that server. */
+    /** Путь сокета платы на этом сервере. */
     char socketPath[NETWORK_PATH_SIZE];
 
-    /** Whether the person who owns the board already filled this in. */
+    /** Заполнил ли уже владелец эти значения. */
     bool provisioned;
 };
 
 /**
- * @brief Report whether the values are enough to reach the server.
+ * @brief Сообщает, хватает ли значений, чтобы достать сервер.
  *
- * @param config Configuration to inspect.
- * @return True when the network and the server are both named.
+ * @param config Конфигурация, которую рассматривают.
+ * @return True, когда названы и сеть, и сервер.
  */
 inline bool networkConfigIsValid(const NetworkConfig &config) {
     return config.ssid[0] != '\0' && config.serverHost[0] != '\0';
 }
 
 /**
- * @brief Report whether the address of the server is a numeric one.
+ * @brief Сообщает, числовой ли адрес сервера.
  *
- * The board resolves a name with WiFi.hostByName, which is unreliable on this
- * chip, so only a numeric address is accepted.
+ * Плата разрешает имя через WiFi.hostByName, что на этой микросхеме ненадёжно,
+ * поэтому принимается только числовой адрес.
  *
- * @param host Address to inspect.
- * @return True when the address can be read as an IP address.
+ * @param host Адрес, который рассматривают.
+ * @return True, когда адрес читается как IP.
  */
 inline bool networkHostIsNumeric(const char *host) {
     IPAddress parsed;

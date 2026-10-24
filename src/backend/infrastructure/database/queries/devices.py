@@ -25,34 +25,28 @@ from backend.infrastructure.database.tables import (
 
 
 class SqlDeviceQueries:
-    """Reads of the device configuration, answered without a transaction.
+    """Чтения настройки устройств без транзакции.
 
-    Args:
-        engine: Engine the reads are executed on.
-
-    Returns:
-        None.
+    Attributes:
+        engine: Движок, на котором выполняют чтения.
     """
 
     def __init__(self, engine: AsyncEngine) -> None:
-        """Initialize the queries.
+        """Инициализирует чтения.
 
         Args:
-            engine: Engine to read from.
-
-        Returns:
-            None.
+            engine: Движок, из которого читают.
         """
         self._engine = engine
 
     async def list_all(self, user_id: UserId) -> list[DeviceView]:
-        """Return every device of an account.
+        """Возвращает все устройства аккаунта.
 
         Args:
-            user_id: Owner of the devices.
+            user_id: Владелец устройств.
 
         Returns:
-            list[DeviceView]: Devices shaped for display.
+            list[DeviceView]: Устройства, приготовленные для показа.
         """
         async with self._engine.connect() as connection:
             rows = await every_row(connection, DeviceRow, DeviceRow.user_id == user_id.value)
@@ -60,14 +54,14 @@ class SqlDeviceQueries:
         return [device_view_of(row, stored.get(row.id, frozenset())) for row in rows]
 
     async def get(self, user_id: UserId, device_id: DeviceId) -> DeviceView | None:
-        """Return one device of an account.
+        """Возвращает одно устройство аккаунта.
 
         Args:
-            user_id: Owner of the device.
-            device_id: Identifier of the device.
+            user_id: Владелец устройства.
+            device_id: Идентификатор устройства.
 
         Returns:
-            DeviceView | None: Device, or None when the account has no such one.
+            DeviceView | None: Устройство или None, когда у аккаунта такого нет.
         """
         async with self._engine.connect() as connection:
             row = await first_row(
@@ -83,17 +77,17 @@ class SqlDeviceQueries:
 
 
 def device_view_of(row: DeviceRow, capabilities: frozenset[Capability]) -> DeviceView:
-    """Return the read model of one stored device.
+    """Возвращает модель чтения одного сохранённого устройства.
 
-    The device is reported as off because its logical state belongs to the live
-    layer of the hardware, not to a table row.
+    Устройство показывается выключенным: его логическое состояние относится к живому
+    слою железа, а не к строке таблицы.
 
     Args:
-        row: Row to shape.
-        capabilities: Capabilities read from the capability table.
+        row: Строка, которую превращают в образ.
+        capabilities: Способности, прочитанные из таблицы способностей.
 
     Returns:
-        DeviceView: Device shaped for display.
+        DeviceView: Устройство, приготовленное для показа.
     """
     return DeviceView(
         id=DeviceId.parse(row.id),

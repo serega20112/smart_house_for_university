@@ -45,9 +45,6 @@ class RedisHomeStateStore(HomeStateStore):
     Args:
         redis: Соединение, в котором живёт состояние.
         key_prefix: Пространство имён всех ключей этого адаптера.
-
-    Returns:
-        None.
     """
 
     def __init__(self, redis: Redis, key_prefix: str) -> None:
@@ -56,9 +53,6 @@ class RedisHomeStateStore(HomeStateStore):
         Args:
             redis: Соединение, в котором живёт состояние.
             key_prefix: Пространство имён всех ключей этого адаптера.
-
-        Returns:
-            None.
         """
         self._redis = redis
         self._prefix = key_prefix
@@ -165,9 +159,6 @@ class RedisHomeStateStore(HomeStateStore):
             device: Устройство, над которым прошла команда.
             status: Состояние, в которое устройство перевели.
             changed_at: Момент подтверждения.
-
-        Returns:
-            None.
         """
         if device.channel is None:
             return
@@ -187,9 +178,6 @@ class RedisHomeStateStore(HomeStateStore):
         Args:
             user_id: Владелец удалённого устройства.
             device_id: Идентификатор удалённого устройства.
-
-        Returns:
-            None.
         """
         await self._eval(FORGET_DEVICE_STATUS, user_id, str(device_id))
 
@@ -203,9 +191,6 @@ class RedisHomeStateStore(HomeStateStore):
         Args:
             user_id: Владелец дома.
             until: Момент закрытия окна или None, чтобы закрыть сейчас.
-
-        Returns:
-            None.
         """
         key = keys.override_key(self._prefix, user_id)
         if until is None:

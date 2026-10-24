@@ -33,9 +33,6 @@ class TelegramLinkTokenIssuer:
         sessions: Выдающий сессии адаптер, чей ключ и настройку токены привязки
             разделяют, чтобы у развёртывания был один ключ.
         lifetime_minutes: Сколько токен привязки остаётся годным.
-
-    Returns:
-        None.
     """
 
     def __init__(self, sessions: SessionTokenIssuer, lifetime_minutes: int) -> None:
@@ -44,9 +41,6 @@ class TelegramLinkTokenIssuer:
         Args:
             sessions: Выдающий сессии адаптер.
             lifetime_minutes: Сколько токен привязки остаётся годным.
-
-        Returns:
-            None.
         """
         self._sessions = sessions
         self._lifetime = timedelta(minutes=lifetime_minutes)

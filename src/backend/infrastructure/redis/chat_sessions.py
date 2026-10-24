@@ -1,9 +1,9 @@
-"""Which Telegram chat belongs to which account.
+"""Какому аккаунту какой телеграм-чат принадлежит.
 
-The mapping is kept in Redis rather than in the process so a restart of the
-backend does not log everybody out of the bot. Nothing secret is written here:
-the entry holds the chat identifier and the account identifier, which the bot
-already knows, and no password ever reaches this store or the messenger.
+Соответствие держат в Redis, а не в процессе, поэтому перезапуск бэкенда не выбрасывает
+всех из бота. Секрета здесь нет ничего: запись хранит идентификатор чата и идентификатор
+аккаунта, которые боту и так известны, а пароль не попадает ни в это хранилище, ни в
+мессенджер.
 """
 
 from __future__ import annotations
@@ -16,38 +16,29 @@ from backend.infrastructure.redis.decoding import as_text
 
 
 class RedisChatSessionStore:
-    """Maps Telegram chats onto accounts in both directions.
+    """Ставит телеграм-чаты в соответствие аккаунтам в обе стороны.
 
-    Args:
-        redis: Connection the mapping is stored in.
-        key_prefix: Namespace every key of this adapter starts with.
-
-    Returns:
-        None.
+    Attributes:
+        redis: Соединение, в котором хранят соответствие.
+        key_prefix: Пространство имён, с которого начинается каждый ключ адаптера.
     """
 
     def __init__(self, redis: Redis, key_prefix: str) -> None:
-        """Initialize the store.
+        """Инициализирует хранилище.
 
         Args:
-            redis: Connection the mapping is stored in.
-            key_prefix: Namespace every key of this adapter starts with.
-
-        Returns:
-            None.
+            redis: Соединение, в котором хранят соответствие.
+            key_prefix: Пространство имён, с которого начинается каждый ключ адаптера.
         """
         self._redis = redis
         self._prefix = key_prefix
 
     async def bind(self, chat_id: int, user_id: UserId) -> None:
-        """Remember which account a chat belongs to.
+        """Запоминает, какому аккаунту принадлежит чат.
 
         Args:
-            chat_id: Telegram chat the account was linked from.
-            user_id: Owner linked to that chat.
-
-        Returns:
-            None.
+            chat_id: Телеграм-чат, из которого привязали аккаунт.
+            user_id: Владелец, привязанный к этому чату.
         """
         async with self._redis.pipeline(transaction=True) as pipe:
             pipe.set(keys.chat_key(self._prefix, chat_id), str(user_id))
@@ -55,38 +46,34 @@ class RedisChatSessionStore:
             await pipe.execute()
 
     async def user_of(self, chat_id: int) -> UserId | None:
-        """Return the account a chat was linked to.
+        """Возвращает аккаунт, к которому привязан чат.
 
         Args:
-            chat_id: Telegram chat the message arrived in.
+            chat_id: Телеграм-чат, в котором пришло сообщение.
 
         Returns:
-            UserId | None: Linked account, or None when the chat was never
-            linked.
+            UserId | None: Привязанный аккаунт или None, когда чат не привязывали.
         """
         raw = as_text(await self._redis.get(keys.chat_key(self._prefix, chat_id)))
         return None if raw is None else UserId.parse(raw)
 
     async def chat_of(self, user_id: UserId) -> int | None:
-        """Return the chat a user should be notified in.
+        """Возвращает чат, в котором надо уведомлять человека.
 
         Args:
-            user_id: Owner a notification is about.
+            user_id: Владелец, о котором уведомление.
 
         Returns:
-            int | None: Linked chat, or None when the user never linked one.
+            int | None: Привязанный чат или None, когда человек ничего не привязал.
         """
         raw = as_text(await self._redis.get(keys.user_key(self._prefix, user_id)))
         return None if raw is None else int(raw)
 
     async def forget(self, chat_id: int) -> None:
-        """Remove the account a chat was linked to.
+        """Забывает аккаунт, к которому был привязан чат.
 
         Args:
-            chat_id: Telegram chat the account was linked from.
-
-        Returns:
-            None.
+            chat_id: Телеграм-чат, из которого привязали аккаунт.
         """
         user_id = await self.user_of(chat_id)
         if user_id is None:

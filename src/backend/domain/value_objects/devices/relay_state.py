@@ -1,7 +1,8 @@
-"""State of a single physical relay contact.
+"""Состояние одного физического контакта реле.
 
-The board has no modes: it has six switches. This is the only hardware level state
-in the model, and it has exactly two values because that is what a contact has.
+У платы нет режимов: у неё есть шесть выключателей. Это единственное состояние
+аппаратного уровня в модели, и значений у него ровно два — потому что у контакта
+две позиции.
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from enum import StrEnum
 
 
 class RelayState(StrEnum):
-    """Position of one physical relay contact."""
+    """Положение одного физического контакта реле."""
 
     ON = "ON"
     OFF = "OFF"

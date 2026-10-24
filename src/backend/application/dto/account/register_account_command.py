@@ -1,4 +1,4 @@
-"""What a person typed to create an account."""
+"""То, что человек набрал, чтобы создать аккаунт."""
 
 from __future__ import annotations
 
@@ -7,15 +7,12 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class RegisterAccountCommand:
-    """A new account the interface was asked to create.
+    """Новый аккаунт, который попросили создать интерфейс.
 
-    Args:
-        email: Login the person chose.
-        display_name: Name they want to be called by.
-        password: Plain password, which never leaves this object.
-
-    Returns:
-        None.
+    Attributes:
+        email: Логин, который выбрал человек.
+        display_name: Имя, под которым к нему хотят обращаться.
+        password: Пароль в открытом виде; дальше этого объекта он не уходит.
     """
 
     email: str

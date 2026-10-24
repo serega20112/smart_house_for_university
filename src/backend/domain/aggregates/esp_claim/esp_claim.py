@@ -1,13 +1,14 @@
-"""A board that is waiting to be taken by an account.
+"""Плата, которая ждёт, что её заберёт аккаунт.
 
-The board generates its own key on first boot and keeps it in its own flash, so
-nothing has to be compiled into the firmware and nobody has to open the IDE. The
-backend has never seen that key, so the board is announced as a claim: a short
-label shown in the interface, a token that belongs to that one announcement, and a
-moment after which the offer stops being valid.
+Ключ плата вырабатывает сама при первом запуске и хранит в своей памяти, поэтому в
+прошивку не записывают ни один секрет и открывать среду разработки никому не нужно.
+Сервер этого ключа никогда не видел, поэтому плата объявляется предложением: короткий
+код для интерфейса, токен ровно этого одного объявления и момент, после которого
+предложение недействительно.
 
-Two rules keep this safe with several accounts on one server: the board has to ask
-for it by being held, and the first account that takes the token owns the board.
+Два правила делают это безопасным при нескольких аккаунтах на одном сервере: плата
+должна попросить сама, её держат в руках, а плата достаётся тому аккаунту, который
+первый забрал токен.
 """
 
 from __future__ import annotations
@@ -28,19 +29,16 @@ LABEL_LENGTH = 6
 
 @dataclass(frozen=True, slots=True)
 class EspClaim:
-    """One announced board waiting for an account to take it.
+    """Одна объявленная плата, которая ждёт себе хозяина.
 
-    Args:
-        id: Identifier assigned at creation.
-        device_key: Secret the board presents while connecting.
-        label: Short code shown in the interface.
-        claim_token: Token of this particular announcement.
-        announced_at: Moment the board announced itself.
-        expires_at: Moment the offer stops being valid.
-        claimed_by: Account that took it, or None while it is open.
-
-    Returns:
-        None.
+    Attributes:
+        id: Идентификатор, выданный при создании.
+        device_key: Секрет, который плата предъявляет при соединении.
+        label: Короткий код, показанный в интерфейсе.
+        claim_token: Токен именно этого объявления.
+        announced_at: Момент, когда плата объявила о себе.
+        expires_at: Момент, после которого предложение недействительно.
+        claimed_by: Аккаунт, который её забрал, или None пока открыто.
     """
 
     id: EspClaimId
@@ -53,36 +51,32 @@ class EspClaim:
 
     @property
     def is_open(self) -> bool:
-        """Return whether nobody took the offer yet.
-
-        Returns:
-            bool: True while the claim is unclaimed.
-        """
+        """Сообщает, не забрал ли предложение ещё никто."""
         return self.claimed_by is None
 
     def is_valid_at(self, moment: datetime) -> bool:
-        """Return whether the offer may still be taken at a moment.
+        """Сообщает, можно ли забрать предложение в указанный момент.
 
         Args:
-            moment: Moment to judge at.
+            moment: Момент, относительно которого решают.
 
         Returns:
-            bool: True while the claim is open and not expired.
+            bool: True, пока предложение открыто и не просрочено.
         """
         return self.is_open and moment < self.expires_at
 
     def taken_by(self, user_id: UserId) -> Self:
-        """Return the same offer owned by an account.
+        """Возвращает то же предложение, ставя его владельцем аккаунт.
 
         Args:
-            user_id: Account taking the board.
+            user_id: Аккаунт, который забирает плату.
 
         Returns:
-            Self: Claimed offer.
+            Self: Забранное предложение.
 
         Raises:
-            ClaimAlreadyTakenError: When somebody else already took it.
-            ClaimExpiredError: When the offer window has closed.
+            ClaimAlreadyTakenError: Когда до этого её забрал кто-то другой.
+            ClaimExpiredError: Когда срок предложения вышел.
         """
         if not self.is_open:
             raise ClaimAlreadyTakenError()
@@ -97,17 +91,14 @@ class EspClaim:
         )
 
     def refuse_if_not_usable(self, now: datetime) -> None:
-        """Refuse the offer when it can no longer be taken.
+        """Отказывает предложению, которое больше нельзя забрать.
 
         Args:
-            now: Moment the takeover was attempted at.
-
-        Returns:
-            None.
+            now: Момент, когда попытку забрать сделали.
 
         Raises:
-            ClaimAlreadyTakenError: When somebody else already took it.
-            ClaimExpiredError: When the offer window has closed.
+            ClaimAlreadyTakenError: Когда до этого её забрал кто-то другой.
+            ClaimExpiredError: Когда срок предложения вышел.
         """
         if not self.is_open:
             raise ClaimAlreadyTakenError()
@@ -122,16 +113,16 @@ class EspClaim:
         announced_at: datetime,
         ttl_sec: int,
     ) -> Self:
-        """Build an offer for a board that just announced itself.
+        """Строит предложение для платы, которая только что объявилась.
 
         Args:
-            device_key: Secret the board presents while connecting.
-            label: Short code shown in the interface.
-            announced_at: Moment the board announced itself.
-            ttl_sec: How long the offer stays valid.
+            device_key: Секрет, который плата предъявит при соединении.
+            label: Короткий код для интерфейса.
+            announced_at: Момент объявления платы.
+            ttl_sec: Сколько времени предложение остаётся действительным.
 
         Returns:
-            Self: Open claim.
+            Self: Открытое предложение.
         """
         return cls(
             id=EspClaimId.generate(),
@@ -144,25 +135,25 @@ class EspClaim:
 
     @classmethod
     def label_from_key(cls, device_key: PairingKey) -> str:
-        """Return the code to show for a board that reported none.
+        """Возвращает код для платы, которая сама его не назвала.
 
         Args:
-            device_key: Secret the board presented while connecting.
+            device_key: Секрет, который плата предъявила при соединении.
 
         Returns:
-            str: Short code derived from the key.
+            str: Короткий код, составленный из ключа.
         """
         return device_key.value[:LABEL_LENGTH].upper()
 
 
 def new_claim_token() -> str:
-    """Produce a token for one announcement.
+    """Вырабатывает токен одного объявления.
 
-    The alphabet leaves out characters a person could mix up when reading a code
-    off another screen, which is not far fetched when the offer is shown on a
-    phone next to the board.
+    Из алфавита убраны буквы и цифры, которые человек путает, списывая код с одного
+    экрана и набирая на другом, -- а предложение смотрят именно так: с телефона
+    рядом с платой.
 
     Returns:
-        str: Token of the announcement.
+        str: Токен объявления.
     """
     return "".join(secrets.choice(TOKEN_ALPHABET) for _ in range(TOKEN_LENGTH))

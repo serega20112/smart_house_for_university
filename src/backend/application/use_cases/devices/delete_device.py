@@ -1,4 +1,4 @@
-"""Remove a logical device."""
+"""Убирает логическое устройство."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from backend.domain.identifiers import DeviceId, UserId
 
 
 class DeleteDeviceUseCase:
-    """Removes a device and forgets everything the runtime knew about it."""
+    """Удаляет устройство и забывает всё, что о нём знал исполняющий слой."""
 
     def __init__(
         self,
@@ -19,32 +19,26 @@ class DeleteDeviceUseCase:
         state_store: HomeStateStore,
         realtime: RealtimePublisher,
     ) -> None:
-        """Initialize the use case.
+        """Инициализирует сценарий.
 
         Args:
-            home_uow: Factory producing transactions over the configuration.
-            state_store: Durable home of the volatile state.
-            realtime: Publisher of events to the open clients.
-
-        Returns:
-            None.
+            home_uow: Фабрика транзакций над конфигурацией.
+            state_store: Надёжный дом изменчивого состояния.
+            realtime: Издатель событий в открытые соединения.
         """
         self._home_uow = home_uow
         self._state_store = state_store
         self._realtime = realtime
 
     async def execute(self, user_id: UserId, device_id: DeviceId) -> None:
-        """Delete a device.
+        """Удаляет устройство.
 
         Args:
-            user_id: Owner resolved from the session.
-            device_id: Identifier of the device.
-
-        Returns:
-            None.
+            user_id: Владелец, разрешённый из сессии.
+            device_id: Идентификатор устройства.
 
         Raises:
-            DeviceNotFoundError: When the account has no such device.
+            DeviceNotFoundError: Когда такого устройства у аккаунта нет.
         """
         async with self._home_uow() as uow:
             removed = await uow.devices.delete(user_id, device_id)

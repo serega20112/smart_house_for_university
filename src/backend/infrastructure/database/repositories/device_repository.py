@@ -35,51 +35,45 @@ Runner = AsyncConnection | AsyncSession
 
 
 class SqlDeviceRepository:
-    """Storage of the logical devices of one account.
+    """Хранение логических устройств одного аккаунта.
 
-    Args:
-        session: Session the unit of work opened for this transaction.
-
-    Returns:
-        None.
+    Attributes:
+        session: Сессия, которую открыла для этой транзакции граница.
     """
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize the repository.
+        """Инициализирует хранилище.
 
         Args:
-            session: Session bound to the current transaction.
-
-        Returns:
-            None.
+            session: Сессия, привязанная к нынешней транзакции.
         """
         self._session = session
 
     async def list_all(self, user_id: UserId) -> Sequence[Device]:
-        """Return every device of an account.
+        """Возвращает все устройства аккаунта.
 
         Args:
-            user_id: Owner of the devices.
+            user_id: Владелец устройств.
 
         Returns:
-            Sequence[Device]: Configured devices.
+            Sequence[Device]: Настроенные устройства.
         """
         rows = await every_row(self._session, DeviceRow, DeviceRow.user_id == user_id.value)
         stored = await capabilities_of(self._session, [row.id for row in rows])
         return [mappers.device_from_row(row, stored.get(row.id, frozenset())) for row in rows]
 
     async def get(self, user_id: UserId, device_id: DeviceId) -> Device | None:
-        """Return one device of an account.
+        """Возвращает одно устройство аккаунта.
 
-        The lookup is scoped to the owner, so a device of another account reads as
-        missing instead of being handed out.
+        Поиск ограничен владельцем, поэтому устройство чужого аккаунта читается как
+        отсутствующее, а не раздаётся дальше.
 
         Args:
-            user_id: Owner of the device.
-            device_id: Identifier of the device.
+            user_id: Владелец устройства.
+            device_id: Идентификатор устройства.
 
         Returns:
-            Device | None: Device, or None when the account has no such one.
+            Device | None: Устройство или None, когда у аккаунта такого нет.
         """
         row = await first_row(
             self._session,
@@ -93,22 +87,19 @@ class SqlDeviceRepository:
         return mappers.device_from_row(row, stored.get(row.id, frozenset()))
 
     async def add(self, device: Device) -> None:
-        """Store a newly created device.
+        """Сохраняет только что созданное устройство.
 
-        The row of the device is written before its capabilities, because every
-        capability row carries a foreign key to it. The channel a device is
-        wired to is unique per account, so the store refuses the second claim
-        instead of a lookup deciding it a moment earlier.
+        Строку устройства пишут раньше его способностей, потому что каждая строка
+        способности несёт на неё внешний ключ. Канал, к которому подключают устройство,
+        у каждого аккаунта один, поэтому второе притязание отвергает хранилище, а не
+        поиск, решивший это мгновением раньше.
 
         Args:
-            device: Device to persist.
-
-        Returns:
-            None.
+            device: Устройство для записи.
 
         Raises:
-            ChannelConflictError: When the channel is already wired to another
-            device of the same account.
+            ChannelConflictError: Когда канал уже подключён к другому устройству того
+                же аккаунта.
         """
         values = mappers.row_values(DeviceRow.__table__, mappers.device_to_row(device))
         try:
@@ -123,23 +114,20 @@ class SqlDeviceRepository:
             raise ChannelConflictError(int(device.channel)) from error
 
     async def update(self, device: Device) -> None:
-        """Store a changed device under a revision it has actually seen.
+        """Сохраняет изменённое устройство по ревизии, которую оно действительно видело.
 
-        The statement carries the revision the aggregate was read at: the store
-        updates nothing when somebody changed the row meanwhile. The capabilities
-        are replaced rather than merged: the aggregate holds the complete set,
-        so a capability that is no longer listed was removed on purpose.
+        Запрос несёт ревизию, на которой агрегат прочитали: хранилище не меняет ничего,
+        если строку тем временем задели. Способности заменяют целиком, а не сливают:
+        агрегат держит множество полностью, и способность, которой в нём больше нет,
+        убрали нарочно.
 
         Args:
-            device: Device to persist.
-
-        Returns:
-            None.
+            device: Устройство для записи.
 
         Raises:
-            ConcurrentModificationError: When the row moved on since it was read.
-            ChannelConflictError: When the new channel is already wired to
-            another device of the same account.
+            ConcurrentModificationError: Когда строка ушла вперёд с момента чтения.
+            ChannelConflictError: Когда новый канал уже подключён к другому устройству
+                того же аккаунта.
         """
         row = mappers.device_to_row(device)
         try:
@@ -176,18 +164,18 @@ class SqlDeviceRepository:
         await self._session.flush()
 
     async def delete(self, user_id: UserId, device_id: DeviceId) -> bool:
-        """Remove a device of an account.
+        """Убирает устройство аккаунта.
 
-        The capabilities, the automation participations and the dashboard entries
-        pointing at the device are removed by the cascading foreign keys of the
-        store, so no row survives describing something that no longer exists.
+        Способности, участие в автоматизации и карточки панели, смотревшие на это
+        устройство, снимают каскадные внешние ключи хранилища, поэтому ни одна строка
+        не выживает, описывая то, чего больше нет.
 
         Args:
-            user_id: Owner of the device.
-            device_id: Identifier of the device.
+            user_id: Владелец устройства.
+            device_id: Идентификатор устройства.
 
         Returns:
-            bool: True when a device was removed.
+            bool: True, когда устройство убрали.
         """
         result = await self._session.execute(
             delete(DeviceRow).where(

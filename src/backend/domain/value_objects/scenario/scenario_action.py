@@ -1,4 +1,4 @@
-"""One action inside a timed scenario."""
+"""Одно действие внутри отложенного сценария."""
 
 from __future__ import annotations
 
@@ -10,19 +10,16 @@ from backend.domain.value_objects.devices.capability import Capability
 
 @dataclass(frozen=True, slots=True)
 class ScenarioAction:
-    """A capability a scenario asks for once it starts.
+    """Способность, о которой сценарий просит в момент начала.
 
-    The action names a capability and an optional target rather than a relay
-    channel, because the device is chosen when the action runs: the wiring of a
-    home may change while the scenario waits.
+    Действие называет способность и необязательную цель, а не канал реле: устройство
+    выбирается, когда действие выполняется, — проводка дома может измениться, пока
+    сценарий ждёт своей очереди.
 
-    Args:
-        capability: Capability to perform.
-        target_temperature: Temperature the action aims for, or None when the
-            action only switches something.
-
-    Returns:
-        None.
+    Attributes:
+        capability: Способность, которую нужно выполнить.
+        target_temperature: Температура, к которой действие идёт, или None, когда
+            действие только что-то переключает.
     """
 
     capability: Capability
@@ -30,9 +27,9 @@ class ScenarioAction:
 
     @property
     def has_goal(self) -> bool:
-        """Return whether the action can be judged as reached.
+        """Сообщает, можно ли судить, что действие достигнуто.
 
         Returns:
-            bool: True when a target temperature was requested.
+            bool: True, когда целевая температура была названа.
         """
         return self.target_temperature is not None

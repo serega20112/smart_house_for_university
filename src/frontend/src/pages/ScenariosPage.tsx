@@ -1,4 +1,9 @@
-/** Scenarios page listing and cancelling the timed tasks. */
+/**
+ * Страница сценариев: список и отмена временных задач.
+ *
+ * Сценарий человек ставит словами в чате команды, а здесь он только видит, что
+ * обещание ещё стоит, и снимает его раньше срока.
+ */
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -35,7 +40,13 @@ export function ScenariosPage() {
     },
   });
 
-  async function cancel(scenarioId: number): Promise<void> {
+  /**
+   * Отменяет сценарий.
+   *
+   * @param scenarioId Идентификатор сценария.
+   * @returns Ничего: список перечитывается после ответа сервера.
+   */
+  async function cancel(scenarioId: string): Promise<void> {
     try {
       await api.cancelScenario(scenarioId);
       await load();

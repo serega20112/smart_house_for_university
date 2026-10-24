@@ -1,14 +1,19 @@
 /**
  * @file config_store.h
- * @brief The flash of the board as the only place its own settings live.
+ * @brief Флеш-память платы как единственное место её собственных настроек.
  *
- * Three things are kept in the flash of the chip: the key the board presents to
- * the server, the fact that it already has an owner, and the network it belongs
- * to. Nothing of this is compiled into the firmware, which is what lets one
- * binary serve every board.
+ * В памяти чипа живут три вещи: ключ, который плата предъявляет серверу, признак
+ * того, что хозяйка или хозяин у неё уже есть, и сеть, к которой она относится.
+ * Ничего из этого не вкомпилировано в прошивку, поэтому одна и та же сборка
+ * подходит всем платам.
  *
- * The layout is fixed and never moves, because a board that was already set up
- * has to find its own settings again after a reflash of the code.
+ * Раскладка фиксирована и никогда не сдвигается: плата, которой уже настройли
+ * сеть, должна найти свои значения и после перепрошивки кода.
+ *
+ * EEPROM здесь — эмуляция: библиотека перезаписывает сектор флеша в четыре
+ * килобайта, а ресурс его — десятки тысяч записей. Поэтому каждая запись сверяется
+ * с тем, что уже лежит, и коммитится только изменившееся: флаг владения или сеть
+ * меняются редко, а переподключений бывает тысячи.
  */
 
 #pragma once
@@ -17,74 +22,69 @@
 
 #include "network_config.h"
 
-/** Size of the emulated flash the settings are kept in. */
+/** Размер эмулируемой флеш-памяти, в которой лежат настройки. */
 static const size_t EEPROM_SIZE = 256;
 
-/** Offset of the key the board presents to the server. */
+/** Смещение ключа, который плата предъявляет серверу. */
 static const size_t DEVICE_KEY_OFFSET = 0;
 
-/** Length of the key the board presents to the server. */
+/** Длина ключа, который плата предъявляет серверу. */
 static const size_t DEVICE_KEY_SIZE = 32;
 
-/** Offset of the flag telling whether the board already has an owner. */
+/** Смещение признака того, что у платы уже есть владелец. */
 static const size_t CLAIMED_FLAG_OFFSET = DEVICE_KEY_OFFSET + DEVICE_KEY_SIZE;
 
-/** Offset of the block holding the network of the board. */
+/** Смещение блока с сетью платы. */
 static const size_t NETWORK_OFFSET = CLAIMED_FLAG_OFFSET + 8;
 
 /**
- * @brief Open the flash the settings are kept in.
+ * @brief Открывает флеш-память, в которой лежат настройки.
  *
- * Calling it twice is harmless, so every entry point may call it.
- *
- * @return None.
+ * Повторный вызов безвреден, поэтому каждая точка входа может позволить его себе.
  */
 void configStoreBegin();
 
 /**
- * @brief Read the key the board presents to the server.
+ * @brief Читает ключ, который плата предъявляет серверу.
  *
- * @param out Buffer the key is copied into.
- * @param capacity Size of that buffer.
- * @return The number of characters read, zero when the board has no key yet.
+ * @param out Буфер, куда копируется ключ.
+ * @param capacity Размер этого буфера.
+ * @return Число прочитанных знаков; ноль, если ключа у платы ещё нет.
  */
 size_t configStoreReadDeviceKey(char *out, size_t capacity);
 
 /**
- * @brief Write the key the board presents to the server.
+ * @brief Пишет ключ, который плата предъявляет серверу.
  *
- * @param key Key to store.
- * @return None.
+ * @param key Ключ для сохранения.
  */
 void configStoreWriteDeviceKey(const char *key);
 
 /**
- * @brief Report whether the board already has an owner.
+ * @brief Сообщает, есть ли у платы уже владелец.
  *
- * @return True when the board belongs to an account.
+ * @return True, когда плата принадлежит аккаунту.
  */
 bool configStoreIsClaimed();
 
 /**
- * @brief Record whether the board has an owner.
+ * @brief Записывает, есть ли у платы владелец.
  *
- * @param claimed True when the board belongs to an account.
- * @return None.
+ * @param claimed True, когда плата принадлежит аккаунту.
  */
 void configStoreSetClaimed(bool claimed);
 
 /**
- * @brief Read the network of the board.
+ * @brief Читает сеть платы.
  *
- * @param out Configuration the stored values are written into.
- * @return True when the board was set up before.
+ * @param out Конфигурация, в которую записываются сохранённые значения.
+ * @return True, если плату уже настраивали.
  */
 bool configStoreLoadNetwork(NetworkConfig &out);
 
 /**
- * @brief Write the network of the board.
+ * @brief Пишет сеть платы.
  *
- * @param config Configuration to store.
- * @return None.
+ * @param config Конфигурация для сохранения.
  */
 void configStoreSaveNetwork(const NetworkConfig &config);

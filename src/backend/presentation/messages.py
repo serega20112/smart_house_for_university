@@ -1,9 +1,9 @@
-"""Wording of everything a person reads.
+"""Формулировки всего, что человек читает.
 
-The application layer never writes user facing text: it asks for a message by name
-and this module decides what that message says. The strings live in Russian
-because the people using this system read Russian, and the interface is the only
-place where the language of a person belongs.
+Прикладной слой никогда не пишет текст для человека: он просит сообщение по имени,
+а решает, что в этом сообщении будет сказано, этот модуль. Фразы русские, потому
+что русские — люди, которые системой пользуются, и интерфейс — единственное место,
+где язык человека вообще появляется.
 """
 
 from __future__ import annotations
@@ -39,6 +39,19 @@ MALFORMED_IDENTIFIER = "Некорректный идентификатор."
 COMMAND_NO_DATA = "Пока нет показаний датчиков."
 COMMAND_CLIMATE = "Сейчас {temperature:.1f} °C и влажность {humidity:.0f} %."
 COMMAND_DONE = "Готово."
+COMMAND_NOTHING_TO_SWITCH = "Нечего переключать: подходящих устройств нет."
+COMMAND_SWITCHED = "Переключил: "
+COMMAND_TARGET_TEMPERATURE = "Целевая температура теперь {value} °C."
+COMMAND_TARGET_HUMIDITY = "Целевая влажность теперь {value} %."
+COMMAND_CAPABILITY_DONE = "{device}: команда выполнена."
+COMMAND_DEVICE_STATE = "{device}: {state}."
+COMMAND_NOW_TEMPERATURE = "Сейчас {value} °C."
+COMMAND_NOW_HUMIDITY = "Влажность {value} %."
+COMMAND_SCENARIO_STARTED = "Сценарий запущен, начало в {start_at}."
+COMMAND_SCENARIO_CANCELLED = "Сценарий отменён."
+STATUS_ON = "включено"
+STATUS_OFF = "выключено"
+UNKNOWN_VALUE = "неизвестно"
 TELEGRAM_LINK_INSTRUCTION = (
     "Аккаунт ещё не привязан к этому чату. Открой интерфейс, получи там код "
     "привязки и пришли его сообщением вида link:<код>."
@@ -49,104 +62,84 @@ INTERNAL_FAILURE = "Внутренняя ошибка сервера."
 
 
 def error_detail(message: str) -> dict[str, str]:
-    """Return the body of a failed request.
+    """Возвращает тело отказного запроса.
 
     Args:
-        message: Text shown to the person.
+        message: Текст, который увидит человек.
 
     Returns:
-        dict[str, str]: Body with the message under the key FastAPI expects.
+        dict[str, str]: Тело с фразой под тем ключом, которого ждёт FastAPI.
     """
     return {"detail": message}
 
 
 class SimpleNotification(Notification):
-    """A message with a text and a severity behind it.
+    """Сообщение с текстом и степенью срочности за ним.
 
     Attributes:
-        _text: Text shown to the person.
-        _severity: How urgent the message is.
-
+        _text: Текст, который увидит человек.
+        _severity: Насколько сообщение срочное.
     """
 
     def __init__(self, text: str, severity: str = "info") -> None:
-        """Initialize the notification.
+        """Инициализирует сообщение.
 
         Args:
-            text: Text shown to the person.
-            severity: How urgent the message is.
-
-        Returns:
-            None.
+            text: Текст, который увидит человек.
+            severity: Насколько сообщение срочное.
         """
         self._text = text
         self._severity = severity
 
     @property
     def text(self) -> str:
-        """Return the message as it reaches the person.
-
-        Returns:
-            str: Rendered message.
-        """
+        """Возвращает сообщение таким, каким оно доходит до человека."""
         return self._text
 
     @property
     def severity(self) -> str:
-        """Return how urgent the message is.
-
-        Returns:
-            str: One of the severities the channels understand.
-        """
+        """Возвращает срочность сообщения."""
         return self._severity
 
 
 class NotificationFactoryImpl:
-    """Builds the wording of every message a person may receive.
+    """Строит формулировки всех сообщений, которые может получить человек.
 
-    The application asks for a message by name, so the wording of the system is
-    decided in one place instead of being written into the use cases.
+    Прикладной слой просит сообщение по имени, поэтому формулировки системы
+    решаются в одном месте, а не расползаются по сценариям.
     """
 
     def board_online(self) -> Notification:
-        """Return the message shown when a board comes back.
-
-        Returns:
-            Notification: Message to deliver.
-        """
+        """Возвращает сообщение о вернувшейся плате."""
         return SimpleNotification("Плата снова на связи.")
 
     def board_offline(self) -> Notification:
-        """Return the message shown when a board goes away.
-
-        Returns:
-            Notification: Message to deliver.
-        """
+        """Возвращает сообщение пропавшей плате."""
         return SimpleNotification("Плата потеряла связь.", "warning")
 
     def scenario_started(self, scenario_id: str, target: str | None) -> Notification:
-        """Return the message shown when a scenario begins acting.
+        """Возвращает сообщение о начавшем действовать сценарии.
 
         Args:
-            scenario_id: Identifier of the scenario.
-            target: Area or object the user named.
+            scenario_id: Идентификатор сценария.
+            target: Место или предмет, который назвал человек.
 
         Returns:
-            Notification: Message to deliver.
+            Notification: Сообщение для доставки.
         """
         del scenario_id
         subject = f" для «{target}»" if target else ""
         return SimpleNotification(f"Сценарий{subject} начал работу.")
 
     def scenario_progress(self, scenario_id: str, temperature: float | None) -> Notification:
-        """Return the periodic progress message of a running scenario.
+        """Возвращает периодическое сообщение действующего сценария.
 
         Args:
-            scenario_id: Identifier of the scenario.
-            temperature: Current temperature or None.
+            scenario_id: Идентификатор сценария.
+            temperature: Текущая температура или None.
 
         Returns:
-            Notification: Message to deliver.
+            Notification: Сообщение для доставки.
         """
         del scenario_id
         if temperature is None:
@@ -154,103 +147,118 @@ class NotificationFactoryImpl:
         return SimpleNotification(f"Сценарий выполняется, сейчас {temperature:.1f} °C.")
 
     def scenario_finished(self, scenario_id: str, reason: str) -> Notification:
-        """Return the message shown when a scenario reaches a final stage.
+        """Возвращает сообщение о дошедшем до конца сценарии.
 
         Args:
-            scenario_id: Identifier of the scenario.
-            reason: Why it reached that stage.
+            scenario_id: Идентификатор сценария.
+            reason: Почему сценарий дошёл до этого этапа.
 
         Returns:
-            Notification: Message to deliver.
+            Notification: Сообщение для доставки.
         """
         del scenario_id, reason
         return SimpleNotification("Сценарий завершён.")
 
     def scenario_failed(self, scenario_id: str, reason: str) -> Notification:
-        """Return the message shown when a scenario could not be carried out.
+        """Возвращает сообщение о сценарии, который не удалось выполнить.
 
         Args:
-            scenario_id: Identifier of the scenario.
-            reason: Why it failed.
+            scenario_id: Идентификатор сценария.
+            reason: Почему не удалось.
 
         Returns:
-            Notification: Message to deliver.
+            Notification: Сообщение для доставки.
         """
         del scenario_id, reason
         return SimpleNotification("Сценарий не удалось выполнить.", "warning")
 
 
 class CommandReplyComposer:
-    """Turns the structured result of a command into a phrase.
+    """Превращает структурный результат команды во фразу.
 
-    The application reports *what* happened, and this class decides *how* to say
-    it. Keeping the two apart is what lets the same result be printed in the chat
-    and rendered in the browser without two drifting copies of the wording.
+    Прикладной слой сообщает *что* случилось, а этот класс решает *как* об этом
+    сказать. Разделённые, они могут быть и напечатаны в чате, и нарисованы в
+    браузере — без двух копий формулировки, которые рано или поздно разойдутся.
     """
 
     def for_result(self, result: object) -> str:
-        """Return the phrase describing what a command produced.
+        """Возвращает фразу о том, что дала команда.
 
         Args:
-            result: Structured result of a dispatched command.
+            result: Структурный результат выполненной команды.
 
         Returns:
-            str: Phrase for the user.
+            str: Фраза для человека.
         """
         if not isinstance(result, CommandReply):
             return str(result)
         details = result.details
         match result.intent:
             case Intent.SWITCH_DEVICE:
-                device = details.get("device")
-                return f"{device}: {self._status(details.get('status'))}."
+                return COMMAND_DEVICE_STATE.format(
+                    device=details.get("device"), state=self._status(details.get("status"))
+                )
             case Intent.SWITCH_ALL:
                 devices = details.get("devices")
                 if not devices:
-                    return "Нечего переключать: подходящих устройств нет."
-                return "Переключил: " + ", ".join(str(name) for name in devices) + "."
+                    return COMMAND_NOTHING_TO_SWITCH
+                return COMMAND_SWITCHED + ", ".join(str(name) for name in devices) + "."
             case Intent.SET_TEMPERATURE:
-                return f"Целевая температура теперь {self._number(details.get('temperature'))} °C."
+                return COMMAND_TARGET_TEMPERATURE.format(
+                    value=self._number(details.get("temperature"))
+                )
             case Intent.SET_HUMIDITY:
-                return f"Целевая влажность теперь {self._number(details.get('humidity'))} %."
+                return COMMAND_TARGET_HUMIDITY.format(value=self._number(details.get("humidity")))
             case Intent.RUN_CAPABILITY:
-                device = details.get("device")
-                return f"{device}: команда выполнена."
+                return COMMAND_CAPABILITY_DONE.format(device=details.get("device"))
             case Intent.DESCRIBE_HOME:
                 return self._describe(details)
             case Intent.READ_TEMPERATURE:
                 value = details.get("temperature")
-                return COMMAND_NO_DATA if value is None else f"Сейчас {self._number(value)} °C."
+                return (
+                    COMMAND_NO_DATA
+                    if value is None
+                    else COMMAND_NOW_TEMPERATURE.format(value=self._number(value))
+                )
             case Intent.READ_HUMIDITY:
                 value = details.get("humidity")
-                return COMMAND_NO_DATA if value is None else f"Влажность {self._number(value)} %."
+                return (
+                    COMMAND_NO_DATA
+                    if value is None
+                    else COMMAND_NOW_HUMIDITY.format(value=self._number(value))
+                )
             case Intent.SCHEDULE_SCENARIO:
                 start_at = details.get("start_at")
-                return f"Сценарий запущен, начало в {start_at}." if start_at else COMMAND_DONE
+                return (
+                    COMMAND_SCENARIO_STARTED.format(start_at=start_at) if start_at else COMMAND_DONE
+                )
             case Intent.CANCEL_SCENARIO:
-                return "Сценарий отменён."
+                return COMMAND_SCENARIO_CANCELLED
         return COMMAND_DONE
 
     def _describe(self, details: dict[str, object]) -> str:
+        """Возвращает фразу о состоянии дома по показаниям и устройствам."""
         temperature = details.get("temperature")
         humidity = details.get("humidity")
         if temperature is None and humidity is None:
             return COMMAND_NO_DATA
         if humidity is None:
-            return f"Сейчас {self._number(temperature)} °C."
+            return COMMAND_NOW_TEMPERATURE.format(value=self._number(temperature))
         if temperature is None:
-            return f"Влажность {self._number(humidity)} %."
+            return COMMAND_NOW_HUMIDITY.format(value=self._number(humidity))
         return COMMAND_CLIMATE.format(
             temperature=float(str(temperature)), humidity=float(str(humidity))
         )
 
     @staticmethod
     def _status(raw: object) -> str:
-        return "включено" if raw == "ON" else "выключено"
+        """Возвращает русское название положения контакта."""
+        return STATUS_ON if raw == "ON" else STATUS_OFF
 
     @staticmethod
     def _number(raw: object) -> str:
+        """Возвращает число в виде, пригодном для фразы, или «неизвестно»."""
         try:
             return f"{float(str(raw)):.1f}".removesuffix(".0")
         except (TypeError, ValueError):
-            return "неизвестно"
+            return UNKNOWN_VALUE

@@ -1,4 +1,4 @@
-"""A partial change of the automation configuration."""
+"""Частичное изменение настройки автоматизации."""
 
 from __future__ import annotations
 
@@ -11,22 +11,19 @@ from backend.domain.value_objects.climate.temperature import Temperature
 
 @dataclass(frozen=True, slots=True)
 class AutomationPatch:
-    """The fields of the automation configuration a person wants to change.
+    """Поля настройки автоматизации, которые человек хочет изменить.
 
-    Every field is optional and None means "keep", which is what lets one use case
-    serve the whole configuration instead of a family of near identical ones
-    differing by a single number.
+    Каждое поле необязательное, а None означает «оставить»: благодаря этому один
+    сценарий приложения обслуживает всю настройку вместо семейства почти одинаковых,
+    различающихся одним числом.
 
-    Args:
-        enabled: New automation flag or None.
-        target_temperature: New target temperature or None.
-        temperature_tolerance: New temperature tolerance or None.
-        target_humidity: New target humidity or None.
-        humidity_tolerance: New humidity tolerance or None.
-        participating_device_ids: New participants or None.
-
-    Returns:
-        None.
+    Attributes:
+        enabled: Новый признак работы или None.
+        target_temperature: Новая целевая температура или None.
+        temperature_tolerance: Новый допуск температуры или None.
+        target_humidity: Новая целевая влажность или None.
+        humidity_tolerance: Новый допуск влажности или None.
+        participating_device_ids: Новые участники или None.
     """
 
     enabled: bool | None = None

@@ -1,7 +1,7 @@
-"""Entry point of the backend.
+"""Точка входа бэкенда.
 
-Starts uvicorn with the assembled application. The board connection, the
-background loops and the Telegram bot run inside the application lifespan.
+Запускает uvicorn с собранным приложением. Соединение с платами, фоновые циклы и бот
+Telegram живут внутри времени жизни приложения.
 """
 
 from __future__ import annotations
@@ -13,11 +13,7 @@ from backend.presentation.app_factory import create_app
 
 
 def main() -> None:
-    """Run the HTTP server.
-
-    Returns:
-        None.
-    """
+    """Запускает HTTP-сервер."""
     settings = Settings()
     uvicorn.run(
         create_app(settings),

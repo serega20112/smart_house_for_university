@@ -88,6 +88,12 @@ from backend.application.use_cases.devices.switch_all_devices import SwitchAllDe
 from backend.application.use_cases.devices.switch_device import SwitchDeviceUseCase
 from backend.application.use_cases.devices.update_device import UpdateDeviceUseCase
 from backend.application.use_cases.home.read_home_snapshot import ReadHomeSnapshotUseCase
+from backend.application.use_cases.personalization.read_dashboard import ReadDashboardUseCase
+from backend.application.use_cases.personalization.read_preferences import ReadPreferencesUseCase
+from backend.application.use_cases.personalization.update_dashboard import UpdateDashboardUseCase
+from backend.application.use_cases.personalization.update_preferences import (
+    UpdatePreferencesUseCase,
+)
 from backend.application.use_cases.scenarios.cancel_scenario import CancelScenarioUseCase
 from backend.application.use_cases.scenarios.list_scenarios import ListScenariosUseCase
 from backend.application.use_cases.scenarios.schedule_scenario import ScheduleScenarioUseCase
@@ -102,8 +108,8 @@ from backend.infrastructure.redis.chat_sessions import RedisChatSessionStore
 from backend.infrastructure.redis.event_broker import RedisSubscriber
 from backend.infrastructure.telegram.client import TelegramBotClient
 from backend.infrastructure.telegram.linking import TelegramLinkTokenIssuer
-from backend.presentation.api.messages import NotificationFactoryImpl
 from backend.presentation.app_factory import create_app
+from backend.presentation.messages import NotificationFactoryImpl
 
 APP_ENTRIES: tuple[Any, ...] = (
     Clock,
@@ -178,6 +184,10 @@ REQUEST_ENTRIES: tuple[Any, ...] = (
     ListBoardClaimsUseCase,
     ConfigureBoardNetworkUseCase,
     ReadBoardNetworkUseCase,
+    ReadPreferencesUseCase,
+    UpdatePreferencesUseCase,
+    ReadDashboardUseCase,
+    UpdateDashboardUseCase,
 )
 
 

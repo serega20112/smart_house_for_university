@@ -1,42 +1,37 @@
-"""WebSocket endpoint feeding the interface in realtime.
+"""WebSocket-ручка, которой интерфейс получает события в реальном времени.
 
-Browsers cannot attach an authorization header to a WebSocket handshake, so the
-token arrives as a query parameter. It is resolved with the very same token
-service the REST API uses, and a connection without a valid one is closed before
-it is ever accepted.
+Браузер не может повесить заголовок авторизации на handshake WebSocket, поэтому
+токен приходит параметром строки запроса и разбирается тем же сервисом токенов,
+которым пользуется REST API: соединение без годного токена закрывается до того,
+как оно принято.
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
-from backend.application.interface.services.session_token_issuer import SessionTokenIssuer
-from backend.domain.identifiers import UserId
 from backend.infrastructure.logging import get_logger
-from backend.presentation.websocket.hub import WebSocketHub
+from backend.presentation.dependencies import hub_of, tokens_of
 
 log = get_logger("websocket.endpoint")
 
 router = APIRouter()
 
 TOKEN_PARAMETER = "token"
+POLICY_VIOLATION_CLOSE = status.WS_1008_POLICY_VIOLATION
 
 
 @router.websocket("/ws")
 async def events(websocket: WebSocket) -> None:
-    """Keep a client subscribed to its own events until it disconnects.
+    """Держит клиента подписанным на его собственные события до отключения.
 
     Args:
-        websocket: Client connection.
-
-    Returns:
-        None.
+        websocket: Соединение клиента.
     """
-    tokens: SessionTokenIssuer = websocket.app.state.tokens
-    hub: WebSocketHub = websocket.app.state.hub
-    user_id = _resolve(websocket, tokens)
+    hub = hub_of(websocket.app)
+    user_id = tokens_of(websocket.app).resolve(websocket.query_params.get(TOKEN_PARAMETER, ""))
     if user_id is None:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        await websocket.close(code=POLICY_VIOLATION_CLOSE)
         return
     await hub.connect(user_id, websocket)
     try:
@@ -44,11 +39,6 @@ async def events(websocket: WebSocket) -> None:
             await websocket.receive_text()
     except WebSocketDisconnect:
         await hub.disconnect(user_id, websocket)
-    except Exception as exc:
-        log.warning("web client connection failed", extra={"ctx": {"error": str(exc)}})
+    except Exception as error:
+        log.warning("websocket.client_failed", user=str(user_id), error=str(error))
         await hub.disconnect(user_id, websocket)
-
-
-def _resolve(websocket: WebSocket, tokens: SessionTokenIssuer) -> UserId | None:
-    token = websocket.query_params.get(TOKEN_PARAMETER, "")
-    return tokens.resolve(token) if token else None

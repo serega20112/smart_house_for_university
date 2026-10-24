@@ -1,4 +1,4 @@
-"""Kind of component a dashboard widget renders."""
+"""Компонент, который виджет главного экрана рисует."""
 
 from __future__ import annotations
 
@@ -6,14 +6,7 @@ from enum import StrEnum
 
 
 class WidgetKind(StrEnum):
-    """A generic component the interface already knows how to draw.
-
-    Args:
-        None.
-
-    Returns:
-        None.
-    """
+    """Готовый компонент, который интерфейс умеет нарисовать сам."""
 
     CLIMATE = "climate"
     SENSOR = "sensor"
@@ -22,16 +15,16 @@ class WidgetKind(StrEnum):
 
     @classmethod
     def parse(cls, raw: object) -> WidgetKind:
-        """Read a widget kind from a value received from the outside.
+        """Читает вид компонента из значения, пришедшего извне.
 
         Args:
-            raw: Widget kind name or enum member.
+            raw: Имя вида или его член перечисления.
 
         Returns:
-            WidgetKind: Parsed kind.
+            WidgetKind: Прочитанный вид.
 
         Raises:
-            ValueError: When the value does not name a widget kind.
+            ValueError: Когда значение не называет вид компонента.
         """
         if isinstance(raw, cls):
             return raw

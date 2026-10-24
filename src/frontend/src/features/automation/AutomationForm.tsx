@@ -1,4 +1,10 @@
-/** Automation settings form. */
+/**
+ * Форма настройки автоматизации.
+ *
+ * Экран показывает цель и допуск вокруг неё — ровно то, что хранит домен, а не
+ * посчитанные из него границы: пересчёт диапазона в «min/max» однажды заставил бы
+ * интерфейс спорить с сервером о том, какой гистерезис действует на самом деле.
+ */
 
 import { useState } from "react";
 
@@ -14,6 +20,17 @@ interface AutomationFormProps {
   onError: (message: string) => void;
 }
 
+/**
+ * Рисует настройку автоматизации и отправляет её изменения целиком.
+ *
+ * Пустой список участников означает «все устройства»: сервер сам решает, кого ему
+ * считать участником, и экран не дублирует это решение в своём состоянии.
+ *
+ * @param props.automation Настройка, прочитанная с сервера.
+ * @param props.devices Устройства, среди которых выбирают участников.
+ * @param props.onSaved Вызывается с человеческим текстом после сохранения.
+ * @param props.onError Вызывается с человеческим текстом отказа.
+ */
 export function AutomationForm({
   automation,
   devices,
@@ -21,22 +38,16 @@ export function AutomationForm({
   onError,
 }: AutomationFormProps) {
   const [enabled, setEnabled] = useState(automation.enabled);
-  const [targetTemperature, setTargetTemperature] = useState(
-    automation.target_temperature,
-  );
+  const [targetTemperature, setTargetTemperature] = useState(automation.target_temperature);
   const [temperatureTolerance, setTemperatureTolerance] = useState(
-    automation.target_temperature - automation.min_temperature,
+    automation.temperature_tolerance,
   );
   const [targetHumidity, setTargetHumidity] = useState(automation.target_humidity);
-  const [humidityTolerance, setHumidityTolerance] = useState(
-    automation.target_humidity - automation.min_humidity,
-  );
-  const [participants, setParticipants] = useState<number[]>(automation.participating_device_ids);
+  const [humidityTolerance, setHumidityTolerance] = useState(automation.humidity_tolerance);
+  const [participants, setParticipants] = useState<string[]>(automation.participating_device_ids);
   const [busy, setBusy] = useState(false);
 
-  const effective = participants.length > 0 ? participants : devices.map((d) => d.id);
-
-  function toggleParticipant(deviceId: number): void {
+  function toggleParticipant(deviceId: string): void {
     setParticipants((current) =>
       current.includes(deviceId)
         ? current.filter((item) => item !== deviceId)
@@ -44,11 +55,11 @@ export function AutomationForm({
     );
   }
 
-  async function run(action: () => Promise<{ message: string }>, done: () => void): Promise<void> {
+  async function run(action: () => Promise<unknown>, done: () => void): Promise<void> {
     setBusy(true);
     try {
-      const result = await action();
-      onSaved(result.message);
+      await action();
+      onSaved("Настройка сохранена");
       done();
     } catch (exc) {
       onError(exc instanceof Error ? exc.message : "Не удалось сохранить настройки");
@@ -65,7 +76,7 @@ export function AutomationForm({
           temperature_tolerance: temperatureTolerance,
           target_humidity: targetHumidity,
           humidity_tolerance: humidityTolerance,
-          participating_device_ids: effective,
+          participating_device_ids: participants,
         }),
       () => undefined,
     );
@@ -73,7 +84,7 @@ export function AutomationForm({
 
   function toggleAuto(next: boolean): Promise<void> {
     return run(
-      () => api.setAutomationEnabled(next),
+      () => api.updateAutomation({ enabled: next }),
       () => setEnabled(next),
     );
   }
@@ -158,7 +169,7 @@ export function AutomationForm({
           <span>Устройства автоматизации</span>
           <div className="chips">
             {devices.map((device) => {
-              const active = effective.includes(device.id);
+              const active = participants.includes(device.id);
               return (
                 <button
                   key={device.id}

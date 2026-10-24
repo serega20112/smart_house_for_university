@@ -1,11 +1,12 @@
-"""FastAPI application factory.
+"""Фабрика FastAPI-приложения.
 
-Builds the application with a single Dishka container, mounts the API router,
-starts the board WebSocket transport in the lifespan and stops it on shutdown.
+Собирает приложение с одним контейнером Dishka, навешивает API и поднимает в
+жизненном цикле транспорт плат, концентратор событий и бота, а на остановке их
+же и гасит.
 
-There is exactly one application serving every account. Nothing here is seeded
-per user: a new home appears the moment a user registers, because registration
-is what creates its devices, preferences and dashboard.
+Приложение ровно одно на все аккаунты. Здесь ничего не заводится отдельно для
+человека: дом появляется в тот момент, когда человек регистрируется, потому что
+именно регистрация создаёт его устройства, настройки и панель.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from backend.infrastructure.redis.event_broker import RedisSubscriber
 from backend.infrastructure.telegram.client import TelegramBotClient
 from backend.infrastructure.telegram.linking import TelegramLinkTokenIssuer
 from backend.presentation.api import api_router
+from backend.presentation.dependencies import bind
 from backend.presentation.errors import install_error_handlers
 from backend.presentation.messages import CommandReplyComposer, NotificationFactoryImpl
 from backend.presentation.telegram.conversation import TelegramConversation
@@ -42,14 +44,14 @@ log = get_logger("app")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    """Build the FastAPI application.
+    """Собирает FastAPI-приложение.
 
     Args:
-        settings: Configuration to build the graph from, defaults to the
-            environment configuration.
+        settings: Конфигурация, из которой строится граф; по умолчанию — та, что
+            читает окружение.
 
     Returns:
-        FastAPI: Configured application.
+        FastAPI: Собранное приложение.
     """
     settings = settings or Settings()
     configure_logging(settings.app_log_level)
@@ -74,19 +76,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        """Start and stop every subsystem of the application.
+        """Запускает и останавливает все подсистемы приложения.
 
         Args:
-            app: Application being started.
+            app: Запускаемое приложение.
 
         Yields:
-            None while the application is running.
+            None, пока приложение работает.
         """
         connection = await container.get(EspConnection)
-        subscriber = await container.get(RedisSubscriber)
-        hub = WebSocketHub(subscriber)
-        app.state.hub = hub
-        app.state.tokens = await container.get(SessionTokenIssuer)
+        hub = WebSocketHub(await container.get(RedisSubscriber))
+        bind(app, hub=hub, tokens=await container.get(SessionTokenIssuer))
         await connection.start()
         await _seed_reference_phrases(container)
         bot = await _start_telegram(container, settings)
@@ -114,9 +114,6 @@ async def _seed_reference_phrases(container: Container) -> None:
 
     Args:
         container: Граф зависимостей запущенного процесса.
-
-    Returns:
-        None.
     """
     try:
         seeder = await container.get(ReferencePhraseSeeder)

@@ -13,6 +13,7 @@ from backend.infrastructure.database.queries.boards import (
     claim_view_of,
 )
 from backend.infrastructure.database.queries.devices import SqlDeviceQueries, device_view_of
+from backend.infrastructure.database.queries.home_directory import SqlHomeDeviceDirectory
 from backend.infrastructure.database.queries.scenarios import (
     HOLDING_STAGES,
     SqlScenarioQueries,
@@ -27,6 +28,7 @@ __all__ = [
     "SqlAutomationQueries",
     "SqlBoardQueries",
     "SqlDeviceQueries",
+    "SqlHomeDeviceDirectory",
     "SqlScenarioQueries",
     "automation_view_of",
     "board_view_of",
