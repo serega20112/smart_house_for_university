@@ -10,11 +10,20 @@ from backend.domain.aggregates.dashboard.dashboard_state import DashboardState
 from backend.domain.identifiers import (
     UserId,
 )
-from backend.infrastructure.database import mappers
-from backend.infrastructure.database.repositories.base import every_row, first_row, insert_rows
-from backend.infrastructure.database.tables import (
-    DashboardRow,
-    DashboardWidgetRow,
+from backend.infrastructure.database.mappers.dashboard import (
+    dashboard_from_row,
+    dashboard_to_row,
+    widget_rows,
+)
+from backend.infrastructure.database.models import (
+    DashboardModel,
+    DashboardWidgetModel,
+)
+from backend.infrastructure.database.repositories.base import (
+    every_row,
+    first_row,
+    insert_rows,
+    row_values,
 )
 
 UNIQUE_VIOLATION = "23505"
@@ -46,15 +55,17 @@ class SqlDashboardRepository:
             DashboardState | None: Сохранённая раскладка или None, когда аккаунт её
             ни разу не настраивал.
         """
-        row = await first_row(self._session, DashboardRow, DashboardRow.user_id == user_id.value)
+        row = await first_row(
+            self._session, DashboardModel, DashboardModel.user_id == user_id.value
+        )
         if row is None:
             return None
         widgets = await every_row(
             self._session,
-            DashboardWidgetRow,
-            DashboardWidgetRow.user_id == user_id.value,
+            DashboardWidgetModel,
+            DashboardWidgetModel.user_id == user_id.value,
         )
-        return mappers.dashboard_from_row(row, widgets)
+        return dashboard_from_row(row, widgets)
 
     async def save(self, dashboard: DashboardState) -> None:
         """Сохраняет раскладку аккаунта.
@@ -66,16 +77,16 @@ class SqlDashboardRepository:
         Args:
             dashboard: Раскладка для записи.
         """
-        values = mappers.row_values(DashboardRow.__table__, mappers.dashboard_to_row(dashboard))
+        values = row_values(DashboardModel.__table__, dashboard_to_row(dashboard))
         await self._session.execute(
-            postgresql.insert(DashboardRow.__table__)
+            postgresql.insert(DashboardModel.__table__)
             .values(**values)
-            .on_conflict_do_nothing(index_elements=[DashboardRow.__table__.c.user_id])
+            .on_conflict_do_nothing(index_elements=[DashboardModel.__table__.c.user_id])
         )
         await self._session.execute(
-            delete(DashboardWidgetRow).where(DashboardWidgetRow.user_id == dashboard.user_id.value)
+            delete(DashboardWidgetModel).where(
+                DashboardWidgetModel.user_id == dashboard.user_id.value
+            )
         )
-        await insert_rows(
-            self._session, DashboardWidgetRow.__table__, mappers.widget_rows(dashboard)
-        )
+        await insert_rows(self._session, DashboardWidgetModel.__table__, widget_rows(dashboard))
         await self._session.flush()

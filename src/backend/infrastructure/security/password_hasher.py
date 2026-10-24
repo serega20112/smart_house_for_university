@@ -18,7 +18,7 @@ import hashlib
 import hmac
 import secrets
 
-from backend.application.interface.services.password_hasher import PasswordHasher
+from backend.application.interfaces.services.security.password_hasher import PasswordHasher
 
 ALGORITHM_PREFIX = "pbkdf2"
 DEFAULT_DIGEST = "sha256"

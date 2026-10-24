@@ -6,15 +6,15 @@ from backend.domain.aggregates.automation.automation_settings import AutomationS
 from backend.domain.identifiers import DeviceId, UserId
 from backend.domain.value_objects.climate.humidity import Humidity
 from backend.domain.value_objects.climate.temperature import Temperature
-from backend.infrastructure.database.tables import (
-    AutomationParticipantRow,
-    AutomationRow,
+from backend.infrastructure.database.models import (
+    AutomationModel,
+    AutomationParticipantModel,
 )
 
 
-def automation_to_row(settings: AutomationSettings) -> AutomationRow:
+def automation_to_row(settings: AutomationSettings) -> AutomationModel:
     """Строит строку, описывающую настройку автоматизации аккаунта."""
-    return AutomationRow(
+    return AutomationModel(
         user_id=settings.user_id.value,
         enabled=settings.enabled,
         target_temperature=settings.target_temperature.celsius,
@@ -26,7 +26,7 @@ def automation_to_row(settings: AutomationSettings) -> AutomationRow:
 
 
 def automation_from_row(
-    row: AutomationRow, participants: frozenset[DeviceId]
+    row: AutomationModel, participants: frozenset[DeviceId]
 ) -> AutomationSettings:
     """Строит настройку, описанную её строкой и строками участников.
 
@@ -45,14 +45,14 @@ def automation_from_row(
     )
 
 
-def participant_rows(settings: AutomationSettings) -> list[AutomationParticipantRow]:
+def participant_rows(settings: AutomationSettings) -> list[AutomationParticipantModel]:
     """Строит по строке на каждое устройство, которым автоматизации разрешено управлять.
 
     Порядок участников задают явно, иначе файл с перечислением unset-значений в
     множестве менялся бы от запуска к запуску.
     """
     return [
-        AutomationParticipantRow(
+        AutomationParticipantModel(
             user_id=settings.user_id.value,
             device_id=device_id.value,
         )

@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Self
 
+from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.events import ScenarioFinished, ScenarioScheduled, ScenarioStarted
 from backend.domain.exceptions import (
     IllegalScenarioTransitionError,
@@ -25,7 +26,6 @@ from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.climate.temperature import Temperature
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
-from backend.domain.value_objects.scenario.scenario_action import ScenarioAction
 from backend.domain.value_objects.scenario.scenario_status import ScenarioStatus
 
 GOAL_TOLERANCE_C = 0.5

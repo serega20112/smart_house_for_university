@@ -15,12 +15,12 @@ from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_kind import DeviceKind
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.devices.device_view import DeviceView
+from backend.infrastructure.database.models import (
+    DeviceModel,
+)
 from backend.infrastructure.database.repositories.base import every_row, first_row
 from backend.infrastructure.database.repositories.child_rows import (
     capabilities_of,
-)
-from backend.infrastructure.database.tables import (
-    DeviceRow,
 )
 
 
@@ -49,7 +49,7 @@ class SqlDeviceQueries:
             list[DeviceView]: Устройства, приготовленные для показа.
         """
         async with self._engine.connect() as connection:
-            rows = await every_row(connection, DeviceRow, DeviceRow.user_id == user_id.value)
+            rows = await every_row(connection, DeviceModel, DeviceModel.user_id == user_id.value)
             stored = await capabilities_of(connection, [row.id for row in rows])
         return [device_view_of(row, stored.get(row.id, frozenset())) for row in rows]
 
@@ -66,9 +66,9 @@ class SqlDeviceQueries:
         async with self._engine.connect() as connection:
             row = await first_row(
                 connection,
-                DeviceRow,
-                DeviceRow.id == device_id.value,
-                DeviceRow.user_id == user_id.value,
+                DeviceModel,
+                DeviceModel.id == device_id.value,
+                DeviceModel.user_id == user_id.value,
             )
             if row is None:
                 return None
@@ -76,7 +76,7 @@ class SqlDeviceQueries:
         return device_view_of(row, stored.get(row.id, frozenset()))
 
 
-def device_view_of(row: DeviceRow, capabilities: frozenset[Capability]) -> DeviceView:
+def device_view_of(row: DeviceModel, capabilities: frozenset[Capability]) -> DeviceView:
     """Возвращает модель чтения одного сохранённого устройства.
 
     Устройство показывается выключенным: его логическое состояние относится к живому

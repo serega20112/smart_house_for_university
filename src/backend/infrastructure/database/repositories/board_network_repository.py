@@ -6,17 +6,18 @@ from sqlalchemy import delete
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from backend.domain.aggregates.board_network.board_network import BoardNetwork
+from backend.domain.entities.boards.board_network import BoardNetwork
 from backend.domain.identifiers import (
     EspDeviceId,
 )
-from backend.infrastructure.database import mappers
+from backend.infrastructure.database.mappers.boards import network_from_row, network_to_row
+from backend.infrastructure.database.models import (
+    BoardNetworkModel,
+)
 from backend.infrastructure.database.repositories.base import (
     first_row,
+    row_values,
     upsert_columns,
-)
-from backend.infrastructure.database.tables import (
-    BoardNetworkRow,
 )
 
 UNIQUE_VIOLATION = "23505"
@@ -49,9 +50,9 @@ class SqlBoardNetworkRepository:
                 настраивали.
         """
         row = await first_row(
-            self._session, BoardNetworkRow, BoardNetworkRow.board_id == board_id.value
+            self._session, BoardNetworkModel, BoardNetworkModel.board_id == board_id.value
         )
-        return None if row is None else mappers.network_from_row(row)
+        return None if row is None else network_from_row(row)
 
     async def save(self, network: BoardNetwork) -> None:
         """Сохраняет сеть платы.
@@ -62,13 +63,13 @@ class SqlBoardNetworkRepository:
         Args:
             network: Сеть для записи.
         """
-        values = mappers.row_values(BoardNetworkRow.__table__, mappers.network_to_row(network))
+        values = row_values(BoardNetworkModel.__table__, network_to_row(network))
         await self._session.execute(
-            postgresql.insert(BoardNetworkRow.__table__)
+            postgresql.insert(BoardNetworkModel.__table__)
             .values(**values)
             .on_conflict_do_update(
-                index_elements=[BoardNetworkRow.__table__.c.board_id],
-                set_=upsert_columns(BoardNetworkRow.__table__, "board_id", "user_id"),
+                index_elements=[BoardNetworkModel.__table__.c.board_id],
+                set_=upsert_columns(BoardNetworkModel.__table__, "board_id", "user_id"),
             )
         )
         await self._session.flush()
@@ -83,6 +84,6 @@ class SqlBoardNetworkRepository:
             bool: True, когда сеть убрали.
         """
         result = await self._session.execute(
-            delete(BoardNetworkRow).where(BoardNetworkRow.board_id == board_id.value)
+            delete(BoardNetworkModel).where(BoardNetworkModel.board_id == board_id.value)
         )
         return bool(result.rowcount)

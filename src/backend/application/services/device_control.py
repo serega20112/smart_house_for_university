@@ -24,12 +24,14 @@ from backend.application.errors import (
     DeviceNotFoundError,
     NoDeviceForCapabilityError,
 )
-from backend.application.interface.services.board_gateway import BoardGateway
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.services.domain_event_dispatcher import DomainEventDispatcher
-from backend.application.interface.services.home_state_store import HomeStateStore
-from backend.application.interface.services.realtime_publisher import RealtimePublisher
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.services.boards.board_gateway import BoardGateway
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
+from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
+from backend.application.interfaces.services.system.clock import Clock
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.domain.aggregates.device.device import Device
 from backend.domain.events import EventName
 from backend.domain.identifiers import DeviceId, UserId

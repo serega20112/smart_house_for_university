@@ -1,4 +1,8 @@
-"""Что человек попросил сделать."""
+"""Что человек попросил сделать.
+
+Здесь только сами намерения и перечень тех, что меняют дом, — и то и другое данные.
+Разбор строки в намерение делает конвейер понимания, а не этот модуль.
+"""
 
 from __future__ import annotations
 
@@ -22,27 +26,6 @@ class Intent(StrEnum):
     READ_HUMIDITY = "READ_HUMIDITY"
     SCHEDULE_SCENARIO = "SCHEDULE_SCENARIO"
     CANCEL_SCENARIO = "CANCEL_SCENARIO"
-
-    @property
-    def changes_the_home(self) -> bool:
-        """Затрагивает ли выполнение команды устройства.
-
-        Команду, которая что-то меняет, нужно быть уверенным, что поняли верно,
-        поэтому неуверенный ответ превращается в вопрос, а не в действие.
-        """
-        return self in HOME_CHANGING_INTENTS
-
-    @classmethod
-    def parse(cls, raw: object) -> Intent | None:
-        """Прочитать намерение из значения, выпущенного конвейером."""
-        if isinstance(raw, cls):
-            return raw
-        if raw is None:
-            return None
-        try:
-            return cls(str(raw).strip().upper())
-        except ValueError:
-            return None
 
 
 HOME_CHANGING_INTENTS: frozenset[Intent] = frozenset(

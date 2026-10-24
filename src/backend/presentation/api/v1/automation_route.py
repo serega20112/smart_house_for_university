@@ -11,7 +11,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter
 
-from backend.application.interface.queries.automation_queries import AutomationQueries
+from backend.application.interfaces.queries.automation_queries import AutomationQueries
 from backend.application.use_cases.automation.update_automation import UpdateAutomationUseCase
 from backend.presentation.api.requests.automation import AutomationUpdateBody, patch_of
 from backend.presentation.api.responses.automation import AutomationResponse, automation_of

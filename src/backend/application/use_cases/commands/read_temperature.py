@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from backend.application.dto.language.command_understanding import CommandUnderstanding
 from backend.application.dto.language.intent import Intent
-from backend.application.interface.services.home_state_store import HomeStateStore
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
 from backend.application.use_cases.commands.result import CommandReply
 from backend.domain.identifiers import UserId
 

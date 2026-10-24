@@ -2,14 +2,8 @@
 
 from __future__ import annotations
 
-from backend.domain.aggregates.preferences.user_preferences import (
-    InterfaceLanguage,
-    TemperatureUnit,
-    Theme,
-)
 from backend.domain.value_objects.personalization.dashboard_view import DashboardView
 from backend.domain.value_objects.personalization.preferences_view import PreferencesView
-from backend.domain.value_objects.personalization.widget_kind import WidgetKind
 from backend.presentation.api.responses.common import StrictModel
 
 
@@ -23,9 +17,9 @@ class PreferencesResponse(StrictModel):
         show_command_chat: Показывать ли чат команд.
     """
 
-    temperature_unit: TemperatureUnit
-    theme: Theme
-    language: InterfaceLanguage
+    temperature_unit: str
+    theme: str
+    language: str
     show_command_chat: bool
 
 
@@ -38,7 +32,7 @@ class DashboardWidgetResponse(StrictModel):
         title: Личный заголовок поверх значения по умолчанию.
     """
 
-    type: WidgetKind
+    type: str
     device_id: str | None
     title: str | None
 
@@ -63,9 +57,9 @@ def preferences_of(view: PreferencesView) -> PreferencesResponse:
         PreferencesResponse: Тело настроек.
     """
     return PreferencesResponse(
-        temperature_unit=view.temperature_unit,
-        theme=view.theme,
-        language=view.language,
+        temperature_unit=view.temperature_unit.value,
+        theme=view.theme.value,
+        language=view.language.value,
         show_command_chat=view.show_command_chat,
     )
 
@@ -82,7 +76,7 @@ def dashboard_of(view: DashboardView) -> DashboardResponse:
     return DashboardResponse(
         widgets=[
             DashboardWidgetResponse(
-                type=widget.kind,
+                type=widget.kind.value,
                 device_id=None if widget.device_id is None else str(widget.device_id),
                 title=widget.title,
             )

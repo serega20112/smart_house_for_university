@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from backend.application.interface.queries.board_queries import BoardQueries
+from backend.application.interfaces.queries.board_queries import BoardQueries
 from backend.domain.value_objects.boards.board_claim_view import BoardClaimView
 
 

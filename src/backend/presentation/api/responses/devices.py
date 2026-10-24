@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from backend.domain.value_objects.devices.capability import Capability
-from backend.domain.value_objects.devices.device_kind import DeviceKind
-from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.devices.device_view import DeviceView
 from backend.presentation.api.responses.common import StrictModel
 
@@ -25,12 +22,12 @@ class DeviceResponse(StrictModel):
 
     id: str
     name: str
-    kind: DeviceKind
+    kind: str
     channel: int
-    capabilities: list[Capability]
+    capabilities: list[str]
     enabled: bool
     automation_enabled: bool
-    status: DeviceStatus
+    status: str
 
 
 def device_of(device: DeviceView) -> DeviceResponse:
@@ -45,10 +42,10 @@ def device_of(device: DeviceView) -> DeviceResponse:
     return DeviceResponse(
         id=str(device.id),
         name=device.name,
-        kind=device.kind,
+        kind=device.kind.value,
         channel=device.channel,
-        capabilities=sorted(device.capabilities, key=str),
+        capabilities=sorted(item.value for item in device.capabilities),
         enabled=device.enabled,
         automation_enabled=device.automation_enabled,
-        status=device.status,
+        status=device.status.value,
     )

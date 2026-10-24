@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from backend.application.dto.scenario.schedule_scenario_command import ScheduleScenarioCommand
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.services.domain_event_dispatcher import DomainEventDispatcher
-from backend.application.interface.services.realtime_publisher import RealtimePublisher
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
+from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
+from backend.application.interfaces.services.system.clock import Clock
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.scenarios.details import scenario_payload, scenario_view
 from backend.domain.aggregates.scenario.scenario import Scenario
 from backend.domain.events import EventName

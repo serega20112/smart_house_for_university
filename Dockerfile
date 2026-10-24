@@ -23,7 +23,7 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY src ./src
-COPY build/alembic ./build/alembic
+COPY build/migrations ./build/migrations
 COPY --from=interface /build/dist ./src/frontend/dist
 
 RUN pip install --no-cache-dir .

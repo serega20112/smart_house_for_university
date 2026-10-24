@@ -1,47 +1,29 @@
-"""Понимание обычного текста.
+"""Драйверы понимания фраз: то, что говорит с внешним миром.
 
-``vocabulary``
-    всякое русское слово, которое знает конвейер, и опорные фразы каждого намерения.
-``parser``
-    типизированные значения, которые несёт предложение.
+В этом пакете нет ни словаря, ни разбора предложения, ни решений о том, достаточна ли
+уверенность, — всё это в `application/services/language`. Здесь только кодировщик
+torch, индекс опорных фраз в pgvector и HTTP-клиент службы моделей.
+
 ``embeddings``
-    кодировщик предложений.
-``classifier``
-    поиск ближайшего соседа по опорным фразам в Postgres.
-``remote``
-    составной конвейер, сперва спрашивающий удалённую модель.
+    кодировщик предложений на модели sentence transformers.
+``phrases``
+    поиск ближайшего соседа и запись опорных фраз в Postgres.
+``remote_client``
+    запрос к машине, крутящей модели, и разбор ответа её протокола.
 """
 
-from backend.infrastructure.nlp.classifier import (
-    IntentMatch,
-    ReferencePhraseSeeder,
-    VectorIntentClassifier,
-)
 from backend.infrastructure.nlp.embeddings import (
-    Embedder,
     EmbeddingsUnavailableError,
+    SentenceTransformerEmbedder,
     load_embedder,
 )
-from backend.infrastructure.nlp.parser import SentenceFacts, SentenceParser, normalize
-from backend.infrastructure.nlp.remote import (
-    RemoteAnswer,
-    RemoteFirstUnderstanding,
-    RemoteUnderstandingClient,
-    RemoteUnderstandingUnavailable,
-)
+from backend.infrastructure.nlp.phrases import PgVectorPhraseIndex
+from backend.infrastructure.nlp.remote_client import RemoteUnderstandingClient
 
 __all__ = [
-    "Embedder",
     "EmbeddingsUnavailableError",
-    "IntentMatch",
-    "ReferencePhraseSeeder",
-    "RemoteAnswer",
-    "RemoteFirstUnderstanding",
+    "PgVectorPhraseIndex",
     "RemoteUnderstandingClient",
-    "RemoteUnderstandingUnavailable",
-    "SentenceFacts",
-    "SentenceParser",
-    "VectorIntentClassifier",
+    "SentenceTransformerEmbedder",
     "load_embedder",
-    "normalize",
 ]

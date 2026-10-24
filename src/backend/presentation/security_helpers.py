@@ -14,7 +14,7 @@ from dishka.integrations.fastapi import inject
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from backend.application.interface.services.session_token_issuer import SessionTokenIssuer
+from backend.application.interfaces.services.security.session_token_issuer import SessionTokenIssuer
 from backend.domain.identifiers import UserId
 from backend.presentation.messages import UNAUTHORIZED
 

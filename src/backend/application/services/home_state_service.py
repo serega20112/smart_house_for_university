@@ -11,13 +11,15 @@
 
 from __future__ import annotations
 
-from backend.application.interface.services.board_report import BoardReport
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.services.home_device_directory import HomeDeviceDirectory
-from backend.application.interface.services.home_state_store import HomeStateStore
-from backend.application.interface.services.notification_factory import NotificationFactory
-from backend.application.interface.services.realtime_publisher import RealtimePublisher
-from backend.application.interface.services.user_notifier import UserNotifier
+from backend.application.interfaces.services.boards.board_report import BoardReport
+from backend.application.interfaces.services.messaging.notification_factory import (
+    NotificationFactory,
+)
+from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
+from backend.application.interfaces.services.messaging.user_notifier import UserNotifier
+from backend.application.interfaces.services.state.home_device_directory import HomeDeviceDirectory
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
+from backend.application.interfaces.services.system.clock import Clock
 from backend.domain.events import EventName
 from backend.domain.identifiers import EspDeviceId, UserId
 from backend.domain.value_objects.climate.climate_reading import ClimateReading

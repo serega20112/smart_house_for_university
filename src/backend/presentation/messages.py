@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 from backend.application.dto.language.intent import Intent
-from backend.application.interface.services.notification import Notification
+from backend.application.interfaces.services.messaging.notification import Notification
 from backend.application.use_cases.commands.result import CommandReply
 
 EMAIL_TAKEN = "Этот email уже занят."

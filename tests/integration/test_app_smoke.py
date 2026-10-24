@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from importlib.metadata import version
-
 import httpx
 import pytest
 
-from backend.bootstrap.version import DISTRIBUTION_NAME
+from backend import __version__
 from backend.config.settings import Settings
 from backend.presentation.app_factory import create_app
 
@@ -22,4 +20,4 @@ async def test_app_health_returns_the_package_version() -> None:
     assert response.status_code == 200
     document = response.json()
     assert document["status"] == "ok"
-    assert document["version"] == version(DISTRIBUTION_NAME)
+    assert document["version"] == __version__

@@ -55,12 +55,3 @@ class Capability(StrEnum):
         if raw is None:
             raise ValueError("capability is missing")
         return cls(str(raw).strip().upper())
-
-
-class ControlSource(StrEnum):
-    """Источник команды, от самого важного к самому простому."""
-
-    EMERGENCY = "EMERGENCY"
-    SCENARIO = "SCENARIO"
-    AUTOMATION = "AUTOMATION"
-    MANUAL = "MANUAL"

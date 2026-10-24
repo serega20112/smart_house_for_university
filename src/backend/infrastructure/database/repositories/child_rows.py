@@ -13,9 +13,9 @@ from backend.domain.identifiers import (
     UserId,
 )
 from backend.domain.value_objects.devices.capability import Capability
-from backend.infrastructure.database.tables import (
-    AutomationParticipantRow,
-    DeviceCapabilityRow,
+from backend.infrastructure.database.models import (
+    AutomationParticipantModel,
+    DeviceCapabilityModel,
 )
 
 UNIQUE_VIOLATION = "23505"
@@ -37,8 +37,8 @@ async def capabilities_of(
     if not device_ids:
         return {}
     result = await runner.execute(
-        select(DeviceCapabilityRow.device_id, DeviceCapabilityRow.capability).where(
-            DeviceCapabilityRow.device_id.in_(device_ids)
+        select(DeviceCapabilityModel.device_id, DeviceCapabilityModel.capability).where(
+            DeviceCapabilityModel.device_id.in_(device_ids)
         )
     )
     grouped: dict[UUID, set[Capability]] = {}
@@ -59,8 +59,8 @@ async def participants_of(runner: Runner, user_id: UserId) -> frozenset[DeviceId
         согласившееся».
     """
     result = await runner.execute(
-        select(AutomationParticipantRow.device_id).where(
-            AutomationParticipantRow.user_id == user_id.value
+        select(AutomationParticipantModel.device_id).where(
+            AutomationParticipantModel.user_id == user_id.value
         )
     )
     return frozenset(DeviceId.parse(value) for value in result.scalars().all())

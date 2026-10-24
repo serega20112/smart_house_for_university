@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.device_control import DeviceControlService
 from backend.domain.identifiers import UserId
 from backend.domain.value_objects.devices.capability import Capability

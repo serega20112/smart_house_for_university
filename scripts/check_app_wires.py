@@ -22,36 +22,42 @@ import httpx
 from dishka import make_async_container
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
-from backend.application.interface.queries.account_queries import AccountQueries
-from backend.application.interface.queries.automation_queries import AutomationQueries
-from backend.application.interface.queries.board_queries import BoardQueries
-from backend.application.interface.queries.device_queries import DeviceQueries
-from backend.application.interface.queries.scenario_queries import ScenarioQueries
-from backend.application.interface.services.board_gateway import BoardGateway
-from backend.application.interface.services.board_report import BoardReport
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.services.command_understanding_port import (
+from backend.application.interfaces.queries.account_queries import AccountQueries
+from backend.application.interfaces.queries.automation_queries import AutomationQueries
+from backend.application.interfaces.queries.board_queries import BoardQueries
+from backend.application.interfaces.queries.device_queries import DeviceQueries
+from backend.application.interfaces.queries.scenario_queries import ScenarioQueries
+from backend.application.interfaces.services.boards.board_gateway import BoardGateway
+from backend.application.interfaces.services.boards.board_report import BoardReport
+from backend.application.interfaces.services.language.command_understanding import (
     CommandUnderstandingPort,
 )
-from backend.application.interface.services.distributed_lock import DistributedLock
-from backend.application.interface.services.domain_event_dispatcher import DomainEventDispatcher
-from backend.application.interface.services.home_device_directory import HomeDeviceDirectory
-from backend.application.interface.services.home_state_store import HomeStateStore
-from backend.application.interface.services.notification_factory import NotificationFactory
-from backend.application.interface.services.password_hasher import PasswordHasher
-from backend.application.interface.services.realtime_publisher import RealtimePublisher
-from backend.application.interface.services.session_token_issuer import SessionTokenIssuer
-from backend.application.interface.services.user_notifier import UserNotifier
-from backend.application.interface.unit_of_work.account import AccountUnitOfWorkFactory
-from backend.application.interface.unit_of_work.board_onboarding import (
+from backend.application.interfaces.services.language.embedder import Embedder
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
+from backend.application.interfaces.services.messaging.notification_factory import (
+    NotificationFactory,
+)
+from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
+from backend.application.interfaces.services.messaging.user_notifier import UserNotifier
+from backend.application.interfaces.services.security.password_hasher import PasswordHasher
+from backend.application.interfaces.services.security.session_token_issuer import SessionTokenIssuer
+from backend.application.interfaces.services.state.home_device_directory import HomeDeviceDirectory
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
+from backend.application.interfaces.services.system.clock import Clock
+from backend.application.interfaces.services.system.distributed_lock import DistributedLock
+from backend.application.interfaces.unit_of_work.account import AccountUnitOfWorkFactory
+from backend.application.interfaces.unit_of_work.board_onboarding import (
     BoardOnboardingUnitOfWorkFactory,
 )
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.automation_service import AutomationService
 from backend.application.services.board_onboarding import BoardOnboardingService
 from backend.application.services.command_dispatcher import CommandDispatcher
 from backend.application.services.device_control import DeviceControlService
 from backend.application.services.home_state_service import HomeStateService
+from backend.application.services.language.understanding import ReferencePhraseSeeder
 from backend.application.services.reaction_dispatcher import ReactionDispatcher
 from backend.application.services.scenarios.advancing import ScenarioAdvancer
 from backend.application.services.scenarios.settling import ScenarioSettler
@@ -98,16 +104,12 @@ from backend.application.use_cases.scenarios.cancel_scenario import CancelScenar
 from backend.application.use_cases.scenarios.list_scenarios import ListScenariosUseCase
 from backend.application.use_cases.scenarios.schedule_scenario import ScheduleScenarioUseCase
 from backend.config import Settings
-from backend.domain.policies.climate_policy import DemandCalculator
-from backend.domain.policies.device_selector import DeviceSelector
+from backend.infrastructure.brokers.chat_sessions import RedisChatSessionStore
+from backend.infrastructure.brokers.event_broker import RedisSubscriber
 from backend.infrastructure.di.dishka_container import PROVIDERS
 from backend.infrastructure.esp.connection import EspConnection
-from backend.infrastructure.nlp.classifier import ReferencePhraseSeeder
-from backend.infrastructure.nlp.embeddings import Embedder
-from backend.infrastructure.redis.chat_sessions import RedisChatSessionStore
-from backend.infrastructure.redis.event_broker import RedisSubscriber
+from backend.infrastructure.security.link_tokens import TelegramLinkTokenIssuer
 from backend.infrastructure.telegram.client import TelegramBotClient
-from backend.infrastructure.telegram.linking import TelegramLinkTokenIssuer
 from backend.presentation.app_factory import create_app
 from backend.presentation.messages import NotificationFactoryImpl
 
@@ -135,8 +137,6 @@ APP_ENTRIES: tuple[Any, ...] = (
     HomeUnitOfWorkFactory,
     BoardOnboardingUnitOfWorkFactory,
     HomeDeviceDirectory,
-    DeviceSelector,
-    DemandCalculator,
     CommandUnderstandingPort,
     HomeStateService,
     BoardReport,

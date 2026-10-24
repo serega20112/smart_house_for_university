@@ -5,31 +5,31 @@ from __future__ import annotations
 from uuid import uuid4
 
 from backend.domain.aggregates.scenario.scenario import Scenario
+from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.identifiers import DeviceId, ScenarioId, UserId
 from backend.domain.value_objects.climate.temperature import Temperature
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
-from backend.domain.value_objects.scenario.scenario_action import ScenarioAction
 from backend.domain.value_objects.scenario.scenario_status import ScenarioStatus
 from backend.infrastructure.database.mappers.base import as_utc
-from backend.infrastructure.database.tables import (
-    ScenarioActionRow,
-    ScenarioCapturedStatusRow,
-    ScenarioRow,
+from backend.infrastructure.database.models import (
+    ScenarioActionModel,
+    ScenarioCapturedStatusModel,
+    ScenarioModel,
 )
 
 
-def scenario_to_row(scenario: Scenario) -> ScenarioRow:
+def scenario_to_row(scenario: Scenario) -> ScenarioModel:
     """Строит строку, описывающую отложенный сценарий.
 
     Args:
         scenario: Сценарий для сериализации.
 
     Returns:
-        ScenarioRow: Новая строка, описывающая сценарий.
+        ScenarioModel: Новая строка, описывающая сценарий.
     """
-    return ScenarioRow(
+    return ScenarioModel(
         id=scenario.id.value,
         user_id=scenario.user_id.value,
         status=scenario.status.value,
@@ -43,7 +43,7 @@ def scenario_to_row(scenario: Scenario) -> ScenarioRow:
 
 
 def scenario_from_row(
-    row: ScenarioRow,
+    row: ScenarioModel,
     actions: tuple[ScenarioAction, ...],
     captured_statuses: dict[DeviceId, DeviceStatus],
 ) -> Scenario:
@@ -72,7 +72,7 @@ def scenario_from_row(
     )
 
 
-def action_rows(scenario: Scenario) -> list[ScenarioActionRow]:
+def action_rows(scenario: Scenario) -> list[ScenarioActionModel]:
     """Строит по строке на каждое действие сценария.
 
     Действие называет способность и цель, а не канал реле, и своей идентичности в модели
@@ -82,10 +82,10 @@ def action_rows(scenario: Scenario) -> list[ScenarioActionRow]:
         scenario: Сценарий для сериализации.
 
     Returns:
-        list[ScenarioActionRow]: Строки действий в порядке, объявленном сценарием.
+        list[ScenarioActionModel]: Строки действий в порядке, объявленном сценарием.
     """
     return [
-        ScenarioActionRow(
+        ScenarioActionModel(
             id=uuid4(),
             scenario_id=scenario.id.value,
             position=position,
@@ -98,7 +98,7 @@ def action_rows(scenario: Scenario) -> list[ScenarioActionRow]:
     ]
 
 
-def action_from_row(row: ScenarioActionRow) -> ScenarioAction:
+def action_from_row(row: ScenarioActionModel) -> ScenarioAction:
     """Строит действие сценария, описанное строкой.
 
     Args:
@@ -115,17 +115,17 @@ def action_from_row(row: ScenarioActionRow) -> ScenarioAction:
     )
 
 
-def captured_status_rows(scenario: Scenario) -> list[ScenarioCapturedStatusRow]:
+def captured_status_rows(scenario: Scenario) -> list[ScenarioCapturedStatusModel]:
     """Строит по строке на каждое состояние, снятое до начала сценария.
 
     Args:
         scenario: Сценарий для сериализации.
 
     Returns:
-        list[ScenarioCapturedStatusRow]: Строки снятых состояний сценария.
+        list[ScenarioCapturedStatusModel]: Строки снятых состояний сценария.
     """
     return [
-        ScenarioCapturedStatusRow(
+        ScenarioCapturedStatusModel(
             scenario_id=scenario.id.value,
             device_id=device_id.value,
             status=status.value,
@@ -134,7 +134,7 @@ def captured_status_rows(scenario: Scenario) -> list[ScenarioCapturedStatusRow]:
     ]
 
 
-def captured_status_from_row(row: ScenarioCapturedStatusRow) -> tuple[DeviceId, DeviceStatus]:
+def captured_status_from_row(row: ScenarioCapturedStatusModel) -> tuple[DeviceId, DeviceStatus]:
     """Строит снятое состояние устройства, описанное строкой.
 
     Args:

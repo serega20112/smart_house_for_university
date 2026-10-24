@@ -7,7 +7,7 @@ from uuid import UUID
 
 from sqlalchemy import Table
 
-from backend.infrastructure.database.tables import Base
+from backend.infrastructure.database.models import Base
 
 
 def row_values(table: Table, row: Base) -> dict[str, object]:

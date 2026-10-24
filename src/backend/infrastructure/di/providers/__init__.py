@@ -1,37 +1,47 @@
-"""Реестр провайдеров: каждый — по одной части системы зависимостей."""
+"""Реестр провайдеров: `app` — подсистемы процесса, `use_cases` — сборка сценариев.
 
-from backend.infrastructure.di.providers.accounts import AccountProvider
-from backend.infrastructure.di.providers.automation import AutomationProvider
-from backend.infrastructure.di.providers.boards import BoardProvider
-from backend.infrastructure.di.providers.commands import CommandProvider
-from backend.infrastructure.di.providers.core import CoreProvider
-from backend.infrastructure.di.providers.devices import DeviceProvider
-from backend.infrastructure.di.providers.domain import DomainProvider
-from backend.infrastructure.di.providers.esp import EspProvider
-from backend.infrastructure.di.providers.home import HomeProvider
-from backend.infrastructure.di.providers.language import LanguageProvider
-from backend.infrastructure.di.providers.persistence import PersistenceProvider
-from backend.infrastructure.di.providers.personalization import PersonalizationProvider
-from backend.infrastructure.di.providers.scenarios import ScenarioProvider
-from backend.infrastructure.di.providers.security import SecurityProvider
-from backend.infrastructure.di.providers.telegram import TelegramProvider
-from backend.infrastructure.di.providers.volatile import VolatileStateProvider
+Здесь собрано всё, что знает контейнер. Порядок не важен: важны два правила, по которым
+ищится нужный файл. Одиночный адаптер, живущий вместе с процессом, ищется в
+`providers/app/<подсистема>.py`; сценарий — в `providers/use_cases/<фича>.py`, и класс
+там называется `<Фича>UseCaseProvider`.
+"""
+
+from backend.infrastructure.di.providers.app.board_socket import BoardSocketProvider
+from backend.infrastructure.di.providers.app.brokers import BrokersProvider
+from backend.infrastructure.di.providers.app.database import DatabaseProvider
+from backend.infrastructure.di.providers.app.persistence import PersistenceProvider
+from backend.infrastructure.di.providers.app.phrases import PhrasesProvider
+from backend.infrastructure.di.providers.app.runtime import RuntimeProvider
+from backend.infrastructure.di.providers.app.security import SecurityProvider
+from backend.infrastructure.di.providers.app.telegram import TelegramProvider
+from backend.infrastructure.di.providers.app.websockets import WebSocketsProvider
+from backend.infrastructure.di.providers.use_cases.accounts import AccountsUseCaseProvider
+from backend.infrastructure.di.providers.use_cases.automation import AutomationUseCaseProvider
+from backend.infrastructure.di.providers.use_cases.boards import BoardsUseCaseProvider
+from backend.infrastructure.di.providers.use_cases.commands import CommandsUseCaseProvider
+from backend.infrastructure.di.providers.use_cases.devices import DevicesUseCaseProvider
+from backend.infrastructure.di.providers.use_cases.home import HomeUseCaseProvider
+from backend.infrastructure.di.providers.use_cases.personalization import (
+    PersonalizationUseCaseProvider,
+)
+from backend.infrastructure.di.providers.use_cases.scenarios import ScenariosUseCaseProvider
 
 __all__ = [
-    "AccountProvider",
-    "AutomationProvider",
-    "BoardProvider",
-    "CommandProvider",
-    "CoreProvider",
-    "DeviceProvider",
-    "DomainProvider",
-    "EspProvider",
-    "HomeProvider",
-    "LanguageProvider",
+    "AccountsUseCaseProvider",
+    "AutomationUseCaseProvider",
+    "BoardSocketProvider",
+    "BoardsUseCaseProvider",
+    "BrokersProvider",
+    "CommandsUseCaseProvider",
+    "DatabaseProvider",
+    "DevicesUseCaseProvider",
+    "HomeUseCaseProvider",
     "PersistenceProvider",
-    "PersonalizationProvider",
-    "ScenarioProvider",
+    "PersonalizationUseCaseProvider",
+    "PhrasesProvider",
+    "RuntimeProvider",
+    "ScenariosUseCaseProvider",
     "SecurityProvider",
     "TelegramProvider",
-    "VolatileStateProvider",
+    "WebSocketsProvider",
 ]

@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from backend.application.dto.account.authenticate_command import AuthenticateCommand
 from backend.application.errors import InvalidCredentialsError
-from backend.application.interface.queries.account_queries import AccountQueries
-from backend.application.interface.services.password_hasher import PasswordHasher
-from backend.application.interface.services.session_token_issuer import SessionTokenIssuer
+from backend.application.interfaces.queries.account_queries import AccountQueries
+from backend.application.interfaces.services.security.password_hasher import PasswordHasher
+from backend.application.interfaces.services.security.session_token_issuer import SessionTokenIssuer
 from backend.application.use_cases.accounts.result import AuthenticatedSession
 from backend.domain.exceptions import InvalidEmailError
 from backend.domain.identifiers import UserId

@@ -13,11 +13,11 @@ from tests.conftest import make_device
 
 from backend.application.dto.devices.update_device_command import UpdateDeviceCommand
 from backend.application.errors import ConcurrentModificationError
-from backend.application.ports.services import HomeStateStore
-from backend.application.ports.unit_of_work.home import HomeUnitOfWork
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWork
 from backend.application.use_cases.devices.update_device import UpdateDeviceUseCase
 from backend.domain.aggregates.device.device import Device
-from backend.domain.aggregates.home_state.home_state import HomeState
+from backend.domain.entities.home_state.home_state import HomeState
 from backend.domain.identifiers import DeviceId, UserId
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.devices.device_status import DeviceStatus
@@ -233,7 +233,9 @@ async def test_update_device_retries_on_a_lost_race_and_publishes_once():
         relay_states={int(device.channel): RelayState.ON},
         device_modes={device.id: DeviceStatus.ACTIVE},
     )
-    use_case = UpdateDeviceUseCase(factory, realtime, RecordingDispatcher(), LiveStateStore(state))
+    use_case = UpdateDeviceUseCase(
+        factory, realtime, RecordingDispatcher(), LiveStateStore(state), refresh_attempts=3
+    )
 
     view = await use_case.execute(
         device.user_id, device.id, UpdateDeviceCommand(name="Reading lamp")
@@ -256,6 +258,7 @@ async def test_update_device_gives_up_after_repeated_lost_races():
         realtime,
         RecordingDispatcher(),
         LiveStateStore(HomeState(user_id=device.user_id)),
+        refresh_attempts=3,
     )
 
     with pytest.raises(ConcurrentModificationError):

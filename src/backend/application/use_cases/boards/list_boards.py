@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from backend.application.interface.queries.board_queries import BoardQueries
-from backend.application.interface.services.board_gateway import BoardGateway
+from backend.application.interfaces.queries.board_queries import BoardQueries
+from backend.application.interfaces.services.boards.board_gateway import BoardGateway
 from backend.domain.identifiers import UserId
 from backend.domain.value_objects.boards.board_view import BoardView
 

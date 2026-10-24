@@ -13,11 +13,11 @@ from backend.domain.identifiers import (
 )
 from backend.domain.value_objects.account.account_profile import AccountProfile
 from backend.domain.value_objects.account.stored_credentials import StoredCredentials
-from backend.infrastructure.database import mappers
-from backend.infrastructure.database.repositories.base import first_row
-from backend.infrastructure.database.tables import (
-    UserRow,
+from backend.infrastructure.database.mappers.base import as_utc
+from backend.infrastructure.database.models import (
+    UserModel,
 )
+from backend.infrastructure.database.repositories.base import first_row
 
 
 class SqlAccountQueries:
@@ -45,14 +45,14 @@ class SqlAccountQueries:
             AccountProfile | None: Профиль или None, когда аккаунт исчез.
         """
         async with self._engine.connect() as connection:
-            row = await first_row(connection, UserRow, UserRow.id == user_id.value)
+            row = await first_row(connection, UserModel, UserModel.id == user_id.value)
         if row is None:
             return None
         return AccountProfile(
             id=UserId.parse(row.id),
             email=row.email,
             display_name=row.display_name,
-            created_at=mappers.as_utc(row.created_at),
+            created_at=as_utc(row.created_at),
         )
 
     async def get_credentials(self, email: str) -> StoredCredentials | None:
@@ -69,7 +69,7 @@ class SqlAccountQueries:
             никто не пользуется.
         """
         async with self._engine.connect() as connection:
-            row = await first_row(connection, UserRow, UserRow.email == email)
+            row = await first_row(connection, UserModel, UserModel.email == email)
         if row is None:
             return None
         return StoredCredentials(user_id=UserId.parse(row.id), password_hash=row.password_hash)
@@ -81,5 +81,5 @@ class SqlAccountQueries:
             list[UserId]: Зарегистрированные аккаунты.
         """
         async with self._engine.connect() as connection:
-            result = await connection.execute(select(UserRow.id).order_by(UserRow.id))
+            result = await connection.execute(select(UserModel.id).order_by(UserModel.id))
             return [UserId.parse(value) for value in result.scalars().all()]

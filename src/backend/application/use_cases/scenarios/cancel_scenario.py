@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from backend.application.errors import ScenarioNotFoundError
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.scenarios.details import scenario_view
 from backend.application.services.scenarios.settling import ScenarioSettler
 from backend.domain.identifiers import ScenarioId, UserId

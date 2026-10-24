@@ -18,7 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from backend.infrastructure.database.mappers import row_values
-from backend.infrastructure.database.tables import Base
+from backend.infrastructure.database.models import Base
 
 Runner = AsyncConnection | AsyncSession
 UNIQUE_VIOLATION = "23505"

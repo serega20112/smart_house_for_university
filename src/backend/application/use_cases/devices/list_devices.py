@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from backend.application.interface.queries.device_queries import DeviceQueries
-from backend.application.interface.services.home_state_store import HomeStateStore
+from backend.application.interfaces.queries.device_queries import DeviceQueries
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
 from backend.domain.identifiers import UserId
 from backend.domain.value_objects.devices.device_view import DeviceView
 

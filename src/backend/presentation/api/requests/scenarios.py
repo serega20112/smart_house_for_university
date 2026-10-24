@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from backend.application.dto.scenario.schedule_scenario_command import ScheduleScenarioCommand
+from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.value_objects.climate.temperature import Temperature
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
-from backend.domain.value_objects.scenario.scenario_action import ScenarioAction
 from backend.presentation.api.base import StrictModel
 
 DELAY_MAX_MINUTES = 10080
@@ -29,12 +29,40 @@ class ScenarioCreateBody(StrictModel):
         duration_minutes: Сколько сценарию разрешено идти.
     """
 
-    capability: Capability
+    capability: str
     delay_minutes: int | None = Field(default=None, ge=0, le=DELAY_MAX_MINUTES)
     target: str | None = None
     target_temperature: float | None = Field(default=None, ge=TEMPERATURE_MIN, le=TEMPERATURE_MAX)
-    completion_behavior: CompletionBehavior = CompletionBehavior.LEAVE_TO_AUTOMATION
+    completion_behavior: str = CompletionBehavior.LEAVE_TO_AUTOMATION.value
     duration_minutes: int | None = Field(default=None, ge=1, le=DURATION_MAX_MINUTES)
+
+    @field_validator("capability")
+    @classmethod
+    def _known_capability(cls, value: str) -> str:
+        """Отвергает способность, которой нет в словаре домена.
+
+        Args:
+            value: Названная способность.
+
+        Returns:
+            str: То же значение, если оно читается перечислением.
+        """
+        Capability.parse(value)
+        return value
+
+    @field_validator("completion_behavior")
+    @classmethod
+    def _known_behavior(cls, value: str) -> str:
+        """Отвергает поведение завершения, которого домен не знает.
+
+        Args:
+            value: Названное поведение.
+
+        Returns:
+            str: То же значение, если оно читается перечислением.
+        """
+        CompletionBehavior(value)
+        return value
 
 
 def schedule_command(body: ScenarioCreateBody) -> ScheduleScenarioCommand:
@@ -48,13 +76,13 @@ def schedule_command(body: ScenarioCreateBody) -> ScheduleScenarioCommand:
     """
     return ScheduleScenarioCommand(
         action=ScenarioAction(
-            capability=body.capability,
+            capability=Capability.parse(body.capability),
             target_temperature=(
                 None if body.target_temperature is None else Temperature(body.target_temperature)
             ),
         ),
         delay_minutes=body.delay_minutes,
         target=body.target,
-        completion_behavior=body.completion_behavior,
+        completion_behavior=CompletionBehavior(body.completion_behavior),
         duration_minutes=body.duration_minutes,
     )

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from backend.application.dto.devices.create_device_command import CreateDeviceCommand
 from backend.application.dto.devices.update_device_command import UpdateDeviceCommand
@@ -18,6 +18,9 @@ CHANNEL_MAX = 32
 class DeviceCreateBody(StrictModel):
     """Описывает устройство, которое человек хочет завести.
 
+    Назначение и способности приходят строками: словарь домена — единственное место,
+    где они значат что-то, а тело запроса только переносит текст.
+
     Attributes:
         name: Имя, показанное человеку.
         kind: Назначение устройства.
@@ -28,11 +31,40 @@ class DeviceCreateBody(StrictModel):
     """
 
     name: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)
-    kind: DeviceKind
+    kind: str
     channel: int = Field(ge=CHANNEL_MIN, le=CHANNEL_MAX)
-    capabilities: list[Capability]
+    capabilities: list[str]
     enabled: bool = True
     automation_enabled: bool = True
+
+    @field_validator("kind")
+    @classmethod
+    def _known_kind(cls, value: str) -> str:
+        """Отвергает назначение, которого домен не знает.
+
+        Args:
+            value: Названное назначение устройства.
+
+        Returns:
+            str: То же значение, если оно читается перечислением.
+        """
+        DeviceKind.parse(value)
+        return value
+
+    @field_validator("capabilities")
+    @classmethod
+    def _known_capabilities(cls, value: list[str]) -> list[str]:
+        """Отвергает способность, которой нет в словаре домена.
+
+        Args:
+            value: Названные способности.
+
+        Returns:
+            list[str]: Те же значения, если каждое читается перечислением.
+        """
+        for item in value:
+            Capability.parse(item)
+        return value
 
 
 class DeviceUpdateBody(StrictModel):
@@ -48,11 +80,42 @@ class DeviceUpdateBody(StrictModel):
     """
 
     name: str | None = Field(default=None, min_length=1, max_length=NAME_MAX_LENGTH)
-    kind: DeviceKind | None = None
+    kind: str | None = None
     channel: int | None = Field(default=None, ge=CHANNEL_MIN, le=CHANNEL_MAX)
-    capabilities: list[Capability] | None = None
+    capabilities: list[str] | None = None
     enabled: bool | None = None
     automation_enabled: bool | None = None
+
+    @field_validator("kind")
+    @classmethod
+    def _known_kind(cls, value: str | None) -> str | None:
+        """Отвергает назначение, которого домен не знает.
+
+        Args:
+            value: Названное назначение или None оставить нынешнее.
+
+        Returns:
+            str | None: То же значение, если оно читается перечислением.
+        """
+        if value is not None:
+            DeviceKind.parse(value)
+        return value
+
+    @field_validator("capabilities")
+    @classmethod
+    def _known_capabilities(cls, value: list[str] | None) -> list[str] | None:
+        """Отвергает способность, которой нет в словаре домена.
+
+        Args:
+            value: Названные способности или None оставить нынешние.
+
+        Returns:
+            list[str] | None: Те же значения, если каждое читается перечислением.
+        """
+        if value is not None:
+            for item in value:
+                Capability.parse(item)
+        return value
 
 
 def create_command(body: DeviceCreateBody) -> CreateDeviceCommand:
@@ -66,9 +129,9 @@ def create_command(body: DeviceCreateBody) -> CreateDeviceCommand:
     """
     return CreateDeviceCommand(
         name=body.name,
-        kind=body.kind,
+        kind=DeviceKind.parse(body.kind),
         channel=body.channel,
-        capabilities=frozenset(body.capabilities),
+        capabilities=frozenset(Capability.parse(item) for item in body.capabilities),
         enabled=body.enabled,
         automation_enabled=body.automation_enabled,
     )
@@ -85,9 +148,13 @@ def update_command(body: DeviceUpdateBody) -> UpdateDeviceCommand:
     """
     return UpdateDeviceCommand(
         name=body.name,
-        kind=body.kind,
+        kind=None if body.kind is None else DeviceKind.parse(body.kind),
         channel=body.channel,
-        capabilities=None if body.capabilities is None else frozenset(body.capabilities),
+        capabilities=(
+            None
+            if body.capabilities is None
+            else frozenset(Capability.parse(item) for item in body.capabilities)
+        ),
         enabled=body.enabled,
         automation_enabled=body.automation_enabled,
     )

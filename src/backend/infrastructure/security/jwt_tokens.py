@@ -14,7 +14,7 @@ from typing import Final
 import jwt
 from jwt import InvalidTokenError
 
-from backend.infrastructure.logging import get_logger
+from backend.infrastructure.system.logging import get_logger
 
 log = get_logger("security.jwt_tokens")
 

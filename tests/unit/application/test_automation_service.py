@@ -9,14 +9,22 @@ from typing import Never, Self
 from tests.conftest import OWNER_UUID, make_device
 
 from backend.application.errors import BoardUnreachableError
-from backend.application.ports.events import DomainEventDispatcher, RealtimePublisher
-from backend.application.ports.services import Clock, HomeStateStore
-from backend.application.ports.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
+from backend.application.interfaces.services.messaging.realtime_publisher import (
+    RealtimePublisher,
+)
+from backend.application.interfaces.services.state.home_state_store import (
+    HomeStateStore,
+)
+from backend.application.interfaces.services.system.clock import Clock
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.automation_service import AutomationService
 from backend.application.services.device_control import DeviceControlService
 from backend.domain.aggregates.automation.automation_settings import AutomationSettings
 from backend.domain.aggregates.device.device import Device
-from backend.domain.aggregates.home_state.home_state import HomeState
+from backend.domain.entities.home_state.home_state import HomeState
 from backend.domain.identifiers import DeviceId, UserId
 from backend.domain.policies.climate_policy import DemandCalculator
 from backend.domain.policies.device_selector import DeviceSelector

@@ -11,9 +11,9 @@ from backend.application.errors import ApplicationError
 from backend.application.services.command_dispatcher import CommandDispatcher
 from backend.domain.exceptions import DomainError
 from backend.domain.identifiers import UserId
-from backend.infrastructure.logging import get_logger
-from backend.infrastructure.redis.chat_sessions import RedisChatSessionStore
-from backend.infrastructure.telegram.linking import TelegramLinkTokenIssuer
+from backend.infrastructure.brokers.chat_sessions import RedisChatSessionStore
+from backend.infrastructure.security.link_tokens import TelegramLinkTokenIssuer
+from backend.infrastructure.system.logging import get_logger
 from backend.presentation.errors import describe
 from backend.presentation.messages import (
     TELEGRAM_EMPTY_COMMAND,

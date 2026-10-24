@@ -22,13 +22,17 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from backend.application.errors import ConcurrentModificationError
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.services.domain_event_dispatcher import DomainEventDispatcher
-from backend.application.interface.services.home_state_store import HomeStateStore
-from backend.application.interface.services.notification_factory import NotificationFactory
-from backend.application.interface.services.realtime_publisher import RealtimePublisher
-from backend.application.interface.services.user_notifier import UserNotifier
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
+from backend.application.interfaces.services.messaging.notification_factory import (
+    NotificationFactory,
+)
+from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
+from backend.application.interfaces.services.messaging.user_notifier import UserNotifier
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
+from backend.application.interfaces.services.system.clock import Clock
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.device_control import DeviceControlService
 from backend.application.services.scenarios.details import (
     EXPECTED_REFUSALS,
@@ -38,8 +42,8 @@ from backend.application.services.scenarios.details import (
 )
 from backend.application.services.scenarios.settling import ScenarioSettler
 from backend.domain.aggregates.device.device import Device
-from backend.domain.aggregates.home_state.home_state import HomeState
 from backend.domain.aggregates.scenario.scenario import Scenario
+from backend.domain.entities.home_state.home_state import HomeState
 from backend.domain.events import EventName
 from backend.domain.exceptions import ScenarioAlreadyFinishedError
 from backend.domain.identifiers import DeviceId, UserId

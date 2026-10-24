@@ -18,7 +18,7 @@ from typing import Any, Self
 from telegram import Bot, Update
 from telegram.ext import Application, CallbackContext, MessageHandler, filters
 
-from backend.infrastructure.logging import get_logger
+from backend.infrastructure.system.logging import get_logger
 
 log = get_logger("telegram.client")
 

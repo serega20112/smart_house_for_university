@@ -11,28 +11,39 @@ from datetime import UTC, datetime
 
 from tests.conftest import OWNER_UUID, make_device
 
-from backend.application.ports.boards import BoardCommandResult, BoardGateway
-from backend.application.ports.events import (
-    DomainEventDispatcher,
-    Notification,
-    NotificationFactory,
-    RealtimePublisher,
-    UserNotifier,
+from backend.application.dto.boards.board_command_result import BoardCommandResult
+from backend.application.interfaces.services.boards.board_gateway import (
+    BoardGateway,
 )
-from backend.application.ports.services import Clock, HomeStateStore
-from backend.application.ports.unit_of_work.home import HomeUnitOfWork
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
+from backend.application.interfaces.services.messaging.notification import Notification
+from backend.application.interfaces.services.messaging.notification_factory import (
+    NotificationFactory,
+)
+from backend.application.interfaces.services.messaging.realtime_publisher import (
+    RealtimePublisher,
+)
+from backend.application.interfaces.services.messaging.user_notifier import UserNotifier
+from backend.application.interfaces.services.state.home_state_store import (
+    HomeStateStore,
+)
+from backend.application.interfaces.services.system.clock import Clock
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWork
 from backend.application.services.device_control import DeviceControlService
-from backend.application.services.scenario_service import ScenarioService
+from backend.application.services.scenarios.advancing import ScenarioAdvancer
+from backend.application.services.scenarios.settling import ScenarioSettler
 from backend.domain.aggregates.device.device import Device
-from backend.domain.aggregates.home_state.home_state import HomeState
 from backend.domain.aggregates.scenario.scenario import Scenario
+from backend.domain.entities.home_state.home_state import HomeState
+from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
 from backend.domain.policies.device_selector import DeviceSelector
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
-from backend.domain.value_objects.scenario.scenario_action import ScenarioAction
 from backend.domain.value_objects.scenario.scenario_status import ScenarioStatus
 
 NOW = datetime(2027, 6, 1, 12, 0, tzinfo=UTC)
@@ -711,7 +722,7 @@ def make_service(
     scenarios: list[Scenario],
     board: SelectiveBoardGateway,
 ) -> tuple[
-    ScenarioService,
+    ScenarioAdvancer,
     DeviceRepository,
     ScenarioRepository,
     RecordingRealtime,
@@ -745,7 +756,14 @@ def make_service(
         clock=FixedClock(),
         selector=DeviceSelector(),
     )
-    service = ScenarioService(
+    settler = ScenarioSettler(
+        control=control,
+        realtime=realtime,
+        dispatcher=dispatcher,
+        notifier=notifier,
+        notifications=StubNotifications(),
+    )
+    service = ScenarioAdvancer(
         home_uow=factory,
         control=control,
         state_store=store,
@@ -754,6 +772,7 @@ def make_service(
         notifier=notifier,
         notifications=StubNotifications(),
         clock=FixedClock(),
+        settler=settler,
         summary_window_sec=300,
     )
     return service, device_repo, scenario_repo, realtime, notifier

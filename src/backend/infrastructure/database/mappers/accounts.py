@@ -7,12 +7,12 @@ from backend.domain.identifiers import UserId
 from backend.domain.value_objects.account.display_name import DisplayName
 from backend.domain.value_objects.account.email import Email
 from backend.infrastructure.database.mappers.base import as_utc
-from backend.infrastructure.database.tables import UserRow
+from backend.infrastructure.database.models import UserModel
 
 
-def user_to_row(user: User) -> UserRow:
+def user_to_row(user: User) -> UserModel:
     """Строит строку, описывающую аккаунт."""
-    return UserRow(
+    return UserModel(
         id=user.id.value,
         email=user.email.value,
         display_name=user.display_name.value,
@@ -22,7 +22,7 @@ def user_to_row(user: User) -> UserRow:
     )
 
 
-def user_from_row(row: UserRow) -> User:
+def user_from_row(row: UserModel) -> User:
     """Строит аккаунт, описанный строкой."""
     return User(
         id=UserId.parse(row.id),

@@ -7,14 +7,25 @@ from typing import Never, Self
 import pytest
 from tests.conftest import OWNER_UUID, make_device
 
+from backend.application.dto.boards.board_command_result import BoardCommandResult
 from backend.application.errors import BoardUnreachableError, DeviceNotFoundError
-from backend.application.ports.boards import BoardCommandResult, BoardGateway
-from backend.application.ports.events import DomainEventDispatcher, RealtimePublisher
-from backend.application.ports.services import Clock, HomeStateStore
-from backend.application.ports.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.services.boards.board_gateway import (
+    BoardGateway,
+)
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
+from backend.application.interfaces.services.messaging.realtime_publisher import (
+    RealtimePublisher,
+)
+from backend.application.interfaces.services.state.home_state_store import (
+    HomeStateStore,
+)
+from backend.application.interfaces.services.system.clock import Clock
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.device_control import DeviceControlService
 from backend.domain.aggregates.device.device import Device
-from backend.domain.aggregates.home_state.home_state import HomeState
+from backend.domain.entities.home_state.home_state import HomeState
 from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
 from backend.domain.policies.device_selector import DeviceSelector
 from backend.domain.value_objects.boards.network_profile import NetworkProfile

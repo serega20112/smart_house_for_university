@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from backend.domain.value_objects.devices.capability import Capability
-from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
 from backend.domain.value_objects.scenario.scenario_view import ScenarioView
 from backend.presentation.api.responses.common import StrictModel
 
@@ -18,7 +16,7 @@ class ScenarioActionResponse(StrictModel):
         target_temperature: Температура, к которой действие идёт, или None.
     """
 
-    capability: Capability
+    capability: str
     target_temperature: float | None
 
 
@@ -42,7 +40,7 @@ class ScenarioResponse(StrictModel):
     start_at: datetime
     duration_minutes: int | None
     target: str | None
-    completion_behavior: CompletionBehavior
+    completion_behavior: str
     actions: list[ScenarioActionResponse]
 
 
@@ -62,10 +60,10 @@ def scenario_of(scenario: ScenarioView) -> ScenarioResponse:
         start_at=scenario.start_at,
         duration_minutes=scenario.duration_minutes,
         target=scenario.target,
-        completion_behavior=scenario.completion_behavior,
+        completion_behavior=scenario.completion_behavior.value,
         actions=[
             ScenarioActionResponse(
-                capability=action.capability,
+                capability=action.capability.value,
                 target_temperature=(
                     None if action.target_temperature is None else action.target_temperature.celsius
                 ),

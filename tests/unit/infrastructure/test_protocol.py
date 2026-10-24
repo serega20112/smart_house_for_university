@@ -4,7 +4,7 @@ from backend.infrastructure.esp import protocol
 
 
 def test_protocol_version_is_the_firmware_and_docs_version() -> None:
-    assert protocol.PROTOCOL_VERSION == 3
+    assert protocol.PROTOCOL_VERSION == 4
 
 
 @pytest.mark.parametrize(

@@ -35,8 +35,3 @@ class CommandUnderstanding:
     delay_minutes: int | None = None
     target: str | None = None
     confidence: float = 0.0
-
-    @property
-    def carries_home_reference(self) -> bool:
-        """Назвал ли человек то, о чём он говорит."""
-        return bool(self.device_name or self.device_kinds)

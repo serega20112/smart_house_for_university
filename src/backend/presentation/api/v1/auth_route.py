@@ -11,7 +11,7 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, status
 
 from backend.application.errors import AccountNotFoundError
-from backend.application.interface.queries.account_queries import AccountQueries
+from backend.application.interfaces.queries.account_queries import AccountQueries
 from backend.application.use_cases.accounts.authenticate_account import (
     AuthenticateAccountUseCase,
 )

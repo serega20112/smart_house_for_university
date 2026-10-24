@@ -7,13 +7,13 @@
 
 from __future__ import annotations
 
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.domain.aggregates.automation.automation_settings import AutomationSettings
 from backend.domain.aggregates.dashboard.dashboard_state import DashboardState
-from backend.domain.aggregates.device.home_template import STARTER_DEVICES
-from backend.domain.aggregates.preferences.user_preferences import UserPreferences
+from backend.domain.entities.personalization.user_preferences import UserPreferences
 from backend.domain.events import UserRegistered
 from backend.domain.identifiers import UserId
+from backend.domain.policies.home_template import STARTER_DEVICES
 
 
 class HomeProvisioning:

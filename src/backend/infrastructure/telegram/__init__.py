@@ -11,11 +11,11 @@
 слой: там знают язык человека. Через этот пакет не проходит ни одного пароля.
 """
 
+from backend.infrastructure.security.link_tokens import TelegramLinkTokenIssuer
 from backend.infrastructure.telegram.client import (
     TelegramBotClient,
     TelegramUnavailableError,
 )
-from backend.infrastructure.telegram.linking import TelegramLinkTokenIssuer
 from backend.infrastructure.telegram.notifier import TelegramNotifier
 
 __all__ = [

@@ -7,12 +7,12 @@
 
 from __future__ import annotations
 
-from backend.application.interface.queries.automation_queries import AutomationQueries
-from backend.application.interface.queries.device_queries import DeviceQueries
-from backend.application.interface.queries.scenario_queries import ScenarioQueries
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.services.home_state_store import HomeStateStore
-from backend.domain.aggregates.home_state.home_state import HomeState
+from backend.application.interfaces.queries.automation_queries import AutomationQueries
+from backend.application.interfaces.queries.device_queries import DeviceQueries
+from backend.application.interfaces.queries.scenario_queries import ScenarioQueries
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
+from backend.application.interfaces.services.system.clock import Clock
+from backend.domain.entities.home_state.home_state import HomeState
 from backend.domain.identifiers import UserId
 from backend.domain.value_objects.devices.device_view import DeviceView
 from backend.domain.value_objects.home.home_snapshot_view import HomeSnapshotView

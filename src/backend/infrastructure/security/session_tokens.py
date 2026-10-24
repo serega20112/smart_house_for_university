@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from backend.application.dto.account.issued_session import IssuedSession
-from backend.application.interface.services.session_token_issuer import SessionTokenIssuer
+from backend.application.interfaces.services.security.session_token_issuer import SessionTokenIssuer
 from backend.domain.exceptions import MalformedIdentifierError
 from backend.domain.identifiers import UserId
 from backend.infrastructure.security import jwt_tokens

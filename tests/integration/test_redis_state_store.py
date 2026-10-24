@@ -16,7 +16,7 @@ from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.devices.relay_channel import RelayChannel
 from backend.domain.value_objects.devices.relay_state import RelayState
-from backend.infrastructure.redis.state_store import RedisHomeStateStore
+from backend.infrastructure.brokers.state_store import RedisHomeStateStore
 from tests.conftest import OWNER_UUID, make_device
 
 NOW = datetime(2027, 5, 1, 12, 0, tzinfo=UTC)

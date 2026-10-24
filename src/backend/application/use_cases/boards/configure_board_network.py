@@ -14,12 +14,12 @@ from __future__ import annotations
 
 from backend.application.dto.boards.set_network_command import SetNetworkCommand
 from backend.application.errors import BoardNotFoundError
-from backend.application.interface.services.board_gateway import BoardGateway
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.unit_of_work.board_onboarding import (
+from backend.application.interfaces.services.boards.board_gateway import BoardGateway
+from backend.application.interfaces.services.system.clock import Clock
+from backend.application.interfaces.unit_of_work.board_onboarding import (
     BoardOnboardingUnitOfWorkFactory,
 )
-from backend.domain.aggregates.board_network.board_network import BoardNetwork
+from backend.domain.entities.boards.board_network import BoardNetwork
 from backend.domain.identifiers import EspDeviceId, UserId
 from backend.domain.value_objects.boards.board_network_view import BoardNetworkView
 from backend.domain.value_objects.boards.network_profile import NetworkProfile

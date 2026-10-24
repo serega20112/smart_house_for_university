@@ -4,11 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from backend.domain.aggregates.preferences.user_preferences import (
-    InterfaceLanguage,
-    TemperatureUnit,
-    Theme,
-)
+from backend.domain.value_objects.personalization.interface_language import InterfaceLanguage
+from backend.domain.value_objects.personalization.temperature_unit import TemperatureUnit
+from backend.domain.value_objects.personalization.theme import Theme
 
 
 @dataclass(frozen=True, slots=True)

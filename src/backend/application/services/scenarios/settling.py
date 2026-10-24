@@ -9,10 +9,14 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from backend.application.interface.services.domain_event_dispatcher import DomainEventDispatcher
-from backend.application.interface.services.notification_factory import NotificationFactory
-from backend.application.interface.services.realtime_publisher import RealtimePublisher
-from backend.application.interface.services.user_notifier import UserNotifier
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
+from backend.application.interfaces.services.messaging.notification_factory import (
+    NotificationFactory,
+)
+from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
+from backend.application.interfaces.services.messaging.user_notifier import UserNotifier
 from backend.application.services.device_control import DeviceControlService
 from backend.application.services.scenarios.details import scenario_payload
 from backend.domain.aggregates.device.device import Device

@@ -11,20 +11,32 @@ from backend.application.errors import (
     ConcurrentModificationError,
 )
 from backend.domain.aggregates.scenario.scenario import Scenario
+from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.identifiers import (
     DeviceId,
     ScenarioId,
     UserId,
 )
 from backend.domain.value_objects.devices.device_status import DeviceStatus
-from backend.domain.value_objects.scenario.scenario_action import ScenarioAction
 from backend.domain.value_objects.scenario.scenario_status import ScenarioStatus
-from backend.infrastructure.database import mappers
-from backend.infrastructure.database.repositories.base import every_row, first_row, insert_rows
-from backend.infrastructure.database.tables import (
-    ScenarioActionRow,
-    ScenarioCapturedStatusRow,
-    ScenarioRow,
+from backend.infrastructure.database.mappers.scenario import (
+    action_from_row,
+    action_rows,
+    captured_status_from_row,
+    captured_status_rows,
+    scenario_from_row,
+    scenario_to_row,
+)
+from backend.infrastructure.database.models import (
+    ScenarioActionModel,
+    ScenarioCapturedStatusModel,
+    ScenarioModel,
+)
+from backend.infrastructure.database.repositories.base import (
+    every_row,
+    first_row,
+    insert_rows,
+    row_values,
 )
 
 UNIQUE_VIOLATION = "23505"
@@ -56,9 +68,9 @@ class SqlScenarioRepository:
             Sequence[Scenario]: Сохранённые сценарии.
         """
         result = await self._session.execute(
-            select(ScenarioRow)
-            .where(ScenarioRow.user_id == user_id.value)
-            .order_by(ScenarioRow.created_at.desc(), ScenarioRow.id)
+            select(ScenarioModel)
+            .where(ScenarioModel.user_id == user_id.value)
+            .order_by(ScenarioModel.created_at.desc(), ScenarioModel.id)
         )
         return [await self._restore(row) for row in result.scalars().all()]
 
@@ -73,12 +85,12 @@ class SqlScenarioRepository:
         """
         holding = (ScenarioStatus.PENDING.value, ScenarioStatus.RUNNING.value)
         result = await self._session.execute(
-            select(ScenarioRow)
+            select(ScenarioModel)
             .where(
-                ScenarioRow.user_id == user_id.value,
-                ScenarioRow.status.in_(holding),
+                ScenarioModel.user_id == user_id.value,
+                ScenarioModel.status.in_(holding),
             )
-            .order_by(ScenarioRow.created_at.desc(), ScenarioRow.id)
+            .order_by(ScenarioModel.created_at.desc(), ScenarioModel.id)
         )
         return [await self._restore(row) for row in result.scalars().all()]
 
@@ -94,9 +106,9 @@ class SqlScenarioRepository:
         """
         row = await first_row(
             self._session,
-            ScenarioRow,
-            ScenarioRow.id == scenario_id.value,
-            ScenarioRow.user_id == user_id.value,
+            ScenarioModel,
+            ScenarioModel.id == scenario_id.value,
+            ScenarioModel.user_id == user_id.value,
         )
         return None if row is None else await self._restore(row)
 
@@ -106,8 +118,8 @@ class SqlScenarioRepository:
         Args:
             scenario: Сценарий для записи.
         """
-        values = mappers.row_values(ScenarioRow.__table__, mappers.scenario_to_row(scenario))
-        await self._session.execute(insert(ScenarioRow.__table__).values(**values))
+        values = row_values(ScenarioModel.__table__, scenario_to_row(scenario))
+        await self._session.execute(insert(ScenarioModel.__table__).values(**values))
         await self._write_children(scenario)
 
     async def update(self, scenario: Scenario) -> None:
@@ -125,13 +137,13 @@ class SqlScenarioRepository:
         Raises:
             ConcurrentModificationError: Когда строка ушла вперёд с момента чтения.
         """
-        row = mappers.scenario_to_row(scenario)
+        row = scenario_to_row(scenario)
         result = await self._session.execute(
-            update(ScenarioRow)
+            update(ScenarioModel)
             .where(
-                ScenarioRow.id == scenario.id.value,
-                ScenarioRow.user_id == scenario.user_id.value,
-                ScenarioRow.version == scenario.version,
+                ScenarioModel.id == scenario.id.value,
+                ScenarioModel.user_id == scenario.user_id.value,
+                ScenarioModel.version == scenario.version,
             )
             .values(
                 status=row.status,
@@ -148,16 +160,16 @@ class SqlScenarioRepository:
             raise ConcurrentModificationError("scenario", scenario.id)
         scenario.version += 1
         await self._session.execute(
-            delete(ScenarioActionRow).where(ScenarioActionRow.scenario_id == scenario.id.value)
+            delete(ScenarioActionModel).where(ScenarioActionModel.scenario_id == scenario.id.value)
         )
         await self._session.execute(
-            delete(ScenarioCapturedStatusRow).where(
-                ScenarioCapturedStatusRow.scenario_id == scenario.id.value
+            delete(ScenarioCapturedStatusModel).where(
+                ScenarioCapturedStatusModel.scenario_id == scenario.id.value
             )
         )
         await self._write_children(scenario)
 
-    async def _restore(self, row: ScenarioRow) -> Scenario:
+    async def _restore(self, row: ScenarioModel) -> Scenario:
         """Восстанавливает один сценарий вместе с его коллекциями.
 
         Args:
@@ -168,22 +180,22 @@ class SqlScenarioRepository:
         """
         action_rows = await every_row(
             self._session,
-            ScenarioActionRow,
-            ScenarioActionRow.scenario_id == row.id,
+            ScenarioActionModel,
+            ScenarioActionModel.scenario_id == row.id,
         )
         actions: tuple[ScenarioAction, ...] = tuple(
-            mappers.action_from_row(entry)
+            action_from_row(entry)
             for entry in sorted(action_rows, key=lambda entry: entry.position)
         )
         captured_rows = await every_row(
             self._session,
-            ScenarioCapturedStatusRow,
-            ScenarioCapturedStatusRow.scenario_id == row.id,
+            ScenarioCapturedStatusModel,
+            ScenarioCapturedStatusModel.scenario_id == row.id,
         )
         captured: dict[DeviceId, DeviceStatus] = dict(
-            mappers.captured_status_from_row(entry) for entry in captured_rows
+            captured_status_from_row(entry) for entry in captured_rows
         )
-        return mappers.scenario_from_row(row, actions, captured)
+        return scenario_from_row(row, actions, captured)
 
     async def _write_children(self, scenario: Scenario) -> None:
         """Записывает строки коллекций одного сценария.
@@ -191,10 +203,10 @@ class SqlScenarioRepository:
         Args:
             scenario: Сценарий, чьи коллекции записывают.
         """
-        await insert_rows(self._session, ScenarioActionRow.__table__, mappers.action_rows(scenario))
+        await insert_rows(self._session, ScenarioActionModel.__table__, action_rows(scenario))
         await insert_rows(
             self._session,
-            ScenarioCapturedStatusRow.__table__,
-            mappers.captured_status_rows(scenario),
+            ScenarioCapturedStatusModel.__table__,
+            captured_status_rows(scenario),
         )
         await self._session.flush()

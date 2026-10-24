@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from backend.application.dto.boards.board_command_result import BoardCommandResult
-from backend.application.interface.services.board_gateway import BoardGateway
+from backend.application.interfaces.services.boards.board_gateway import BoardGateway
 from backend.domain.identifiers import EspDeviceId, UserId
 from backend.domain.value_objects.boards.network_profile import NetworkProfile
 from backend.infrastructure.esp.connection import EspConnection

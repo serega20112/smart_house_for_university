@@ -1,6 +1,5 @@
-"""Модели чтения персонализации."""
+"""Значения персонализации: единица, тема и язык интерфейса, модели чтения.
 
-from backend.domain.value_objects.personalization.dashboard_view import DashboardView
-from backend.domain.value_objects.personalization.preferences_view import PreferencesView
-
-__all__ = ["DashboardView", "PreferencesView"]
+Барель ничего не переэкспортирует: карточка экрана — сущность раскладки, а раскладка
+смотрит на эти значения, и импорт через барель замкнул бы круг внутри пакета.
+"""

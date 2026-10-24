@@ -13,9 +13,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from backend.application.errors import BoardUnreachableError
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.services.home_state_store import HomeStateStore
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
+from backend.application.interfaces.services.system.clock import Clock
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.device_control import DeviceControlService
 from backend.domain.aggregates.automation.automation_settings import AutomationSettings
 from backend.domain.aggregates.device.device import Device

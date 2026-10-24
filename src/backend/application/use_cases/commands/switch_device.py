@@ -8,7 +8,7 @@ from backend.application.dto.language.clarification_reason import ClarificationR
 from backend.application.dto.language.command_understanding import CommandUnderstanding
 from backend.application.dto.language.intent import Intent
 from backend.application.errors import CommandNotUnderstoodError
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.services.device_control import DeviceControlService
 from backend.application.use_cases.commands.result import CommandReply
 from backend.domain.aggregates.device.device import Device

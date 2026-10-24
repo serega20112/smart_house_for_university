@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from backend.application.errors import BoardNotFoundError
-from backend.application.interface.unit_of_work.board_onboarding import (
+from backend.application.interfaces.unit_of_work.board_onboarding import (
     BoardOnboardingUnitOfWorkFactory,
 )
 from backend.domain.identifiers import EspDeviceId, UserId

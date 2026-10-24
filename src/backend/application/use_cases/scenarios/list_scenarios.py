@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from backend.application.interface.queries.scenario_queries import ScenarioQueries
+from backend.application.interfaces.queries.scenario_queries import ScenarioQueries
 from backend.domain.identifiers import UserId
 from backend.domain.value_objects.scenario.scenario_view import ScenarioView
 

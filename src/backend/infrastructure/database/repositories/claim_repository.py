@@ -8,16 +8,16 @@ from datetime import datetime
 from sqlalchemy import delete, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
-from backend.domain.aggregates.esp_claim.esp_claim import EspClaim
+from backend.domain.entities.esp_claim.esp_claim import EspClaim
 from backend.domain.identifiers import (
     EspClaimId,
     UserId,
 )
-from backend.infrastructure.database import mappers
-from backend.infrastructure.database.repositories.base import first_row
-from backend.infrastructure.database.tables import (
-    EspClaimRow,
+from backend.infrastructure.database.mappers.boards import claim_from_row, claim_to_row
+from backend.infrastructure.database.models import (
+    EspClaimModel,
 )
+from backend.infrastructure.database.repositories.base import first_row, row_values
 
 UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
@@ -44,8 +44,8 @@ class SqlClaimRepository:
         Args:
             claim: Предложение для записи.
         """
-        values = mappers.row_values(EspClaimRow.__table__, mappers.claim_to_row(claim))
-        await self._session.execute(insert(EspClaimRow.__table__).values(**values))
+        values = row_values(EspClaimModel.__table__, claim_to_row(claim))
+        await self._session.execute(insert(EspClaimModel.__table__).values(**values))
         await self._session.flush()
 
     async def current_for(self, device_key: str) -> EspClaim | None:
@@ -58,13 +58,13 @@ class SqlClaimRepository:
             EspClaim | None: Предложение или None, когда плата о себе не объявляла.
         """
         result = await self._session.execute(
-            select(EspClaimRow)
-            .where(EspClaimRow.device_key == device_key, EspClaimRow.claimed_by.is_(None))
-            .order_by(EspClaimRow.announced_at.desc(), EspClaimRow.id)
+            select(EspClaimModel)
+            .where(EspClaimModel.device_key == device_key, EspClaimModel.claimed_by.is_(None))
+            .order_by(EspClaimModel.announced_at.desc(), EspClaimModel.id)
             .limit(1)
         )
         row = result.scalar_one_or_none()
-        return None if row is None else mappers.claim_from_row(row)
+        return None if row is None else claim_from_row(row)
 
     async def open_with_token(self, claim_token: str) -> EspClaim | None:
         """Возвращает предложение по его токену.
@@ -78,8 +78,10 @@ class SqlClaimRepository:
         Returns:
             EspClaim | None: Предложение или None, когда токен неизвестен.
         """
-        row = await first_row(self._session, EspClaimRow, EspClaimRow.claim_token == claim_token)
-        return None if row is None else mappers.claim_from_row(row)
+        row = await first_row(
+            self._session, EspClaimModel, EspClaimModel.claim_token == claim_token
+        )
+        return None if row is None else claim_from_row(row)
 
     async def all_open(self) -> Sequence[EspClaim]:
         """Возвращает всякое предложение, которое ещё никто не забрал.
@@ -91,11 +93,11 @@ class SqlClaimRepository:
             Sequence[EspClaim]: Открытые предложения.
         """
         result = await self._session.execute(
-            select(EspClaimRow)
-            .where(EspClaimRow.claimed_by.is_(None))
-            .order_by(EspClaimRow.announced_at.desc(), EspClaimRow.id)
+            select(EspClaimModel)
+            .where(EspClaimModel.claimed_by.is_(None))
+            .order_by(EspClaimModel.announced_at.desc(), EspClaimModel.id)
         )
-        return [mappers.claim_from_row(row) for row in result.scalars().all()]
+        return [claim_from_row(row) for row in result.scalars().all()]
 
     async def take(self, claim_id: EspClaimId, user_id: UserId) -> bool:
         """Выборочно записывает, что аккаунт забрал предложение.
@@ -112,8 +114,8 @@ class SqlClaimRepository:
             bool: True, когда именно этот вызов забрал предложение.
         """
         result = await self._session.execute(
-            update(EspClaimRow)
-            .where(EspClaimRow.id == claim_id.value, EspClaimRow.claimed_by.is_(None))
+            update(EspClaimModel)
+            .where(EspClaimModel.id == claim_id.value, EspClaimModel.claimed_by.is_(None))
             .values(claimed_by=user_id.value)
         )
         await self._session.flush()
@@ -131,6 +133,6 @@ class SqlClaimRepository:
             int: Число убранных предложений.
         """
         result = await self._session.execute(
-            delete(EspClaimRow).where(EspClaimRow.expires_at < before)
+            delete(EspClaimModel).where(EspClaimModel.expires_at < before)
         )
         return int(result.rowcount or 0)

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from backend.application.dto.language.command_understanding import CommandUnderstanding
 from backend.application.dto.language.intent import Intent
-from backend.application.interface.queries.automation_queries import AutomationQueries
-from backend.application.interface.queries.device_queries import DeviceQueries
-from backend.application.interface.queries.scenario_queries import ScenarioQueries
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.services.home_state_store import HomeStateStore
+from backend.application.interfaces.queries.automation_queries import AutomationQueries
+from backend.application.interfaces.queries.device_queries import DeviceQueries
+from backend.application.interfaces.queries.scenario_queries import ScenarioQueries
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
+from backend.application.interfaces.services.system.clock import Clock
 from backend.application.use_cases.commands.result import CommandReply
 from backend.domain.identifiers import UserId
 

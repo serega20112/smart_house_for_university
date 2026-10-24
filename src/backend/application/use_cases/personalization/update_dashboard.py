@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from backend.application.dto.personalization.dashboard_patch import DashboardPatch
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.domain.aggregates.dashboard.dashboard_state import DashboardState
 from backend.domain.identifiers import UserId
 from backend.domain.value_objects.personalization.dashboard_view import DashboardView

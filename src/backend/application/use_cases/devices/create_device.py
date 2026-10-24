@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from backend.application.dto.devices.create_device_command import CreateDeviceCommand
-from backend.application.interface.services.domain_event_dispatcher import DomainEventDispatcher
-from backend.application.interface.services.home_state_store import HomeStateStore
-from backend.application.interface.services.realtime_publisher import RealtimePublisher
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
+from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.domain.aggregates.device.device import Device
 from backend.domain.events import EventName
 from backend.domain.identifiers import UserId

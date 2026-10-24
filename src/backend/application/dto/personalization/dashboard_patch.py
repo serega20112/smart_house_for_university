@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from backend.domain.value_objects.personalization.dashboard_widget import DashboardWidget
+from backend.domain.entities.personalization.dashboard_widget import DashboardWidget
 
 
 @dataclass(frozen=True, slots=True)

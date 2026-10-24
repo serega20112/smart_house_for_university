@@ -1,40 +1,37 @@
-"""Инфраструктура общения с платами.
+"""Транспорт общения с платами.
+
+В этом пакете только то, что держит соединение: WebSocket-сервер, сеанс платы с её
+командами в ожидании подтверждения и кодек кадров. Ни правил дома, ни решений о
+том, кому принадлежит плата, здесь нет — они в прикладном слое.
 
 ``protocol``
     кадры wire-протокола как проверенные модели Pydantic.
+``wire``
+    перевод кадра в значения прикладного слоя и обратно.
 ``session``
     сеанс одной платы, её команды в ожидании подтверждения и реестр плат.
-``handshake``
-    разбор первого кадра: путь, ключ, владелец или предложение о плате.
-``inbound``
-    перевод входящего кадра в вызовы приёмника состояния дома.
 ``connection``
     WebSocket-сервер, к которому дозваниваются платы, и дверь к их командам.
-``onboarding``
-    операции прикладного слоя, которые поднимает handshake.
+``announcement``
+    отложенное объявление платы, развязывающее круг транспорта и её жизненного цикла.
 ``adapters``
     фасад, с которым говорит прикладной слой.
 
-Транспорт получает всё нужное через конструктор: приёмник сообщений и шлюз
-сопряжения. После сборки ничего не подвязывается, поэтому сеанс платы полностью
+Транспорт получает всё нужное через конструктор: приёмник сообщений, допуск платы и
+её разбор. После сборки ничего не подвязывается, поэтому сеанс платы полностью
 описывается её аргументами, и тест собирает его без сокета.
 """
 
 from backend.infrastructure.esp.adapters import BoardGatewayAdapter
 from backend.infrastructure.esp.connection import EspConnection
-from backend.infrastructure.esp.onboarding import (
-    BoardAnnouncement,
-    BoardIdentity,
-    BoardOnboardingGateway,
-)
 from backend.infrastructure.esp.protocol import (
+    PROTOCOL_VERSION,
     AckFrame,
     ClaimedFrame,
     ClaimFrame,
     ErrorFrame,
     GetStateFrame,
     HelloFrame,
-    InboundFrame,
     MalformedFrameError,
     OutboundFrame,
     RejectedFrame,
@@ -43,14 +40,14 @@ from backend.infrastructure.esp.protocol import (
     StateFrame,
     parse_inbound,
 )
-from backend.infrastructure.esp.session import BoardSession
+from backend.infrastructure.esp.session import BoardRegistry, BoardSession
+from backend.infrastructure.esp.wire import read_greeting, read_message
 
 __all__ = [
+    "PROTOCOL_VERSION",
     "AckFrame",
-    "BoardAnnouncement",
     "BoardGatewayAdapter",
-    "BoardIdentity",
-    "BoardOnboardingGateway",
+    "BoardRegistry",
     "BoardSession",
     "ClaimFrame",
     "ClaimedFrame",
@@ -58,7 +55,6 @@ __all__ = [
     "EspConnection",
     "GetStateFrame",
     "HelloFrame",
-    "InboundFrame",
     "MalformedFrameError",
     "OutboundFrame",
     "RejectedFrame",
@@ -66,4 +62,6 @@ __all__ = [
     "SetRelayFrame",
     "StateFrame",
     "parse_inbound",
+    "read_greeting",
+    "read_message",
 ]

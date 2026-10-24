@@ -7,15 +7,15 @@ from backend.domain.identifiers import DeviceId, UserId
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_kind import DeviceKind
 from backend.domain.value_objects.devices.relay_channel import RelayChannel
-from backend.infrastructure.database.tables import (
-    DeviceCapabilityRow,
-    DeviceRow,
+from backend.infrastructure.database.models import (
+    DeviceCapabilityModel,
+    DeviceModel,
 )
 
 
-def device_to_row(device: Device) -> DeviceRow:
+def device_to_row(device: Device) -> DeviceModel:
     """Строит строку, описывающую логическое устройство."""
-    return DeviceRow(
+    return DeviceModel(
         id=device.id.value,
         user_id=device.user_id.value,
         name=device.name,
@@ -27,7 +27,7 @@ def device_to_row(device: Device) -> DeviceRow:
     )
 
 
-def device_from_row(row: DeviceRow, capabilities: frozenset[Capability]) -> Device:
+def device_from_row(row: DeviceModel, capabilities: frozenset[Capability]) -> Device:
     """Строит устройство, описанное его строкой и строками способностей.
 
     Args:
@@ -46,12 +46,12 @@ def device_from_row(row: DeviceRow, capabilities: frozenset[Capability]) -> Devi
     )
 
 
-def capability_rows(device: Device) -> list[DeviceCapabilityRow]:
+def capability_rows(device: Device) -> list[DeviceCapabilityModel]:
     """Строит по строке на каждую способность логического устройства.
 
     Порядок задают явно, иначе множество давало бы разный файл на каждом запуске.
     """
     return [
-        DeviceCapabilityRow(device_id=device.id.value, capability=capability.value)
+        DeviceCapabilityModel(device_id=device.id.value, capability=capability.value)
         for capability in sorted(device.capabilities, key=lambda item: item.value)
     ]

@@ -3,43 +3,54 @@
 Бэкенд слушает, а каждая плата дозванивается сама как клиент: плата в любой
 домашней сети достигает сервера в интернете, не требуя входящих соединений.
 
-Всё, что нужно транспорту извне, приходит в конструктор: приёмник сообщений плат
-и шлюз, отвечающий на вопросы handshake. Ничего не подвязывается после сборки,
-поэтому сеанс платы описывается её аргументами, и тест собирает его без сокета.
+Здесь ровно то, что умеет транспорт: сервер, дверь для чужого пути, чтение и запись
+текстовых рамок, сеанс платы с её командами в ожидании подтверждения и доставка
+прочитанного кадра прикладному слою. Кому принадлежит плата, что значит её сообщение
+и когда соединение следует закрыть — решает не транспорт: за это отвечают допуск
+платы и разбор её сообщений из прикладного слоя.
 
-Разбор первого кадра живёт в :mod:`handshake`, перевод входящих кадров —
-в :mod:`inbound`, а сеансы с их командами — в :mod:`session`; здесь остаётся
-сервер и дверь к командам платы.
+Чужой путь закрывается кодом `4404`, отказ в допуске — `4401`, плата, ждущая хозяина,
+— `4403`. Коды остаются механикой сокета, их причину прикладной слой называет словом.
 """
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
+from contextlib import suppress
 
 from websockets.asyncio.server import Server, ServerConnection, serve
 
-from backend.application.interface.services.board_report import BoardReport
+from backend.application.dto.boards.board_admission import BoardOffer, BoardOwner, BoardRefusal
+from backend.application.dto.boards.board_message import BoardAck
+from backend.application.interfaces.services.boards.board_report import BoardReport
+from backend.application.use_cases.boards.admit_board import AdmitBoardUseCase
+from backend.application.use_cases.boards.route_board_message import RouteBoardMessageUseCase
 from backend.domain.identifiers import EspDeviceId, UserId
 from backend.domain.value_objects.boards.network_profile import NetworkProfile
-from backend.infrastructure.esp import handshake, inbound, protocol
-from backend.infrastructure.esp.onboarding import BoardIdentity, BoardOnboardingGateway
+from backend.infrastructure.esp import protocol, wire
 from backend.infrastructure.esp.session import (
     ACK_TIMEOUT_REASON,
     DELIVERY_FAILED_REASON,
     OFFLINE_REASON,
     BoardRegistry,
 )
-from backend.infrastructure.logging import get_logger
+from backend.infrastructure.system.logging import get_logger
 
 log = get_logger("esp.connection")
+
+CLOSE_WRONG_PATH = 4404
+CLOSE_UNKNOWN_KEY = 4401
+CLOSE_AWAITING_OWNER = 4403
 
 
 class EspConnection:
     """Сервер, к которому дозваниваются платы, и дверь к их командам.
 
     Args:
-        report: Приёмник, которому уходят сообщения всех плат.
-        onboarding: Шлюз, отвечающий на вопросы handshake.
+        report: Приёмник, которому уходят подключения и отключения плат.
+        admission: Допуск платы, который решает, кому она принадлежит.
+        router: Разбор сообщений, которые плата приносит в соединении.
         host: Адрес, на котором слушает сервер.
         port: Порт, на котором слушает сервер.
         path: Путь, на который звонят платы.
@@ -52,7 +63,8 @@ class EspConnection:
     def __init__(
         self,
         report: BoardReport,
-        onboarding: BoardOnboardingGateway,
+        admission: AdmitBoardUseCase,
+        router: RouteBoardMessageUseCase,
         host: str,
         port: int,
         path: str,
@@ -61,21 +73,10 @@ class EspConnection:
         ping_interval_sec: int,
         ping_timeout_sec: int,
     ) -> None:
-        """Инициализирует транспорт.
-
-        Args:
-            report: Приёмник, которому уходят сообщения всех плат.
-            onboarding: Шлюз, отвечающий на вопросы handshake.
-            host: Адрес, на котором слушает сервер.
-            port: Порт, на котором слушает сервер.
-            path: Путь, на который звонят платы.
-            command_timeout_sec: Сколько секунд команда ждёт подтверждения.
-            handshake_timeout_sec: Сколько секунд ждётся первый кадр платы.
-            ping_interval_sec: Интервал служебных кадров поддержки соединения.
-            ping_timeout_sec: Сколько секунд ждётся ответ на такой кадр.
-        """
+        """Инициализирует транспорт."""
         self._report = report
-        self._onboarding = onboarding
+        self._admission = admission
+        self._router = router
         self._host = host
         self._port = port
         self._path = path
@@ -233,17 +234,30 @@ class EspConnection:
         return await session.deliver(frame)
 
     async def _serve_client(self, connection: ServerConnection) -> None:
-        """Принимает одно соединение платы: путь, handshake, затем разбор кадров."""
-        if not handshake.matches_path(connection, self._path):
-            await connection.close(code=handshake.CLOSE_WRONG_PATH, reason="unknown path")
+        """Принимает одно соединение платы: путь, допуск, затем разбор сообщений."""
+        if not _matches_path(connection, self._path):
+            await connection.close(code=CLOSE_WRONG_PATH, reason="unknown path")
             return
-        identity = await handshake.greet(connection, self._onboarding, self._handshake_timeout)
-        if identity is None:
+        raw = await self._read_first_frame(connection)
+        if raw is None:
             return
-        await self._pump(connection, identity)
+        greeting = wire.read_greeting(raw)
+        if greeting is None:
+            await connection.close(code=CLOSE_UNKNOWN_KEY, reason="malformed handshake")
+            return
+        admission = await self._admission.execute(greeting)
+        match admission:
+            case BoardOwner(user_id=user_id, board_id=board_id):
+                await self._pump(connection, user_id, board_id)
+            case BoardOffer(label=label, ttl_sec=ttl_sec):
+                await self._await_owner(connection, label, ttl_sec)
+            case BoardRefusal(reason=reason):
+                await connection.close(code=CLOSE_UNKNOWN_KEY, reason=reason)
 
-    async def _pump(self, connection: ServerConnection, identity: BoardIdentity) -> None:
-        """Ведёт соединение платы от handshake до его закрытия.
+    async def _pump(
+        self, connection: ServerConnection, user_id: UserId, board_id: EspDeviceId
+    ) -> None:
+        """Ведёт соединение платы от допуска до его закрытия.
 
         Регистрирует сеанс, сообщает дому о приходе платы, просит её состояние и
         разбирает кадры, а уходя — снимает сеанс, отменяет неподтверждённые команды
@@ -251,37 +265,93 @@ class EspConnection:
 
         Args:
             connection: Соединение платы.
-            identity: Владелец и идентификатор, полученные в handshake.
+            user_id: Владелец платы, названный допуском.
+            board_id: Идентификатор платы.
         """
-        session = self._registry.open(identity.user_id, identity.board_id, connection)
-        await self._report.on_connected(identity.user_id, identity.board_id)
-        await self.confirm_ownership(identity.user_id, identity.board_id)
-        await self.request_state(identity.user_id, identity.board_id)
-        log.info("esp.board_connected", user=str(identity.user_id), board=str(identity.board_id))
+        session = self._registry.open(user_id, board_id, connection)
+        await self._report.on_connected(user_id, board_id)
+        await self.confirm_ownership(user_id, board_id)
+        await self.request_state(user_id, board_id)
+        log.info("esp.board_connected", user=str(user_id), board=str(board_id))
         try:
             async for raw in connection:
                 if isinstance(raw, bytes | bytearray):
                     log.warning(
                         "esp.unexpected_binary_message",
-                        user=str(identity.user_id),
-                        board=str(identity.board_id),
+                        user=str(user_id),
+                        board=str(board_id),
                         size=len(raw),
                     )
-                else:
-                    await inbound.read(session, raw, self._report)
+                    continue
+                message = wire.read_message(raw)
+                if isinstance(message, BoardAck):
+                    session.resolve_ack(message.command_id)
+                    continue
+                await self._router.execute(user_id, board_id, message)
         except Exception as error:
             log.warning(
                 "esp.board_connection_failed",
-                user=str(identity.user_id),
-                board=str(identity.board_id),
+                user=str(user_id),
+                board=str(board_id),
                 error=str(error),
             )
         finally:
             self._registry.close(session)
             session.cancel_pending()
-            await self._report.on_disconnected(identity.user_id, identity.board_id)
-            log.info(
-                "esp.board_disconnected",
-                user=str(identity.user_id),
-                board=str(identity.board_id),
+            await self._report.on_disconnected(user_id, board_id)
+            log.info("esp.board_disconnected", user=str(user_id), board=str(board_id))
+
+    async def _await_owner(self, connection: ServerConnection, label: str, ttl_sec: int) -> None:
+        """Сообщает плате без хозяина, что её узнали, и закрывает соединение.
+
+        Ни одной команды такой плате отправлять нельзя: она ещё никому не
+        принадлежит, поэтому и закрывается кодом, по которому плата понимает, что
+        ей остаётся только перепозвониться.
+
+        Args:
+            connection: Соединение не сопряжённой платы.
+            label: Короткий код, который покажет интерфейс.
+            ttl_sec: Сколько времени предложение остаётся действительным.
+        """
+        frame = protocol.ClaimFrame(label=label, ttl_sec=ttl_sec)
+        with suppress(Exception):
+            await connection.send(frame.to_json())
+        await connection.close(code=CLOSE_AWAITING_OWNER, reason="awaiting owner")
+        log.info("esp.board_awaiting_owner", label=label, ttl_sec=ttl_sec)
+
+    async def _read_first_frame(self, connection: ServerConnection) -> str | None:
+        """Ждёт первую текстовую рамку соединения.
+
+        Таймаут и кривой кадр уже означают отказ: сокет закрывается здесь, а вызывающий
+        получает None и не начинает сеанс с платой, о которой ничего не известно.
+
+        Args:
+            connection: Соединение платы.
+
+        Returns:
+            str | None: Текст первой рамки либо None, когда сеанса не будет.
+        """
+        try:
+            raw = await asyncio.wait_for(connection.recv(), timeout=self._handshake_timeout)
+        except TimeoutError:
+            log.warning("esp.handshake_timeout")
+            await connection.close(code=CLOSE_UNKNOWN_KEY, reason="handshake timeout")
+            return None
+        except Exception as error:
+            log.warning("esp.handshake_failed", error=str(error))
+            return None
+        if isinstance(raw, bytes | bytearray):
+            log.warning(
+                "esp.handshake_binary",
+                size=len(raw),
+                head=bytes(raw[:60]).decode("utf-8", "replace"),
             )
+            return None
+        return raw
+
+
+def _matches_path(connection: ServerConnection, path: str) -> bool:
+    """True, когда плата постучалась на путь, который сервер держит для плат."""
+    request = getattr(connection, "request", None)
+    actual = getattr(request, "path", None) or getattr(connection, "path", "")
+    return actual in (path, f"{path}/")

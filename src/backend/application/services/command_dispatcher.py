@@ -18,7 +18,7 @@ from backend.application.dto.language.clarification_reason import ClarificationR
 from backend.application.dto.language.command_understanding import CommandUnderstanding
 from backend.application.dto.language.intent import Intent
 from backend.application.errors import CommandNotUnderstoodError
-from backend.application.interface.services.command_understanding_port import (
+from backend.application.interfaces.services.language.command_understanding import (
     CommandUnderstandingPort,
 )
 from backend.application.use_cases.commands.result import CommandReply

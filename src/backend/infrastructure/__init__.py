@@ -1,32 +1,10 @@
 """Слой инфраструктуры.
 
-Адаптеры ко всему, с чем говорит приложение: база данных, плата, каналы уведомлений и
-конвейер понимания речи.
+Адаптеры ко всему, с чем говорит приложение: база данных, брокер состояния и
+событий, плата, понимание фраз, выдача токенов и канал уведомлений. Каждый внешний
+мир живёт в своём пакете — `database`, `brokers`, `esp`, `nlp`, `security`, `telegram`,
+`websockets`, `workers`, `system` (часы и журнал), `di`.
 
-Отсюда переэкспортирован только адаптер базы. Остальные адаптеры читают из их собственных
-модулей, поэтому импорт слоя ни за чем лишним процесс не тянет.
+Отсюда ничего не переэкспортируют, и модулей в корне слоя нет: вызывающий называет тот
+адаптер, который берёт, и импорт слоя ни за чем лишним процесс не тянет.
 """
-
-from backend.infrastructure.database import (
-    Base,
-    SqlAccountUnitOfWork,
-    SqlBoardOnboardingUnitOfWork,
-    SqlHomeUnitOfWork,
-    build_engine,
-    build_session_factory,
-    make_account_unit_of_work,
-    make_board_onboarding_unit_of_work,
-    make_home_unit_of_work,
-)
-
-__all__ = [
-    "Base",
-    "SqlAccountUnitOfWork",
-    "SqlBoardOnboardingUnitOfWork",
-    "SqlHomeUnitOfWork",
-    "build_engine",
-    "build_session_factory",
-    "make_account_unit_of_work",
-    "make_board_onboarding_unit_of_work",
-    "make_home_unit_of_work",
-]

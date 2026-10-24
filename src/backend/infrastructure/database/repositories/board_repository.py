@@ -13,11 +13,11 @@ from backend.domain.identifiers import (
     EspDeviceId,
     UserId,
 )
-from backend.infrastructure.database import mappers
-from backend.infrastructure.database.repositories.base import first_row
-from backend.infrastructure.database.tables import (
-    EspDeviceRow,
+from backend.infrastructure.database.mappers.boards import board_from_row, board_to_row
+from backend.infrastructure.database.models import (
+    EspDeviceModel,
 )
+from backend.infrastructure.database.repositories.base import first_row, row_values
 
 UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
@@ -44,8 +44,8 @@ class SqlBoardRepository:
         Args:
             board: Плата для записи.
         """
-        values = mappers.row_values(EspDeviceRow.__table__, mappers.board_to_row(board))
-        await self._session.execute(insert(EspDeviceRow.__table__).values(**values))
+        values = row_values(EspDeviceModel.__table__, board_to_row(board))
+        await self._session.execute(insert(EspDeviceModel.__table__).values(**values))
         await self._session.flush()
 
     async def list_all(self, user_id: UserId) -> Sequence[EspDevice]:
@@ -58,11 +58,11 @@ class SqlBoardRepository:
             Sequence[EspDevice]: Платы аккаунта.
         """
         result = await self._session.execute(
-            select(EspDeviceRow)
-            .where(EspDeviceRow.user_id == user_id.value)
-            .order_by(EspDeviceRow.created_at, EspDeviceRow.id)
+            select(EspDeviceModel)
+            .where(EspDeviceModel.user_id == user_id.value)
+            .order_by(EspDeviceModel.created_at, EspDeviceModel.id)
         )
-        return [mappers.board_from_row(row) for row in result.scalars().all()]
+        return [board_from_row(row) for row in result.scalars().all()]
 
     async def get(self, user_id: UserId, board_id: EspDeviceId) -> EspDevice | None:
         """Возвращает одну плату аккаунта.
@@ -76,11 +76,11 @@ class SqlBoardRepository:
         """
         row = await first_row(
             self._session,
-            EspDeviceRow,
-            EspDeviceRow.id == board_id.value,
-            EspDeviceRow.user_id == user_id.value,
+            EspDeviceModel,
+            EspDeviceModel.id == board_id.value,
+            EspDeviceModel.user_id == user_id.value,
         )
-        return None if row is None else mappers.board_from_row(row)
+        return None if row is None else board_from_row(row)
 
     async def get_by_key(self, pairing_key: str) -> EspDevice | None:
         """Возвращает плату, предъявившую ключ сопряжения.
@@ -94,8 +94,10 @@ class SqlBoardRepository:
         Returns:
             EspDevice | None: Плата или None, когда ключ неизвестен.
         """
-        row = await first_row(self._session, EspDeviceRow, EspDeviceRow.pairing_key == pairing_key)
-        return None if row is None else mappers.board_from_row(row)
+        row = await first_row(
+            self._session, EspDeviceModel, EspDeviceModel.pairing_key == pairing_key
+        )
+        return None if row is None else board_from_row(row)
 
     async def mark_seen(
         self, board_id: EspDeviceId, seen_at: datetime, ssid: str | None = None
@@ -116,7 +118,7 @@ class SqlBoardRepository:
         if ssid is not None:
             values["current_ssid"] = ssid
         await self._session.execute(
-            update(EspDeviceRow).where(EspDeviceRow.id == board_id.value).values(**values)
+            update(EspDeviceModel).where(EspDeviceModel.id == board_id.value).values(**values)
         )
         await self._session.flush()
 
@@ -131,8 +133,8 @@ class SqlBoardRepository:
             bool: True, когда плату убрали.
         """
         result = await self._session.execute(
-            delete(EspDeviceRow).where(
-                EspDeviceRow.id == board_id.value, EspDeviceRow.user_id == user_id.value
+            delete(EspDeviceModel).where(
+                EspDeviceModel.id == board_id.value, EspDeviceModel.user_id == user_id.value
             )
         )
         return bool(result.rowcount)

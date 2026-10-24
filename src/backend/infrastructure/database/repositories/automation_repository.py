@@ -13,13 +13,22 @@ from backend.domain.aggregates.automation.automation_settings import AutomationS
 from backend.domain.identifiers import (
     UserId,
 )
-from backend.infrastructure.database import mappers
-from backend.infrastructure.database.repositories.base import first_row, insert_rows, upsert_columns
-from backend.infrastructure.database.repositories.child_rows import participants_of
-from backend.infrastructure.database.tables import (
-    AutomationParticipantRow,
-    AutomationRow,
+from backend.infrastructure.database.mappers.automation import (
+    automation_from_row,
+    automation_to_row,
+    participant_rows,
 )
+from backend.infrastructure.database.models import (
+    AutomationModel,
+    AutomationParticipantModel,
+)
+from backend.infrastructure.database.repositories.base import (
+    first_row,
+    insert_rows,
+    row_values,
+    upsert_columns,
+)
+from backend.infrastructure.database.repositories.child_rows import participants_of
 
 UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
@@ -53,10 +62,12 @@ class SqlAutomationRepository:
             AutomationSettings | None: Сохранённая настройка или None, когда
                 аккаунт автоматизацию не настраивал.
         """
-        row = await first_row(self._session, AutomationRow, AutomationRow.user_id == user_id.value)
+        row = await first_row(
+            self._session, AutomationModel, AutomationModel.user_id == user_id.value
+        )
         if row is None:
             return None
-        return mappers.automation_from_row(row, await participants_of(self._session, user_id))
+        return automation_from_row(row, await participants_of(self._session, user_id))
 
     async def save(self, settings: AutomationSettings) -> None:
         """Сохраняет настройку автоматизации аккаунта.
@@ -72,16 +83,16 @@ class SqlAutomationRepository:
         Raises:
             ConcurrentModificationError: Когда строка ушла вперёд с момента чтения.
         """
-        refreshed = upsert_columns(AutomationRow.__table__, "user_id", "version")
+        refreshed = upsert_columns(AutomationModel.__table__, "user_id", "version")
         refreshed["version"] = settings.version + 1
-        values = mappers.row_values(AutomationRow.__table__, mappers.automation_to_row(settings))
+        values = row_values(AutomationModel.__table__, automation_to_row(settings))
         result = await self._session.execute(
-            postgresql.insert(AutomationRow.__table__)
+            postgresql.insert(AutomationModel.__table__)
             .values(**values)
             .on_conflict_do_update(
-                index_elements=[AutomationRow.__table__.c.user_id],
+                index_elements=[AutomationModel.__table__.c.user_id],
                 set_=refreshed,
-                where=AutomationRow.version == settings.version,
+                where=AutomationModel.version == settings.version,
             )
         )
         await self._session.flush()
@@ -89,13 +100,13 @@ class SqlAutomationRepository:
             raise ConcurrentModificationError("automation", settings.user_id)
         settings.version += 1
         await self._session.execute(
-            delete(AutomationParticipantRow).where(
-                AutomationParticipantRow.user_id == settings.user_id.value
+            delete(AutomationParticipantModel).where(
+                AutomationParticipantModel.user_id == settings.user_id.value
             )
         )
         await insert_rows(
             self._session,
-            AutomationParticipantRow.__table__,
-            mappers.participant_rows(settings),
+            AutomationParticipantModel.__table__,
+            participant_rows(settings),
         )
         await self._session.flush()

@@ -1,46 +1,73 @@
-# Smart Home Backend
+# Бэкенд умного дома
 
-Backend of a multi-user smart home platform.
+Многопользовательская платформа: один процесс обслуживает любое число аккаунтов, и
+каждый получает своё — свои устройства, настройки, автоматизации, сценарии и свой
+главный экран. Владелец берётся из сессии, а не из тела запроса, поэтому подстановка
+чужого идентификатора не даёт ничего.
 
-One process and one interface serve every account: users authorize, the backend
-resolves who they are from the session token, and every query is scoped to that
-account. The stored data (devices, automation, scenarios, preferences, dashboard
-layout, paired boards) is what makes each user see their own projection of the
-same application.
-
-## Layers
+## Слои
 
 ```text
-presentation   HTTP, WebSocket, Telegram, static interface
-infrastructure SQLAlchemy, board transport, tokens, notification channels
-application    use cases, ports, engines
-domain         entities, value objects, policies
+presentation    api/v1 (тонкие маршруты) + requests/responses, websockets (эндпоинт),
+                telegram (разговор), web; ошибки, фразы и сборка приложения — модулями
+                в корне слоя
+application     use_cases (по одному сценарию в файле), services, dto (плоские),
+                interfaces (порты по подпакетам), errors
+domain          aggregates (только корни), entities (дочерние сущности), value_objects
+                (значения, enum'ы, модели чтения), policies, exceptions, identifiers,
+                events
+infrastructure  database (engine, unit_of_work, models, mappers, repositories, queries),
+                brokers, esp, nlp, security, telegram, websockets, workers, system
+                (часы и журнал), di (providers/app и providers/use_cases)
 ```
 
-`lint-imports` enforces the direction: the domain knows nothing about the layers
-above it.
+Зависимости направлены внутрь: домен не знает ни фреймворков, ни слоёв выше него, а
+прикладной слой не заглядывает в инфраструктуру. Границы проверяет `import-linter`.
+Жизнью подсистем процесса (транспорт плат, концентратор событий, бот, посев индекса)
+ведёт `backend/events/lifecycle.py` — композиционный корень, а не презентация.
 
-## Running
+## Запуск
 
 ```bash
-pip install -e ".[dev]"
-uvicorn backend_backend.main:app --reload
+python -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+cp .env.example .env                  # и задать AUTH_TOKEN_SECRET
+PYTHONPATH=src python -m backend.main
 ```
 
-The database, the board WebSocket port and the authorization secret are read from
-the environment; every value has a default, see `.env`.
-
-## Board pairing
-
-A board dials in to the backend as a WebSocket client and announces itself with
-the pairing key created in the web interface. The backend resolves that key into
-an account and from then on every frame of that socket updates the state of that
-account only, so one server can serve any number of homes.
-
-## Checks
+Интерфейс — на <http://127.0.0.1:8000>, описание API — на `/docs`. Второй процесс,
+фоновые циклы, запускают отдельно:
 
 ```bash
-ruff check src tests
-pytest
+PYTHONPATH=src python -m backend.worker_entry
+```
+
+Схема базы ведётся ревизиями из `build/migrations`:
+
+```bash
+PYTHONPATH=src .venv/bin/alembic -c build/migrations/alembic.ini upgrade head
+```
+
+`AUTH_TOKEN_SECRET` задают обязательно: без него процесс не стартует. Остальные
+параметры читаются из окружения, у каждой секции свой файл в `config/sections`, а
+плоский `Settings` собирает их вместе.
+
+## Плата
+
+Плата дозванивается до бэкенда сама как WebSocket-клиент и объявляет ключ сопряжения.
+Бэкенд разрешает этот ключ в аккаунт, и с этого момента кадры её сокета обновляют
+состояние только этого аккаунта. Протокол кадров — в `docs/hardware/esp-protocol.md`.
+
+## Проверки
+
+```bash
+ruff check src tests scripts
+ruff format src tests scripts
 lint-imports
+PYTHONPATH=src python scripts/check_app_wires.py
+pytest
 ```
+
+`check_app_wires.py` разрешает каждый узел графа зависимостей и печатает опубликованные
+маршруты: контейнер ленивый, и провайдер с неподходящей сигнатурой всплывает только
+когда ключ впервые попросили.

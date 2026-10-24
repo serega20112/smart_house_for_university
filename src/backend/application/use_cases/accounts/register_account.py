@@ -12,11 +12,13 @@
 from __future__ import annotations
 
 from backend.application.dto.account.register_account_command import RegisterAccountCommand
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.services.domain_event_dispatcher import DomainEventDispatcher
-from backend.application.interface.services.password_hasher import PasswordHasher
-from backend.application.interface.services.session_token_issuer import SessionTokenIssuer
-from backend.application.interface.unit_of_work.account import AccountUnitOfWorkFactory
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
+from backend.application.interfaces.services.security.password_hasher import PasswordHasher
+from backend.application.interfaces.services.security.session_token_issuer import SessionTokenIssuer
+from backend.application.interfaces.services.system.clock import Clock
+from backend.application.interfaces.unit_of_work.account import AccountUnitOfWorkFactory
 from backend.application.use_cases.accounts.result import AuthenticatedSession
 from backend.domain.aggregates.user.user import User
 from backend.domain.value_objects.account.account_profile import AccountProfile

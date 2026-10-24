@@ -15,10 +15,10 @@ from backend.domain.identifiers import (
 )
 from backend.domain.value_objects.boards.board_claim_view import BoardClaimView
 from backend.domain.value_objects.boards.board_view import BoardView
-from backend.infrastructure.database import mappers
-from backend.infrastructure.database.tables import (
-    EspClaimRow,
-    EspDeviceRow,
+from backend.infrastructure.database.mappers.base import as_utc
+from backend.infrastructure.database.models import (
+    EspClaimModel,
+    EspDeviceModel,
 )
 
 
@@ -48,9 +48,9 @@ class SqlBoardQueries:
         """
         async with self._engine.connect() as connection:
             result = await connection.execute(
-                select(EspDeviceRow)
-                .where(EspDeviceRow.user_id == user_id.value)
-                .order_by(EspDeviceRow.created_at, EspDeviceRow.id)
+                select(EspDeviceModel)
+                .where(EspDeviceModel.user_id == user_id.value)
+                .order_by(EspDeviceModel.created_at, EspDeviceModel.id)
             )
             return [board_view_of(row) for row in result.scalars().all()]
 
@@ -65,14 +65,14 @@ class SqlBoardQueries:
         """
         async with self._engine.connect() as connection:
             result = await connection.execute(
-                select(EspClaimRow)
-                .where(EspClaimRow.claimed_by.is_(None))
-                .order_by(EspClaimRow.announced_at.desc(), EspClaimRow.id)
+                select(EspClaimModel)
+                .where(EspClaimModel.claimed_by.is_(None))
+                .order_by(EspClaimModel.announced_at.desc(), EspClaimModel.id)
             )
             return [claim_view_of(row) for row in result.scalars().all()]
 
 
-def board_view_of(row: EspDeviceRow) -> BoardView:
+def board_view_of(row: EspDeviceModel) -> BoardView:
     """Возвращает модель чтения одной сохранённой платы.
 
     Плата всегда показывается отключённой: доступность относится к живому слою железа,
@@ -88,12 +88,12 @@ def board_view_of(row: EspDeviceRow) -> BoardView:
         id=EspDeviceId.parse(row.id),
         name=row.name,
         online=False,
-        last_seen_at=None if row.last_seen_at is None else mappers.as_utc(row.last_seen_at),
+        last_seen_at=None if row.last_seen_at is None else as_utc(row.last_seen_at),
         current_ssid=row.current_ssid,
     )
 
 
-def claim_view_of(row: EspClaimRow) -> BoardClaimView:
+def claim_view_of(row: EspClaimModel) -> BoardClaimView:
     """Возвращает модель чтения одного сохранённого предложения.
 
     Ключ устройства в ответ не входит никогда: это учётные данные платы, а человеку
@@ -109,6 +109,6 @@ def claim_view_of(row: EspClaimRow) -> BoardClaimView:
         id=EspClaimId.parse(row.id),
         label=row.label,
         claim_token=row.claim_token,
-        announced_at=mappers.as_utc(row.announced_at),
-        expires_at=mappers.as_utc(row.expires_at),
+        announced_at=as_utc(row.announced_at),
+        expires_at=as_utc(row.expires_at),
     )

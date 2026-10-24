@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from backend.application.dto.personalization.dashboard_patch import DashboardPatch
 from backend.application.dto.personalization.preferences_patch import PreferencesPatch
-from backend.domain.aggregates.preferences.user_preferences import (
-    InterfaceLanguage,
-    TemperatureUnit,
-    Theme,
-)
+from backend.domain.entities.personalization.dashboard_widget import DashboardWidget
 from backend.domain.identifiers import DeviceId
-from backend.domain.value_objects.personalization.dashboard_widget import DashboardWidget
+from backend.domain.value_objects.personalization.interface_language import InterfaceLanguage
+from backend.domain.value_objects.personalization.temperature_unit import TemperatureUnit
+from backend.domain.value_objects.personalization.theme import Theme
 from backend.domain.value_objects.personalization.widget_kind import WidgetKind
 from backend.presentation.api.base import StrictModel
 
@@ -47,9 +45,23 @@ class DashboardWidgetBody(StrictModel):
         title: Личный заголовок поверх значения по умолчанию.
     """
 
-    type: WidgetKind
+    type: str
     device_id: str | None = None
     title: str | None = Field(default=None, max_length=TITLE_MAX_LENGTH)
+
+    @field_validator("type")
+    @classmethod
+    def _known_kind(cls, value: str) -> str:
+        """Отвергает компонент, которого интерфейс не рисует.
+
+        Args:
+            value: Названный вид карточки.
+
+        Returns:
+            str: То же значение, если оно читается перечислением.
+        """
+        WidgetKind.parse(value)
+        return value
 
 
 class DashboardBody(StrictModel):
@@ -93,7 +105,7 @@ def dashboard_patch(body: DashboardBody) -> DashboardPatch:
     return DashboardPatch(
         widgets=tuple(
             DashboardWidget(
-                kind=widget.type,
+                kind=WidgetKind.parse(widget.type),
                 device_id=(None if widget.device_id is None else DeviceId.parse(widget.device_id)),
                 title=widget.title,
             )

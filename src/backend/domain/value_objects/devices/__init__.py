@@ -1,6 +1,5 @@
-"""Модели чтения устройств."""
+"""Значения устройств: способности, их источники и модели чтения.
 
-from backend.domain.value_objects.devices.capability_report import CapabilityReport
-from backend.domain.value_objects.devices.device_view import DeviceView
-
-__all__ = ["CapabilityReport", "DeviceView"]
+Барель ничего не переэкспортирует: вызывающий называет тот модуль, который берёт, и
+пакет остаётся папкой, а не скрытым профилем импортов.
+"""

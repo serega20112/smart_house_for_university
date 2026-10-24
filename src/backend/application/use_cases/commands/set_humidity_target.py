@@ -6,7 +6,7 @@ from backend.application.dto.language.clarification_reason import ClarificationR
 from backend.application.dto.language.command_understanding import CommandUnderstanding
 from backend.application.dto.language.intent import Intent
 from backend.application.errors import CommandNotUnderstoodError
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.application.use_cases.commands.result import CommandReply
 from backend.domain.aggregates.automation.automation_settings import AutomationSettings
 from backend.domain.identifiers import UserId

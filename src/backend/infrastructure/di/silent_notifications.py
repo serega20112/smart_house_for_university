@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from backend.application.interface.services.notification import Notification
-from backend.application.interface.services.notification_factory import NotificationFactory
+from backend.application.interfaces.services.messaging.notification import Notification
+from backend.application.interfaces.services.messaging.notification_factory import (
+    NotificationFactory,
+)
 
 
 class SilentNotification(Notification):

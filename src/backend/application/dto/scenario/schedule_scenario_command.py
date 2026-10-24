@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
-from backend.domain.value_objects.scenario.scenario_action import ScenarioAction
 
 
 @dataclass(frozen=True, slots=True)

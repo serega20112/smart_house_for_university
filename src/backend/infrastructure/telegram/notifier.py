@@ -11,11 +11,11 @@
 
 from __future__ import annotations
 
-from backend.application.interface.services.notification import Notification
-from backend.application.interface.services.user_notifier import UserNotifier
+from backend.application.interfaces.services.messaging.notification import Notification
+from backend.application.interfaces.services.messaging.user_notifier import UserNotifier
 from backend.domain.identifiers import UserId
-from backend.infrastructure.logging import get_logger
-from backend.infrastructure.redis.chat_sessions import RedisChatSessionStore
+from backend.infrastructure.brokers.chat_sessions import RedisChatSessionStore
+from backend.infrastructure.system.logging import get_logger
 from backend.infrastructure.telegram.client import TelegramBotClient
 
 log = get_logger("telegram.notifier")

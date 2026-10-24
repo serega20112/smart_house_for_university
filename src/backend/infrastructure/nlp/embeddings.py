@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
-from typing import Protocol
 
-from backend.infrastructure.logging import get_logger
+from backend.application.interfaces.services.language.embedder import Embedder
+from backend.infrastructure.system.logging import get_logger
 
 log = get_logger("nlp.embeddings")
 
@@ -42,20 +42,6 @@ class EmbeddingsUnavailableError(RuntimeError):
         """
         super().__init__(f"cannot load the embedding model {model_name!r}: {reason}")
         self.model_name = model_name
-
-
-class Embedder(Protocol):
-    """Выдаёт нормированный вектор фразы."""
-
-    def encode(self, texts: Sequence[str]) -> list[list[float]]:
-        """Возвращает векторное представление каждой фразы.
-
-        Args:
-            texts: Фразы для кодирования.
-
-        Returns:
-            list[list[float]]: По одному вектору на фразу.
-        """
 
 
 class SentenceTransformerEmbedder(Embedder):

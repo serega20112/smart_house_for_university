@@ -89,22 +89,47 @@ python -m backend.worker_entry   -> ARQ-рабочий: цикл автомат�
 Аккаунты одного периода идут параллельно под семафором, каждый со своим таймаутом, так
 что дом с недоступной платой не задерживает остальные.
 
-Схема базы применяется ревизиями Alembic из `build/alembic` (`docker compose up`
+Схема базы применяется ревизиями Alembic из `build/migrations` (`docker compose up`
 запускает одноразовую службу `migrate`). Из кода таблицы не создаются никогда.
 
 ## Слои бэкенда
 
 ```text
-Presentation   api/v1 (по маршруту на тему) + requests/responses, websocket, telegram,
-               web, dependencies, errors, messages, security_helpers, app_factory
-     ↓
-Application    use_cases (по одному сценарию в файле), services, dto, interface
-               (repositories / queries / services / unit_of_work), errors
-     ↓
-Domain         aggregates, value_objects, policies, exceptions, identifiers, events
+Presentation   api/v1 (по маршруту на тему) + requests/responses, websockets (только
+               эндпоинт), telegram (разговор бота), web, errors, messages,
+               security_helpers, app_factory
      ↑
-Infrastructure database, redis, esp, nlp, security, telegram, di, clock, logging, worker
+Composition    events/lifecycle — старт и остановка подсистем; main и worker_entry
+     ↓
+Application    use_cases (по одному сценарию в файле), services, dto (плоские, без
+               логики), interfaces (repositories / queries / services / unit_of_work,
+               сгруппированные по подпакетам), errors
+     ↓
+Domain         aggregates (только корни: User, Device, Scenario, EspDevice,
+               DashboardState, AutomationSettings), entities (дочерние сущности и
+               модели без подчинённых), value_objects (значения, перечисления и модели
+               чтения), policies, exceptions, identifiers, events
+     ↑
+Infrastructure database (engine, unit_of_work, models, mappers, repositories, queries),
+               brokers (Redis: состояние, события, аренды), esp (транспорт плат и
+               кодек кадров), nlp (драйверы: pgvector, torch, HTTP модели), security,
+               telegram (только транспорт бота), websockets (концентратор сокетов),
+               workers (фоновые циклы), system (часы и журнал), di
 ```
+
+Правила раскладки, которые держатся во всех слоях: модулей в корне пакета нет — то, что
+раньше висело файлом (`clock.py`, `logging.py`, `unit_of_work.py`), либо собрано в
+подпакет (`system`, `database`), либо остаётся одиночным модулем там, где он и должен быть.
+Агрегат — только тот корень, без которого другие доменные объекты не существуют (или
+чьи инварианты над ними держатся); всё остальное понижено до `domain/entities`, а
+enum'ы живут отдельным файлом в `domain/value_objects`, а не попутчиком агрегата.
+Порты прикладного слоя разложены по подпакетам (`boards`, `language`,
+`messaging`, `security`, `state`, `system`), чтобы в одной папке не лежал список из
+двадцати файлов.
+
+Каждый внешний мир — отдельный адаптер в своём пакете: в `telegram` нет ни часов, ни
+планировщика, ни состояния домов; фоновые циклы лежат в `workers`, а не прячутся за
+транспортом бота.
 
 Зависимости направлены внутрь. Домен не знает ни про FastAPI, ни про SQLAlchemy, ни про
 Telegram, ни про конкретную библиотеку эмбеддингов — только про свои типы. Границы
@@ -112,10 +137,17 @@ Telegram, ни про конкретную библиотеку эмбеддин
 свободен от фреймворков и внешних слоёв, прикладной слой не заглядывает в
 инфраструктуру.
 
-Граф зависимостей собирает Dishka (`infrastructure/di`): один провайдер на тему, две
-области видимости (приложение и запрос), и ни одного сервис-локатора. Целостность графа
-проверяется скриптом `scripts/check_app_wires.py`, который запрашивает каждый узел —
-ленивый контейнер сам по себе о недостающей зависимости не сообщает.
+Граф зависимостей собирает Dishka (`infrastructure/di`), и провайдеры разложены по
+областям видимости: `providers/app/<подсистема>.py` — одиночные адаптеры процесса
+(`Scope.APP`, они сами запускаются и гасятся при закрытии контейнера),
+`providers/use_cases/<фича>.py` — сборка сценариев (`Scope.REQUEST`, класс
+`<Фича>UseCaseProvider`). Ключами контейнера остаются порты, а не их реализации, так что
+заменить Redis или базу можно, не трогая сценарии. Домен через контейнер не
+провайдерится: решатели вроде `DeviceSelector` ни от чего не зависят и строятся там, где
+используются. Ни одного сервис-локатора: маршруты получают зависимости через
+`FromDishka`, а не вынимают их из `app.state`. Целостность графа проверяется скриптом
+`scripts/check_app_wires.py`, который запрашивает каждый узел — ленивый контейнер сам по
+себе о недостающей зависимости не сообщает.
 
 ## Ключевые решения
 

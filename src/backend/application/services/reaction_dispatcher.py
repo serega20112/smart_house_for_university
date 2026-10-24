@@ -17,7 +17,9 @@ from dataclasses import dataclass
 
 import structlog
 
-from backend.application.interface.services.domain_event_dispatcher import DomainEventDispatcher
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
 
 log = structlog.get_logger("application.reactions")
 

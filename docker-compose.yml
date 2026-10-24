@@ -35,7 +35,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["alembic", "-c", "build/alembic/alembic.ini", "upgrade", "head"]
+    command: ["alembic", "-c", "build/migrations/alembic.ini", "upgrade", "head"]
     environment:
       DATABASE_URL: postgresql+asyncpg://backend:backend@postgres:5432/backend
     depends_on:

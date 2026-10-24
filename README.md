@@ -19,7 +19,7 @@ ESP8266, шестиканального релейного модуля и да�
 | `src/backend` | Вся логика на Python: FastAPI, SQLAlchemy, понимание фраз |
 | `src/frontend` | Веб-интерфейс на React: карточки устройств, климат, чат |
 | `src/firmware` | Прошивка ESP8266: реле, датчик, дозвон до сервера |
-| `build/alembic` | Ревизии схемы базы |
+| `build/migrations` | Ревизии схемы базы |
 | `docs` | Архитектура, протокол платы, железо, API |
 
 ## Как это работает
@@ -82,10 +82,10 @@ PYTHONPATH=src python -m backend.main
 Первый пользователь регистрируется через `/api/auth/register` и сразу получает
 свой набор устройств, настроек и главный экран.
 
-Схема на PostgreSQL и ведётся ревизиями из `build/alembic`:
+Схема на PostgreSQL и ведётся ревизиями из `build/migrations`:
 
 ```bash
-PYTHONPATH=src .venv/bin/alembic -c build/alembic/alembic.ini upgrade head
+PYTHONPATH=src .venv/bin/alembic -c build/migrations/alembic.ini upgrade head
 ```
 
 Фразы человек читает русские, поэтому `AUTH_TOKEN_SECRET` задают обязательно:

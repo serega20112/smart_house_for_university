@@ -29,6 +29,7 @@ __all__ = [
     "EmailAlreadyTakenError",
     "InvalidCredentialsError",
     "NoDeviceForCapabilityError",
+    "RemoteUnderstandingUnavailable",
     "ScenarioNotFoundError",
 ]
 
@@ -176,6 +177,19 @@ class BoardAlreadyClaimedError(ApplicationError):
 
     def __init__(self) -> None:
         super().__init__("this board is already owned by another account")
+
+
+class RemoteUnderstandingUnavailable(ApplicationError):
+    """Удалённая модель понимания фраз не смогла ответить.
+
+    Args:
+        reason: Машинночитаемая причина отказа.
+    """
+
+    def __init__(self, reason: str) -> None:
+        """Инициализирует отказ."""
+        super().__init__(reason)
+        self.reason = reason
 
 
 class CommandNotUnderstoodError(ApplicationError):

@@ -13,10 +13,14 @@ from backend.domain.aggregates.user.user import User
 from backend.domain.identifiers import (
     UserId,
 )
-from backend.infrastructure.database import mappers
-from backend.infrastructure.database.repositories.base import first_row, is_unique_violation
-from backend.infrastructure.database.tables import (
-    UserRow,
+from backend.infrastructure.database.mappers.accounts import user_from_row, user_to_row
+from backend.infrastructure.database.models import (
+    UserModel,
+)
+from backend.infrastructure.database.repositories.base import (
+    first_row,
+    is_unique_violation,
+    row_values,
 )
 
 UNIQUE_VIOLATION = "23505"
@@ -51,9 +55,9 @@ class SqlAccountRepository:
         Raises:
             EmailAlreadyTakenError: Когда логин уже зарегистрирован.
         """
-        values = mappers.row_values(UserRow.__table__, mappers.user_to_row(user))
+        values = row_values(UserModel.__table__, user_to_row(user))
         try:
-            await self._session.execute(insert(UserRow.__table__).values(**values))
+            await self._session.execute(insert(UserModel.__table__).values(**values))
             await self._session.flush()
         except IntegrityError as error:
             if not is_unique_violation(error):
@@ -69,5 +73,5 @@ class SqlAccountRepository:
         Returns:
             User | None: Аккаунт или None, когда его не существует.
         """
-        row = await first_row(self._session, UserRow, UserRow.id == user_id.value)
-        return None if row is None else mappers.user_from_row(row)
+        row = await first_row(self._session, UserModel, UserModel.id == user_id.value)
+        return None if row is None else user_from_row(row)

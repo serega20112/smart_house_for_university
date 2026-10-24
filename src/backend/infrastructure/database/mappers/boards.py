@@ -2,30 +2,30 @@
 
 from __future__ import annotations
 
-from backend.domain.aggregates.board_network.board_network import BoardNetwork
-from backend.domain.aggregates.esp_claim.esp_claim import EspClaim
 from backend.domain.aggregates.esp_device.esp_device import EspDevice
+from backend.domain.entities.boards.board_network import BoardNetwork
+from backend.domain.entities.esp_claim.esp_claim import EspClaim
 from backend.domain.identifiers import EspClaimId, EspDeviceId, UserId
 from backend.domain.value_objects.boards.network_profile import NetworkProfile
 from backend.domain.value_objects.boards.pairing_key import PairingKey
 from backend.infrastructure.database.mappers.base import as_utc
-from backend.infrastructure.database.tables import (
-    BoardNetworkRow,
-    EspClaimRow,
-    EspDeviceRow,
+from backend.infrastructure.database.models import (
+    BoardNetworkModel,
+    EspClaimModel,
+    EspDeviceModel,
 )
 
 
-def board_to_row(board: EspDevice) -> EspDeviceRow:
+def board_to_row(board: EspDevice) -> EspDeviceModel:
     """Строит строку, описывающую сопряжённую плату.
 
     Args:
         board: Плата для сериализации.
 
     Returns:
-        EspDeviceRow: Новая строка, описывающая плату.
+        EspDeviceModel: Новая строка, описывающая плату.
     """
-    return EspDeviceRow(
+    return EspDeviceModel(
         id=board.id.value,
         user_id=board.user_id.value,
         name=board.name,
@@ -36,7 +36,7 @@ def board_to_row(board: EspDevice) -> EspDeviceRow:
     )
 
 
-def board_from_row(row: EspDeviceRow) -> EspDevice:
+def board_from_row(row: EspDeviceModel) -> EspDevice:
     """Строит плату, описанную строкой.
 
     Args:
@@ -56,16 +56,16 @@ def board_from_row(row: EspDeviceRow) -> EspDevice:
     )
 
 
-def claim_to_row(claim: EspClaim) -> EspClaimRow:
+def claim_to_row(claim: EspClaim) -> EspClaimModel:
     """Строит строку, описывающую объявленную плату без хозяина.
 
     Args:
         claim: Предложение для сериализации.
 
     Returns:
-        EspClaimRow: Новая строка, описывающая предложение.
+        EspClaimModel: Новая строка, описывающая предложение.
     """
-    return EspClaimRow(
+    return EspClaimModel(
         id=claim.id.value,
         device_key=claim.device_key.value,
         label=claim.label,
@@ -76,7 +76,7 @@ def claim_to_row(claim: EspClaim) -> EspClaimRow:
     )
 
 
-def claim_from_row(row: EspClaimRow) -> EspClaim:
+def claim_from_row(row: EspClaimModel) -> EspClaim:
     """Строит предложение, описанное строкой.
 
     Args:
@@ -96,17 +96,17 @@ def claim_from_row(row: EspClaimRow) -> EspClaim:
     )
 
 
-def network_to_row(network: BoardNetwork) -> BoardNetworkRow:
+def network_to_row(network: BoardNetwork) -> BoardNetworkModel:
     """Строит строку, описывающую сеть платы.
 
     Args:
         network: Сеть для сериализации.
 
     Returns:
-        BoardNetworkRow: Новая строка, описывающая сеть.
+        BoardNetworkModel: Новая строка, описывающая сеть.
     """
     profile = network.profile
-    return BoardNetworkRow(
+    return BoardNetworkModel(
         board_id=network.board_id.value,
         user_id=network.user_id.value,
         ssid=profile.ssid,
@@ -119,7 +119,7 @@ def network_to_row(network: BoardNetwork) -> BoardNetworkRow:
     )
 
 
-def network_from_row(row: BoardNetworkRow) -> BoardNetwork:
+def network_from_row(row: BoardNetworkModel) -> BoardNetwork:
     """Строит сеть, описанную строкой.
 
     Args:

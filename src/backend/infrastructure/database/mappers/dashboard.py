@@ -5,28 +5,28 @@ from __future__ import annotations
 from uuid import uuid4
 
 from backend.domain.aggregates.dashboard.dashboard_state import DashboardState
+from backend.domain.entities.personalization.dashboard_widget import DashboardWidget
 from backend.domain.identifiers import DeviceId, UserId
-from backend.domain.value_objects.personalization.dashboard_widget import DashboardWidget
 from backend.domain.value_objects.personalization.widget_kind import WidgetKind
-from backend.infrastructure.database.tables import (
-    DashboardRow,
-    DashboardWidgetRow,
+from backend.infrastructure.database.models import (
+    DashboardModel,
+    DashboardWidgetModel,
 )
 
 
-def dashboard_to_row(dashboard: DashboardState) -> DashboardRow:
+def dashboard_to_row(dashboard: DashboardState) -> DashboardModel:
     """Строит строку, отмечающую, что у аккаунта есть раскладка.
 
     Args:
         dashboard: Раскладка для сериализации.
 
     Returns:
-        DashboardRow: Новая строка, описывающая владельца раскладки.
+        DashboardModel: Новая строка, описывающая владельца раскладки.
     """
-    return DashboardRow(user_id=dashboard.user_id.value)
+    return DashboardModel(user_id=dashboard.user_id.value)
 
 
-def widget_rows(dashboard: DashboardState) -> list[DashboardWidgetRow]:
+def widget_rows(dashboard: DashboardState) -> list[DashboardWidgetModel]:
     """Строит по строке на каждую карточку раскладки главного экрана.
 
     Своей идентичности у карточки в модели нет, поэтому хранилище выдаёт её само. Порядок
@@ -36,10 +36,10 @@ def widget_rows(dashboard: DashboardState) -> list[DashboardWidgetRow]:
         dashboard: Раскладка для сериализации.
 
     Returns:
-        list[DashboardWidgetRow]: Строки в порядке вывода.
+        list[DashboardWidgetModel]: Строки в порядке вывода.
     """
     return [
-        DashboardWidgetRow(
+        DashboardWidgetModel(
             id=uuid4(),
             user_id=dashboard.user_id.value,
             position=position,
@@ -51,7 +51,7 @@ def widget_rows(dashboard: DashboardState) -> list[DashboardWidgetRow]:
     ]
 
 
-def dashboard_from_row(row: DashboardRow, widgets: list[DashboardWidgetRow]) -> DashboardState:
+def dashboard_from_row(row: DashboardModel, widgets: list[DashboardWidgetModel]) -> DashboardState:
     """Строит раскладку, описанную её строкой и строками карточек.
 
     Карточка, чьё устройство удалили, приходит без него. Нарисовать такую нельзя, поэтому
@@ -73,7 +73,7 @@ def dashboard_from_row(row: DashboardRow, widgets: list[DashboardWidgetRow]) -> 
     return DashboardState(user_id=UserId.parse(row.user_id), widgets=tuple(restored))
 
 
-def widget_from_row(row: DashboardWidgetRow) -> DashboardWidget | None:
+def widget_from_row(row: DashboardWidgetModel) -> DashboardWidget | None:
     """Строит одну карточку раскладки или None, когда её больше нельзя нарисовать.
 
     Args:

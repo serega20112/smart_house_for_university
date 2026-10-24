@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.services.home_state_store import HomeStateStore
+from backend.application.interfaces.services.state.home_state_store import HomeStateStore
+from backend.application.interfaces.services.system.clock import Clock
 from backend.domain.events import DeviceCapabilityApplied
 from backend.domain.identifiers import UserId
 

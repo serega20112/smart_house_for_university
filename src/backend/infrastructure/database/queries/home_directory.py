@@ -10,13 +10,13 @@ from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from backend.application.interface.services.home_device_directory import HomeDeviceDirectory
+from backend.application.interfaces.services.state.home_device_directory import HomeDeviceDirectory
 from backend.domain.aggregates.device.device import Device
 from backend.domain.identifiers import UserId
-from backend.infrastructure.database import mappers
+from backend.infrastructure.database.mappers.device import device_from_row
+from backend.infrastructure.database.models import DeviceModel
 from backend.infrastructure.database.repositories.base import every_row
 from backend.infrastructure.database.repositories.child_rows import capabilities_of
-from backend.infrastructure.database.tables import DeviceRow
 
 
 class SqlHomeDeviceDirectory(HomeDeviceDirectory):
@@ -44,9 +44,9 @@ class SqlHomeDeviceDirectory(HomeDeviceDirectory):
             list[Device]: Настроенные устройства.
         """
         async with self._engine.connect() as connection:
-            rows = await every_row(connection, DeviceRow, DeviceRow.user_id == user_id.value)
+            rows = await every_row(connection, DeviceModel, DeviceModel.user_id == user_id.value)
             stored = await capabilities_of(connection, [row.id for row in rows])
-        return [mappers.device_from_row(row, stored.get(row.id, frozenset())) for row in rows]
+        return [device_from_row(row, stored.get(row.id, frozenset())) for row in rows]
 
     async def by_channel(self, user_id: UserId) -> dict[int, Device]:
         """Возвращает устройства дома, выставленные по каналу реле.

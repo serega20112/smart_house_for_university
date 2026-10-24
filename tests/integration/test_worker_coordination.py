@@ -14,11 +14,18 @@ import pytest
 from fakeredis import aioredis
 
 from backend.domain.identifiers import UserId
-from backend.infrastructure.redis.locks import RedisDistributedLock
-from backend.infrastructure.worker import run_for_each_user
+from backend.infrastructure.brokers.locks import RedisDistributedLock
+from backend.infrastructure.workers.worker import WorkerLimits, run_for_each_user
 
 TTL_SEC = 30
 REFRESH_SEC = 10
+
+LIMITS = WorkerLimits(
+    max_concurrent_users=2,
+    per_user_timeout_sec=10,
+    lock_ttl_sec=TTL_SEC,
+    lock_refresh_sec=REFRESH_SEC,
+)
 
 
 def make_lock() -> RedisDistributedLock:
@@ -53,8 +60,8 @@ async def test_two_workers_run_each_account_exactly_once() -> None:
         await asyncio.sleep(0.05)
 
     await asyncio.gather(
-        run_for_each_user(user_ids, run, lock, lock_name="automation"),
-        run_for_each_user(user_ids, run, lock, lock_name="automation"),
+        run_for_each_user(user_ids, run, lock, lock_name="automation", limits=LIMITS),
+        run_for_each_user(user_ids, run, lock, lock_name="automation", limits=LIMITS),
     )
 
     assert sorted(runs) == sorted(str(user_id) for user_id in user_ids)

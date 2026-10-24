@@ -17,16 +17,16 @@ from backend.application.errors import (
     BoardNotFoundError,
     ClaimNotFoundError,
 )
-from backend.application.interface.queries.board_queries import BoardQueries
-from backend.application.interface.services.board_gateway import BoardGateway
-from backend.application.interface.services.clock import Clock
-from backend.application.interface.services.realtime_publisher import RealtimePublisher
-from backend.application.interface.unit_of_work.board_onboarding import (
+from backend.application.interfaces.queries.board_queries import BoardQueries
+from backend.application.interfaces.services.boards.board_gateway import BoardGateway
+from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
+from backend.application.interfaces.services.system.clock import Clock
+from backend.application.interfaces.unit_of_work.board_onboarding import (
     BoardOnboardingUnitOfWorkFactory,
 )
 from backend.application.use_cases.boards.result import PairedBoard
-from backend.domain.aggregates.esp_claim.esp_claim import EspClaim
 from backend.domain.aggregates.esp_device.esp_device import EspDevice
+from backend.domain.entities.esp_claim.esp_claim import EspClaim
 from backend.domain.events import EventName
 from backend.domain.identifiers import EspDeviceId, UserId
 from backend.domain.value_objects.boards.board_view import BoardView

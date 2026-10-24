@@ -8,9 +8,11 @@
 from __future__ import annotations
 
 from backend.application.dto.automation.automation_patch import AutomationPatch
-from backend.application.interface.services.domain_event_dispatcher import DomainEventDispatcher
-from backend.application.interface.services.realtime_publisher import RealtimePublisher
-from backend.application.interface.unit_of_work.home import HomeUnitOfWorkFactory
+from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
+    DomainEventDispatcher,
+)
+from backend.application.interfaces.services.messaging.realtime_publisher import RealtimePublisher
+from backend.application.interfaces.unit_of_work.home import HomeUnitOfWorkFactory
 from backend.domain.aggregates.automation.automation_settings import AutomationSettings
 from backend.domain.events import EventName
 from backend.domain.identifiers import UserId

@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 from backend.config import Settings
-from backend.infrastructure.worker import run_worker
+from backend.infrastructure.workers.worker import run_worker
 from backend.presentation.messages import NotificationFactoryImpl
 
 

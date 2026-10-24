@@ -9,10 +9,10 @@ from backend.application.dto.scenario.schedule_scenario_command import ScheduleS
 from backend.application.errors import CommandNotUnderstoodError
 from backend.application.use_cases.commands.result import CommandReply
 from backend.application.use_cases.scenarios.schedule_scenario import ScheduleScenarioUseCase
+from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.identifiers import UserId
 from backend.domain.policies.climate_policy import DemandCalculator
 from backend.domain.value_objects.devices.capability import Capability
-from backend.domain.value_objects.scenario.scenario_action import ScenarioAction
 
 
 class ScheduleScenarioCommandUseCase:

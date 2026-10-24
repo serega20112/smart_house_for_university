@@ -16,7 +16,7 @@ from websockets.asyncio.server import ServerConnection
 
 from backend.domain.identifiers import EspDeviceId, UserId
 from backend.infrastructure.esp import protocol
-from backend.infrastructure.logging import get_logger
+from backend.infrastructure.system.logging import get_logger
 
 log = get_logger("esp.session")
 

@@ -1,6 +1,7 @@
 import pytest
 
-from backend.domain.value_objects.devices.capability import Capability, ControlSource
+from backend.domain.value_objects.devices.capability import Capability
+from backend.domain.value_objects.devices.control_source import ControlSource
 
 
 @pytest.mark.parametrize("capability", list(Capability))

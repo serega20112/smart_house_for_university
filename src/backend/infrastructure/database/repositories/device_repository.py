@@ -17,18 +17,23 @@ from backend.domain.identifiers import (
     DeviceId,
     UserId,
 )
-from backend.infrastructure.database import mappers
+from backend.infrastructure.database.mappers.device import (
+    capability_rows,
+    device_from_row,
+    device_to_row,
+)
+from backend.infrastructure.database.models import (
+    DeviceCapabilityModel,
+    DeviceModel,
+)
 from backend.infrastructure.database.repositories.base import (
     every_row,
     first_row,
     insert_rows,
     is_unique_violation,
+    row_values,
 )
 from backend.infrastructure.database.repositories.child_rows import capabilities_of
-from backend.infrastructure.database.tables import (
-    DeviceCapabilityRow,
-    DeviceRow,
-)
 
 UNIQUE_VIOLATION = "23505"
 Runner = AsyncConnection | AsyncSession
@@ -58,9 +63,9 @@ class SqlDeviceRepository:
         Returns:
             Sequence[Device]: Настроенные устройства.
         """
-        rows = await every_row(self._session, DeviceRow, DeviceRow.user_id == user_id.value)
+        rows = await every_row(self._session, DeviceModel, DeviceModel.user_id == user_id.value)
         stored = await capabilities_of(self._session, [row.id for row in rows])
-        return [mappers.device_from_row(row, stored.get(row.id, frozenset())) for row in rows]
+        return [device_from_row(row, stored.get(row.id, frozenset())) for row in rows]
 
     async def get(self, user_id: UserId, device_id: DeviceId) -> Device | None:
         """Возвращает одно устройство аккаунта.
@@ -77,14 +82,14 @@ class SqlDeviceRepository:
         """
         row = await first_row(
             self._session,
-            DeviceRow,
-            DeviceRow.id == device_id.value,
-            DeviceRow.user_id == user_id.value,
+            DeviceModel,
+            DeviceModel.id == device_id.value,
+            DeviceModel.user_id == user_id.value,
         )
         if row is None:
             return None
         stored = await capabilities_of(self._session, [row.id])
-        return mappers.device_from_row(row, stored.get(row.id, frozenset()))
+        return device_from_row(row, stored.get(row.id, frozenset()))
 
     async def add(self, device: Device) -> None:
         """Сохраняет только что созданное устройство.
@@ -101,11 +106,11 @@ class SqlDeviceRepository:
             ChannelConflictError: Когда канал уже подключён к другому устройству того
                 же аккаунта.
         """
-        values = mappers.row_values(DeviceRow.__table__, mappers.device_to_row(device))
+        values = row_values(DeviceModel.__table__, device_to_row(device))
         try:
-            await self._session.execute(insert(DeviceRow.__table__).values(**values))
+            await self._session.execute(insert(DeviceModel.__table__).values(**values))
             await insert_rows(
-                self._session, DeviceCapabilityRow.__table__, mappers.capability_rows(device)
+                self._session, DeviceCapabilityModel.__table__, capability_rows(device)
             )
             await self._session.flush()
         except IntegrityError as error:
@@ -129,14 +134,14 @@ class SqlDeviceRepository:
             ChannelConflictError: Когда новый канал уже подключён к другому устройству
                 того же аккаунта.
         """
-        row = mappers.device_to_row(device)
+        row = device_to_row(device)
         try:
             result = await self._session.execute(
-                update(DeviceRow)
+                update(DeviceModel)
                 .where(
-                    DeviceRow.id == device.id.value,
-                    DeviceRow.user_id == device.user_id.value,
-                    DeviceRow.version == device.version,
+                    DeviceModel.id == device.id.value,
+                    DeviceModel.user_id == device.user_id.value,
+                    DeviceModel.version == device.version,
                 )
                 .values(
                     name=row.name,
@@ -156,11 +161,9 @@ class SqlDeviceRepository:
             raise ConcurrentModificationError("device", device.id)
         device.version += 1
         await self._session.execute(
-            delete(DeviceCapabilityRow).where(DeviceCapabilityRow.device_id == device.id.value)
+            delete(DeviceCapabilityModel).where(DeviceCapabilityModel.device_id == device.id.value)
         )
-        await insert_rows(
-            self._session, DeviceCapabilityRow.__table__, mappers.capability_rows(device)
-        )
+        await insert_rows(self._session, DeviceCapabilityModel.__table__, capability_rows(device))
         await self._session.flush()
 
     async def delete(self, user_id: UserId, device_id: DeviceId) -> bool:
@@ -178,8 +181,8 @@ class SqlDeviceRepository:
             bool: True, когда устройство убрали.
         """
         result = await self._session.execute(
-            delete(DeviceRow).where(
-                DeviceRow.id == device_id.value, DeviceRow.user_id == user_id.value
+            delete(DeviceModel).where(
+                DeviceModel.id == device_id.value, DeviceModel.user_id == user_id.value
             )
         )
         return bool(result.rowcount)

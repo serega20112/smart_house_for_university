@@ -13,13 +13,13 @@ from backend.domain.identifiers import (
     UserId,
 )
 from backend.domain.value_objects.automation.automation_view import AutomationView
-from backend.infrastructure.database import mappers
+from backend.infrastructure.database.mappers.automation import automation_from_row
+from backend.infrastructure.database.models import (
+    AutomationModel,
+)
 from backend.infrastructure.database.repositories.base import first_row
 from backend.infrastructure.database.repositories.child_rows import (
     participants_of,
-)
-from backend.infrastructure.database.tables import (
-    AutomationRow,
 )
 
 
@@ -52,11 +52,13 @@ class SqlAutomationQueries:
             AutomationView: Настройка, приготовленная для показа.
         """
         async with self._engine.connect() as connection:
-            row = await first_row(connection, AutomationRow, AutomationRow.user_id == user_id.value)
+            row = await first_row(
+                connection, AutomationModel, AutomationModel.user_id == user_id.value
+            )
             participants = await participants_of(connection, user_id)
         if row is None:
             return automation_view_of(AutomationSettings.create(user_id), frozenset())
-        return automation_view_of(mappers.automation_from_row(row, participants), participants)
+        return automation_view_of(automation_from_row(row, participants), participants)
 
 
 def automation_view_of(

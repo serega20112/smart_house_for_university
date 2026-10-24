@@ -10,7 +10,7 @@ from __future__ import annotations
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from backend.infrastructure.logging import get_logger
+from backend.infrastructure.system.logging import get_logger
 from backend.presentation.telegram.conversation import TelegramConversation
 
 log = get_logger("telegram.updates")

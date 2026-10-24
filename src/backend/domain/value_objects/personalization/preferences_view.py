@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from backend.domain.aggregates.preferences.user_preferences import (
+    from backend.domain.entities.personalization.user_preferences import (
         InterfaceLanguage,
         TemperatureUnit,
         Theme,

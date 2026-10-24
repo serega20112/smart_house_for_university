@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from backend.domain.aggregates.home_state.home_state import HomeState
+from backend.domain.entities.home_state.home_state import HomeState
 from backend.domain.identifiers import UserId
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.devices.device_status import DeviceStatus

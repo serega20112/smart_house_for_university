@@ -13,47 +13,51 @@ from __future__ import annotations
 
 from dishka import AsyncContainer, make_async_container
 
-from backend.application.interface.services.notification_factory import NotificationFactory
+from backend.application.interfaces.services.messaging.notification_factory import (
+    NotificationFactory,
+)
 from backend.config.settings import Settings
 from backend.infrastructure.di.providers import (
-    AccountProvider,
-    AutomationProvider,
-    BoardProvider,
-    CommandProvider,
-    CoreProvider,
-    DeviceProvider,
-    DomainProvider,
-    EspProvider,
-    HomeProvider,
-    LanguageProvider,
+    AccountsUseCaseProvider,
+    AutomationUseCaseProvider,
+    BoardSocketProvider,
+    BoardsUseCaseProvider,
+    BrokersProvider,
+    CommandsUseCaseProvider,
+    DatabaseProvider,
+    DevicesUseCaseProvider,
+    HomeUseCaseProvider,
     PersistenceProvider,
-    PersonalizationProvider,
-    ScenarioProvider,
+    PersonalizationUseCaseProvider,
+    PhrasesProvider,
+    RuntimeProvider,
+    ScenariosUseCaseProvider,
     SecurityProvider,
     TelegramProvider,
-    VolatileStateProvider,
+    WebSocketsProvider,
 )
 from backend.infrastructure.di.silent_notifications import SilentNotificationFactory
 
 Container = AsyncContainer
 
 PROVIDERS = (
-    CoreProvider(),
-    SecurityProvider(),
+    RuntimeProvider(),
+    DatabaseProvider(),
     PersistenceProvider(),
-    VolatileStateProvider(),
-    LanguageProvider(),
+    BrokersProvider(),
+    SecurityProvider(),
+    PhrasesProvider(),
     TelegramProvider(),
-    DomainProvider(),
-    EspProvider(),
-    HomeProvider(),
-    AutomationProvider(),
-    ScenarioProvider(),
-    CommandProvider(),
-    AccountProvider(),
-    DeviceProvider(),
-    BoardProvider(),
-    PersonalizationProvider(),
+    WebSocketsProvider(),
+    BoardSocketProvider(),
+    HomeUseCaseProvider(),
+    AutomationUseCaseProvider(),
+    ScenariosUseCaseProvider(),
+    CommandsUseCaseProvider(),
+    AccountsUseCaseProvider(),
+    DevicesUseCaseProvider(),
+    BoardsUseCaseProvider(),
+    PersonalizationUseCaseProvider(),
 )
 
 

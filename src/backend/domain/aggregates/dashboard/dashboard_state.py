@@ -14,9 +14,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Self
 
+from backend.domain.entities.personalization.dashboard_widget import DashboardWidget
 from backend.domain.exceptions import DashboardAccessDeniedError, InvalidDashboardLayoutError
 from backend.domain.identifiers import DeviceId, UserId
-from backend.domain.value_objects.personalization.dashboard_widget import DashboardWidget
 from backend.domain.value_objects.personalization.widget_kind import WidgetKind
 
 MAX_WIDGETS = 40
