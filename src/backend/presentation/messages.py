@@ -11,6 +11,7 @@ from __future__ import annotations
 from backend.application.dto.language.intent import Intent
 from backend.application.interfaces.services.messaging.notification import Notification
 from backend.application.use_cases.commands.result import CommandReply
+from backend.domain.value_objects.devices.device_status import DeviceStatus
 
 EMAIL_TAKEN = "Этот email уже занят."
 INVALID_CREDENTIALS = "Неверный email или пароль."
@@ -74,6 +75,7 @@ COMMAND_SCENARIO_STARTED = "Сценарий запущен, начало в {st
 COMMAND_SCENARIO_CANCELLED = "Сценарий отменён."
 STATUS_ON = "включено"
 STATUS_OFF = "выключено"
+STATUS_UNAVAILABLE = "нет связи"
 UNKNOWN_VALUE = "неизвестно"
 TELEGRAM_LINK_INSTRUCTION = (
     "Аккаунт ещё не привязан к этому чату. Открой интерфейс, получи там код "
@@ -281,8 +283,16 @@ class CommandReplyComposer:
 
     @staticmethod
     def _status(raw: object) -> str:
-        """Возвращает русское название положения контакта."""
-        return STATUS_ON if raw == "ON" else STATUS_OFF
+        """Возвращает русское название состояния устройства.
+
+        Прикладной слой отдаёт состояние из перечисления дома, а не положение контакта:
+        делом считается всё, кроме выключенного и недоступного.
+        """
+        if raw == DeviceStatus.OFF.value:
+            return STATUS_OFF
+        if raw == DeviceStatus.UNAVAILABLE.value:
+            return STATUS_UNAVAILABLE
+        return STATUS_ON
 
     @staticmethod
     def _number(raw: object) -> str:

@@ -1,0 +1,96 @@
+/*
+ * Раскладка главного экрана.
+ *
+ * Bento-сетка: широкая колонка дома и узкая колонка команд во всю высоту. Панель команд
+ * прилипает к верху, потому что к ней возвращаются, пока листают устройства, — а сама
+ * лента прокручивается внутри, не растягивая страницу.
+ */
+
+.home {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--gap-lg);
+}
+
+.home--split {
+  grid-template-columns: minmax(0, 1fr) var(--rail);
+  align-items: start;
+}
+
+.home__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+  min-width: 0;
+}
+
+.home__command {
+  min-width: 0;
+  position: sticky;
+  top: var(--gap-xl);
+}
+
+/* Потолок высоты: лента команд прокручивается внутри панели, а не растягивает экран. */
+.home__command .chat {
+  max-height: calc(100vh - var(--gap-xl) * 2);
+}
+
+/* --- Зона устройств ------------------------------------------------------- */
+
+.home__devices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.home__zone-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  padding-bottom: var(--gap-xs);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.home__zone-title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.home__zone-note {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Загрузка ------------------------------------------------------------- */
+
+.home--loading {
+  gap: var(--gap-lg);
+}
+
+/* --- Адаптив: колонки складываются в одну --------------------------------- */
+
+@media (max-width: 1180px) {
+  .home--split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home__command {
+    position: static;
+  }
+
+  .home__command .chat {
+    max-height: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .home {
+    gap: var(--gap);
+  }
+
+  .home__main {
+    gap: var(--gap);
+  }
+}

@@ -1,0 +1,66 @@
+/*
+ * Форма отложенного действия.
+ *
+ * Короткие поля складываются в сетку: на широком экране это две строки, на узком —
+ * одна колонка, и порядок полей не меняется.
+ */
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--gap);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--grad-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.composer__head {
+  padding-bottom: var(--gap-sm);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.composer__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.composer__note {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.composer__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--gap-xs);
+}
+
+.composer__wide {
+  grid-column: 1 / -1;
+}
+
+.composer__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding-top: var(--gap-sm);
+  border-top: 1px solid var(--line-soft);
+}
+
+.composer__hint {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  max-width: 40ch;
+}
+
+@media (max-width: 640px) {
+  .composer__foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

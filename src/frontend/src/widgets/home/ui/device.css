@@ -1,0 +1,100 @@
+/*
+ * Плитка устройства.
+ *
+ * Состояние читается кромкой и подписью до того, как человек долистал до деталей:
+ * оттенок задаёт общий `statusTone`, а не настроение этого файла.
+ */
+
+.device {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding: var(--gap);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--grad-card);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.device:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow);
+}
+
+.device--ok {
+  border-color: color-mix(in srgb, var(--ok) 30%, var(--line));
+}
+
+.device--bad {
+  border-color: color-mix(in srgb, var(--bad) 35%, var(--line));
+  background: var(--surface-2);
+}
+
+.device__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.device__titles {
+  min-width: 0;
+}
+
+.device__name {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device__note {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  padding-top: var(--gap-xs);
+  border-top: 1px solid var(--line-soft);
+}
+
+.device__state {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.device__state--ok {
+  color: var(--ok);
+}
+
+.device__state--warn {
+  color: var(--warn);
+}
+
+.device__state--bad {
+  color: var(--bad);
+}
+
+/* Ряд доверенных способностей: те же chips, что и в фильтре устройств. */
+.device__extra {
+  padding-top: var(--gap-xs);
+  border-top: 1px dashed var(--line-soft);
+}
+
+.device__extra .chip {
+  padding: 5px 11px;
+  font-size: var(--fs-xs);
+}

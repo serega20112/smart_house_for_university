@@ -1,0 +1,175 @@
+/*
+ * Повторяющиеся куски содержимого: список, строки фактов, пустое место и отказ.
+ *
+ * Ни у чего из этого нет своего компонента: список собирает тот экран, который его
+ * показывает, а правила одинаковы сразу на нескольких.
+ */
+
+/* --- Список -------------------------------------------------------------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: calc(-1 * var(--gap-xs)) 0;
+}
+
+.list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.list__item:last-child {
+  border-bottom: none;
+}
+
+.list__title {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.list__note {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+/* --- Факты: пара «вопрос — значение» ------------------------------------- */
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.facts__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  padding: 9px 0;
+  margin: 0;
+  border-bottom: 1px dashed var(--line-soft);
+}
+
+.facts__row:last-child {
+  border-bottom: none;
+}
+
+.facts__row dt {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.facts__row dd {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Отказ и просто новость ---------------------------------------------- */
+
+.notice {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+
+.notice--bad {
+  border-color: color-mix(in srgb, var(--bad) 45%, var(--line));
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.notice--warn {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.notice--ok {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+/* --- Пусто --------------------------------------------------------------- */
+
+/* Пустое место говорит, чем его занять, и не притворяется ошибкой. */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gap-xs);
+  padding: var(--gap-lg);
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  text-align: left;
+}
+
+.empty__title {
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+/* --- Шаги --------------------------------------------------------------- */
+
+/* Порядок шагов там, где действие состоит из нескольких: плата, раскладка экрана. */
+.steps {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  counter-reset: step;
+}
+
+.steps__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.steps__item::before {
+  counter-increment: step;
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.steps__item--done::before {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.steps__item--current {
+  color: var(--text);
+}
+
+.steps__item--current::before {
+  background: var(--grad-accent);
+  border-color: transparent;
+  color: var(--accent-ink);
+}

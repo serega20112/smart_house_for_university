@@ -1,0 +1,52 @@
+/*
+ * Карточка.
+ *
+ * Рамка одинакова в обеих темах: различаются только переменные, из которых она собрана.
+ */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--grad-card);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  padding: var(--gap) var(--gap) 0;
+}
+
+.card__heading {
+  min-width: 0;
+}
+
+.card__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.card__hint {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  flex: none;
+}
+
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding: var(--gap);
+}

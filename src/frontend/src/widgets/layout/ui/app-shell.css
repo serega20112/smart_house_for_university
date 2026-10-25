@@ -1,0 +1,255 @@
+/*
+ * Оболочка приложения: боковая панель и область содержимого.
+ *
+ * `.layout`, `.sidebar` и `.content` рисует только AppShell, поэтому их стили живут
+ * рядом с ним, а не в глобальной базе. Панель липнет к окну, чтобы навигация была под
+ * рукой на длинном экране дома.
+ *
+ * Ни одного цвета числом: панель обязана одинаково выглядеть в обеих темах, а в светлой
+ * прежняя версия уводила подвал в грязно-серый.
+ */
+
+.layout {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xl);
+  padding: var(--gap-lg) var(--gap);
+  border-right: 1px solid var(--line-soft);
+  background: var(--grad-card);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+/* --- Марка ---------------------------------------------------------------- */
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.sidebar__mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--grad-mark);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-accent);
+}
+
+.sidebar__mark svg {
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar__name {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* --- Навигация ------------------------------------------------------------ */
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sidebar__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  text-decoration: none;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.sidebar__link:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  transform: translateX(2px);
+}
+
+.sidebar__link--active {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* Полоска слева: глазами мы ищем именно её, решая, где сейчас. */
+.sidebar__link--active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--grad-accent);
+}
+
+.sidebar__icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.sidebar__link--active .sidebar__icon {
+  color: var(--accent);
+}
+
+/* --- Аккаунт в подвале: он открывает профиль ------------------------------ */
+
+.sidebar__account {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.sidebar__account:hover {
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+
+.sidebar__avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--grad-mark);
+  color: var(--accent-ink);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.sidebar__who {
+  display: grid;
+  min-width: 0;
+}
+
+.sidebar__user {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__note {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__account-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  transition: color var(--dur) var(--ease);
+}
+
+.sidebar__account:hover .sidebar__account-icon {
+  color: var(--accent);
+}
+
+/* --- Область содержимого -------------------------------------------------- */
+
+.content {
+  padding: var(--gap-xl) clamp(20px, 4vw, 46px) 70px;
+  min-width: 0;
+}
+
+/* --- Адаптив: панель ложится в строку ------------------------------------ */
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+    gap: var(--gap);
+    flex-direction: row;
+    align-items: center;
+    padding: var(--gap-sm) var(--gap);
+    border-right: none;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  /* Марку убираем целиком: знак дома уже стоит первым в ряду разделов. */
+  .sidebar__brand,
+  .sidebar__who,
+  .sidebar__account-icon {
+    display: none;
+  }
+
+  .sidebar__account {
+    margin-top: 0;
+    grid-template-columns: auto;
+    padding: 5px;
+  }
+
+  .sidebar__nav {
+    flex-direction: row;
+    gap: 3px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .sidebar__link {
+    padding: 8px 11px;
+  }
+
+  .sidebar__link:hover {
+    transform: none;
+  }
+
+  /* Подписи разделов убираем: на узком экране остаются только знаки. */
+  .sidebar__link > span {
+    display: none;
+  }
+
+  /* Полоска активной ссылки переезжает под знак: сбоку места нет. */
+  .sidebar__link--active::before {
+    top: auto;
+    bottom: 2px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    height: 3px;
+  }
+
+  .content {
+    padding: var(--gap) 16px 50px;
+  }
+}

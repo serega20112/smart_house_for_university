@@ -1,0 +1,116 @@
+/*
+ * Глобальная база: сброс, типографика и фон.
+ *
+ * Здесь намеренно нет ни одной примитивы дизайн-системы: карточка, кнопка и прочее
+ * живут рядом со своими компонентами. Осталось только то, что нельзя отдать одному
+ * владельцу — поведение браузера по умолчанию и фон окна.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+}
+
+body {
+  /* Два свечения поверх фона: глубина без единой видимой рамки у окна браузера. */
+  background:
+    radial-gradient(1100px 620px at 12% -14%, var(--bg-glow-a) 0%, transparent 62%),
+    radial-gradient(820px 460px at 98% -6%, var(--bg-glow-b) 0%, transparent 58%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* Цифры в показаниях не должны плясать при каждом обновлении. */
+h1,
+h2,
+h3,
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+code,
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--line-strong);
+}

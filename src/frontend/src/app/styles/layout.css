@@ -1,0 +1,104 @@
+/*
+ * Каркас страницы и вспомогательные сетки.
+ *
+ * Оболочка (`.layout`, `.sidebar`, `.content`) принадлежит виджету оболочки и лежит
+ * рядом с ним. Здесь остаётся рамка страницы — общий ритм заголовков и отступов,
+ * который есть на каждом экране, — и сетки, которыми пользуются сразу несколько
+ * срезов.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+  max-width: var(--page-max);
+  animation: fade-in var(--dur-slow) var(--ease) both;
+}
+
+.page__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap);
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+/* Надзаголовок: с какой стороны экрана человек находится. */
+.page__eyebrow {
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.page__title {
+  font-size: var(--fs-xl);
+}
+
+.page__subtitle {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+/* --- Сетки ---------------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  gap: var(--gap-sm);
+}
+
+/* Плитки устройств: ряд сам складывается под ширину колонки. */
+.grid--devices {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+/* Редакторы устройств и сети плат — они заметно шире плиток. */
+.grid--editors {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+/* Две колонки одинаковой ширины: там, где список и форма живут рядом. */
+.grid--halves {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+/* --- Входящий экран ------------------------------------------------------ */
+
+/* Единственный экран, который виден до оболочки: пока сессия не разрешена. */
+.boot {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--gap-sm);
+  min-height: 100vh;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.boot__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 18px -2px var(--accent);
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+/* --- Адаптив рамки страницы --------------------------------------------- */
+
+@media (max-width: 640px) {
+  .page {
+    gap: var(--gap);
+  }
+
+  .page__head {
+    align-items: flex-start;
+  }
+
+  .page__title {
+    font-size: var(--fs-lg);
+  }
+}

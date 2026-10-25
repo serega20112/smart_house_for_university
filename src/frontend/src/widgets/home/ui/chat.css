@@ -1,0 +1,107 @@
+/*
+ * Панель команд.
+ *
+ * Живёт в правой колонке главного экрана на всю высоту, поэтому лента прокручивается
+ * внутри себя: страница из-за журнала не растягивается.
+ */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  min-height: 0;
+  padding: var(--gap);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--grad-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.chat__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chat__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.chat__hint {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.chat__log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+  flex: 1;
+  min-height: 160px;
+  overflow-y: auto;
+  padding: var(--gap-xs) 2px var(--gap-xs) 0;
+}
+
+.chat__empty {
+  margin: auto 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+/* Реплики: своя у человека, своя у дома, отдельная — у отказа. */
+.bubble {
+  max-width: 92%;
+  padding: 9px 13px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  animation: rise var(--dur-slow) var(--ease) both;
+}
+
+.bubble--user {
+  align-self: flex-end;
+  background: var(--grad-accent);
+  color: var(--accent-ink);
+  border-bottom-right-radius: var(--radius-xs);
+}
+
+.bubble--answer {
+  align-self: flex-start;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  border-bottom-left-radius: var(--radius-xs);
+}
+
+.bubble--bad {
+  align-self: flex-start;
+  background: var(--bad-soft);
+  border: 1px solid color-mix(in srgb, var(--bad) 40%, var(--line));
+  color: var(--bad);
+  border-bottom-left-radius: var(--radius-xs);
+}
+
+.chat__form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--gap-xs);
+  padding-top: var(--gap-xs);
+  border-top: 1px solid var(--line-soft);
+}
+
+.chat__input {
+  flex: 1;
+  resize: none;
+  max-height: 116px;
+  line-height: 1.4;
+}
+
+@media (max-width: 1100px) {
+  .chat__log {
+    min-height: 120px;
+    max-height: 260px;
+  }
+}

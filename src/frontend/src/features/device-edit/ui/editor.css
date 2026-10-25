@@ -1,0 +1,74 @@
+/*
+ * Редактор устройства.
+ *
+ * Форма стоит в карточке-колонке: поля идут друг под другом, а два коротких
+ * (назначение и канал) делят одну строку, пока место есть.
+ */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding: var(--gap);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--grad-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.editor__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--gap-sm);
+  padding-bottom: var(--gap-sm);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.editor__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.editor__note {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+/* Пара коротких полей в одну строку. */
+.editor__pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--gap-xs);
+}
+
+/* Стопка переключателей: признаки участия читаются списком, а не вразброс. */
+.editor__switches {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--surface-2);
+}
+
+.editor__switches .switch-row {
+  align-items: flex-start;
+}
+
+.editor__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-xs);
+  padding-top: var(--gap-xs);
+  border-top: 1px solid var(--line-soft);
+}
+
+@media (max-width: 460px) {
+  .editor__pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

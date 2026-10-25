@@ -1,0 +1,351 @@
+/*
+ * Элементы управления: кнопка, чип, поле ввода, строка с тумблером.
+ *
+ * У этих классов нет своего компонента — человек пишет `<button className="button">`
+ * прямо в срезе, поэтому и стили не у кого забрать. Всё, у чего есть владелец
+ * (карточка, пилюля, тумблер, скелетон, значок), живёт рядом со своим компонентом.
+ */
+
+/* --- Кнопки -------------------------------------------------------------- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-xs);
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: var(--surface-3);
+  transform: translateY(-1px);
+}
+
+.button:active:not(:disabled) {
+  transform: none;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.button--primary {
+  background: var(--grad-accent);
+  border-color: transparent;
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-accent);
+}
+
+.button--primary:hover:not(:disabled) {
+  background: var(--accent-hi);
+  border-color: transparent;
+  box-shadow: 0 16px 36px -12px var(--accent-glow);
+}
+
+/* Второстепенное действие: без рамки, пока на него не навели. */
+.button--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.button--ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+/* Опасное действие: цвет говорит об этом до того, как человек нажал. */
+.button--danger:hover:not(:disabled) {
+  background: var(--bad-soft);
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+/* Отключённая основная кнопка не притворяется нажатой: на белом фоне полупрозрачный
+ * акцент читается как сломанный, поэтому снимаем заливку целиком. */
+.button--primary:disabled {
+  opacity: 1;
+  background: var(--surface-3);
+  border-color: var(--line);
+  box-shadow: none;
+  color: var(--muted);
+}
+
+/* Узкая кнопка: в строке списка, где места в обрез. */
+.button--sm {
+  padding: 6px 12px;
+  font-size: var(--fs-xs);
+  border-radius: var(--radius-xs);
+}
+
+.button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Кнопка-знак: квадрат, у которого содержимое важнее подписи. */
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-button:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--line);
+  background: var(--surface-2);
+}
+
+.icon-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --- Чипы ---------------------------------------------------------------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-xs);
+}
+
+.chip {
+  padding: 7px 13px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-sm);
+  transition:
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.chip:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.chip--active {
+  color: var(--accent-ink);
+  background: var(--grad-accent);
+  border-color: transparent;
+  font-weight: 500;
+  box-shadow: var(--shadow-accent);
+}
+
+.chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --- Выбор из двух-трёх вариантов ---------------------------------------- */
+
+.segmented {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--bg-raise);
+  flex: none;
+}
+
+.segmented__option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.segmented__option svg {
+  width: 15px;
+  height: 15px;
+}
+
+.segmented__option:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.segmented__option--on {
+  background: var(--grad-accent);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-accent);
+}
+
+.segmented__option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Строка действия и строка с тумблером -------------------------------- */
+
+/* Поле и кнопки в один ряд: переносятся целиком, когда место узкое. */
+.inline-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-xs);
+}
+
+.inline-row .field__input {
+  flex: 1;
+  min-width: 170px;
+}
+
+/* Подпись слева, контрол справа: один ритм для всех переключателей экрана. */
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+}
+
+.switch-row__title {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.switch-row__note {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+/* Заголовок с пояснением складываются столбиком: иначе две строки лезут друг в друга
+ * там, где контрол забирает половину ширины. */
+.switch-row__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* --- Поля ---------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field > span:first-child,
+.field__label {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/*
+ * Один набор правил на `.field input`, `.field select` и `.field__input`: поле внутри
+ * `.field` и раньше получало и то, и другое, поэтому правила лишь казались разными.
+ */
+.field input,
+.field select,
+.field__input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raise);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  outline: none;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.field input::placeholder,
+.field__input::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.field input:focus,
+.field select:focus,
+.field__input:focus {
+  border-color: var(--accent);
+  box-shadow: var(--accent-soft) 0 0 0 3px;
+}
+
+.field input:disabled,
+.field select:disabled,
+.field__input:disabled {
+  opacity: 0.5;
+}
+
+/* Стрелку select рисует ОС — подкрашиваем её хотя бы цветом переменной. */
+.field select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 17px) calc(50% + 1px), calc(100% - 12px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 34px;
+}
+
+/* Поле поиска: знак внутри, чтобы не спорить с рамкой. */
+.field--search {
+  position: relative;
+}
+
+.field--search .field__input {
+  padding-left: 36px;
+}
+
+.field--search svg {
+  position: absolute;
+  left: 12px;
+  bottom: 11px;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  pointer-events: none;
+}

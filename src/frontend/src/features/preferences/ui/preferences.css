@@ -1,0 +1,163 @@
+/*
+ * Панель профиля и настроек.
+ *
+ * Она затемняет дом целиком, поэтому размеры заданы относительно окна, а не сетки
+ * страницы: на телефоне карточка прижимается к нижнему краю, на десктопе остаётся
+ * колонкой в центре. Контролы строк берут общие классы — `.segmented`, `.switch-row`,
+ * `.facts` — здесь только сама рамка панели.
+ */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--gap);
+  background: var(--scrim);
+  backdrop-filter: blur(6px);
+  animation: fade-in var(--dur) var(--ease) both;
+}
+
+.sheet__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  width: min(480px, 100%);
+  max-height: calc(100vh - var(--gap-xl));
+  overflow: auto;
+  padding: var(--gap-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--grad-panel);
+  box-shadow: var(--shadow);
+  outline: none;
+  animation: sheet-in var(--dur-slow) var(--ease-pop) both;
+}
+
+/* --- Кто вошёл ------------------------------------------------------------ */
+
+.sheet__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding-bottom: var(--gap);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.sheet__avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--grad-mark);
+  color: var(--accent-ink);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  box-shadow: var(--shadow-accent);
+}
+
+.sheet__who {
+  min-width: 0;
+}
+
+.sheet__name {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheet__email {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Строки настроек ------------------------------------------------------ */
+
+.sheet__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.sheet__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: var(--gap-sm) var(--gap);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--surface-2);
+}
+
+/* --- Подвал --------------------------------------------------------------- */
+
+.sheet__foot {
+  display: flex;
+  padding-top: var(--gap-xs);
+  border-top: 1px solid var(--line-soft);
+}
+
+.sheet__quit {
+  width: 100%;
+  color: var(--muted);
+}
+
+.sheet__quit:hover:not(:disabled) {
+  color: var(--bad);
+  border-color: var(--bad);
+  background: var(--bad-soft);
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- Адаптив: панель растянута, строки раскладываются ---------------------- */
+
+@media (max-width: 560px) {
+  .sheet {
+    padding: var(--gap-sm);
+    align-items: end;
+  }
+
+  .sheet__card {
+    width: 100%;
+    padding: var(--gap);
+    border-radius: var(--radius);
+    max-height: calc(100vh - var(--gap-sm));
+  }
+
+  .sheet__row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--gap-xs);
+  }
+
+  .sheet__row .segmented {
+    width: 100%;
+  }
+
+  .sheet__row .segmented__option {
+    flex: 1;
+  }
+
+  .sheet__row .switch-row {
+    gap: var(--gap-xs);
+  }
+}

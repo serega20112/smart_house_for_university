@@ -1,14 +1,16 @@
 {
   "name": "smart-home-frontend",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "Web interface of the smart home: device cards, climate, automation and a command chat",
+  "description": "Веб-интерфейс умного дома (Feature-Sliced Design): климат, устройства, автоматика, сценарии, платы и команды",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:fsd": "node scripts/check-fsd.mjs",
+    "check": "npm run typecheck && npm run check:fsd"
   },
   "dependencies": {
     "react": "^18.3.1",

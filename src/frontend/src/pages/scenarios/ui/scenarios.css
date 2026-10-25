@@ -1,0 +1,59 @@
+/*
+ * Экран сценариев.
+ *
+ * Строка сценария держит описание слева и статус с отменой справа: список читают
+ * сверху вниз, и правый край остаётся одной вертикалью.
+ */
+
+.scenarios__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-xs);
+}
+
+.scenario {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm) 0;
+  border-bottom: 1px solid var(--line-soft);
+  animation: rise var(--dur) var(--ease) both;
+}
+
+.scenario:last-child {
+  border-bottom: none;
+}
+
+.scenario__main {
+  min-width: 0;
+}
+
+.scenario__title {
+  font-size: var(--fs-md);
+  font-weight: 500;
+}
+
+.scenario__note {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.scenario__side {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  flex: none;
+}
+
+@media (max-width: 640px) {
+  .scenario {
+    flex-wrap: wrap;
+  }
+
+  .scenario__side {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

@@ -1,0 +1,177 @@
+/*
+ * Дизайн‑система: палитра, ритм, тени, движение.
+ *
+ * Это единственное место, где цвет и размер заданы числом. Всё остальное интерфейс
+ * берёт переменные отсюда, поэтому тема меняется здесь, а не по десятку файлов.
+ *
+ * Величины и движение у тем общие, цвет и тень — нет. Темы две, и обе полноценные:
+ * фиолетово-чёрная для ночной комнаты и сиренево-белая для дня. Выбор принадлежит
+ * аккаунту, уезжает на сервер и красит `<html data-theme>`.
+ *
+ * Семантика цвета закреплена за состоянием, а не за украшением: `--ok` значит «в
+ * норме», `--warn` — «требует внимания», `--bad` — «не работает», `--cool` и
+ * `--warm` — направление работы климата.
+ */
+
+/* --- Величины, у которых тема не бывает ---------------------------------- */
+
+:root {
+  /* Ритм: короткая шкала, шагов больше не нужно. */
+  --gap-2xs: 4px;
+  --gap-xs: 8px;
+  --gap-sm: 12px;
+  --gap: 18px;
+  --gap-lg: 26px;
+  --gap-xl: 34px;
+
+  /* Радиусы: вложенный блок всегда меньше внешнего. */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  /* Типографика: системный шрифт, никаких внешних запросов. */
+  --font: "Segoe UI", "Inter", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", ui-monospace, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 23px;
+  --fs-hero: 52px;
+
+  /* Ширина колонки «боковой панели» главного экрана и самой страницы. */
+  --rail: 380px;
+  --page-max: 1280px;
+
+  /* Движение: одна основа и один «выстрел» для появляющихся элементов. */
+  --ease: cubic-bezier(0.22, 0.8, 0.3, 1);
+  --ease-pop: cubic-bezier(0.3, 1.4, 0.5, 1);
+  --dur: 0.18s;
+  --dur-slow: 0.34s;
+}
+
+/* --- Фиолетово-чёрная тема: основная ------------------------------------- */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Фон почти чёрный с фиолетовым подтоном: поверхности читаются слоем выше. */
+  --bg: #0a0613;
+  --bg-raise: #100a1d;
+  --bg-glow-a: rgba(147, 86, 255, 0.22);
+  --bg-glow-b: rgba(255, 110, 205, 0.1);
+
+  /* Поверхности: три ступени вверх от фона плюс hover. */
+  --surface: #171029;
+  --surface-2: #1e1636;
+  --surface-3: #261d44;
+
+  /* Границы: заметная, мягкая и акцентная для активных контуров. */
+  --line: #342a55;
+  --line-soft: #241d3d;
+  --line-strong: #4b3d78;
+
+  /* Текст: три ступени контраста. */
+  --text: #f5f1ff;
+  --text-dim: #d9d0f2;
+  --muted: #9b8ec6;
+
+  /* Акцент фиолетовый; розовый оттеняет его только в градиентах марки. */
+  --accent: #b48cff;
+  --accent-hi: #cbaaff;
+  --accent-lo: #7c4ff0;
+  --accent-ink: #170a2b;
+  --accent-soft: rgba(180, 140, 255, 0.16);
+  --accent-glow: rgba(150, 100, 255, 0.45);
+  --accent-2: #ff7ad9;
+
+  /* Состояния. */
+  --ok: #3ee0a0;
+  --ok-soft: rgba(62, 224, 160, 0.14);
+  --warn: #ffc46b;
+  --warn-soft: rgba(255, 196, 107, 0.14);
+  --bad: #ff6b8b;
+  --bad-soft: rgba(255, 107, 139, 0.14);
+
+  /* Направление климата: холод и тепло как отдельные роли. */
+  --cool: #59c6ff;
+  --warm: #ff9a5a;
+
+  /* Тени на тёмном почти чёрные; подложка окна плотная, чтобы дом уходил назад. */
+  --shadow: 0 22px 50px -22px rgba(0, 0, 0, 0.9);
+  --shadow-sm: 0 12px 28px -16px rgba(0, 0, 0, 0.8);
+  --shadow-accent: 0 14px 32px -14px var(--accent-glow);
+  --scrim: rgba(8, 4, 18, 0.72);
+
+  /* Градиенты-заготовки: чаще двух подряд использовать негде. */
+  --grad-card: linear-gradient(168deg, var(--surface) 0%, var(--bg-raise) 130%);
+  --grad-panel: linear-gradient(165deg, var(--surface-2) 0%, var(--bg-raise) 140%);
+  --grad-accent: linear-gradient(135deg, var(--accent-hi) 0%, var(--accent-lo) 100%);
+  --grad-mark: linear-gradient(150deg, var(--accent) 0%, var(--accent-2) 120%);
+}
+
+/* --- Светлая тема: сиренево-белая, а не стерильная ------------------------ */
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f3f1fc;
+  --bg-raise: #ffffff;
+  --bg-glow-a: rgba(140, 90, 240, 0.14);
+  --bg-glow-b: rgba(240, 100, 200, 0.1);
+
+  --surface: #ffffff;
+  --surface-2: #f5f2fd;
+  --surface-3: #ebe6f9;
+
+  --line: #dbd3f0;
+  --line-soft: #eae5f7;
+  --line-strong: #bfb2e6;
+
+  --text: #171129;
+  --text-dim: #3b3060;
+
+  /* Втрое мягче основного текста, но достаточно тёмный, чтобы читаться на белом. */
+  --muted: #5b5182;
+
+  /* Акцент темнее: фиолетовый из тёмной темы на белом читается плохо. */
+  --accent: #6d3fe0;
+  --accent-hi: #8a5cf5;
+  --accent-lo: #512bc3;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(109, 63, 224, 0.12);
+  --accent-glow: rgba(109, 63, 224, 0.35);
+  --accent-2: #c93ea3;
+
+  --ok: #0d9e68;
+  --ok-soft: rgba(13, 158, 104, 0.12);
+  --warn: #a5680a;
+  --warn-soft: rgba(165, 104, 10, 0.12);
+  --bad: #d63a5f;
+  --bad-soft: rgba(214, 58, 95, 0.12);
+
+  --cool: #0f8ec4;
+  --warm: #c5600f;
+
+  /* Тени сиреневые и заметно мягче: на белом чёрный дал бы грязь. */
+  --shadow: 0 20px 44px -24px rgba(50, 26, 100, 0.4);
+  --shadow-sm: 0 12px 26px -18px rgba(50, 26, 100, 0.35);
+  --shadow-accent: 0 14px 30px -14px var(--accent-glow);
+  --scrim: rgba(40, 26, 78, 0.34);
+
+  --grad-card: linear-gradient(168deg, var(--surface) 0%, var(--surface-2) 130%);
+  --grad-panel: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-3) 140%);
+  --grad-accent: linear-gradient(135deg, var(--accent-hi) 0%, var(--accent-lo) 100%);
+  --grad-mark: linear-gradient(150deg, var(--accent) 0%, var(--accent-2) 120%);
+}
+
+/* --- Смена темы: цвет уходит плавно, величины нет ------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    transition: background-color var(--dur-slow) var(--ease), color var(--dur-slow) var(--ease);
+  }
+}

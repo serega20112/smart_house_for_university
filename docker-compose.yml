@@ -1,10 +1,11 @@
 name: smart-home
 
-# One stack: the relational store with pgvector, the volatile state store, a
-# one-shot migration, the API and the background worker. The API, the worker and
-# the migration share one image with different commands, so a deployment cannot
-# run an old worker next to a new API, and the database is brought to the current
-# revision before anyone serving requests can touch it.
+# One stack: the relational store with pgvector, the volatile state store, the API
+# and the background worker. The API and the worker share one image with different
+# commands, so a deployment cannot run an old worker next to a new API.
+# Migrations are not a service here: a developer applies them when the schema
+# changes, and only then starts the stack —
+#   docker compose run --rm backend alembic -c migrations/alembic.ini upgrade head
 # The warning threshold of every healthcheck keeps a cold start of Postgres from
 # killing the container that waits for it.
 
@@ -33,18 +34,6 @@ services:
       retries: 30
     restart: unless-stopped
 
-  migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["alembic", "-c", "migrations/alembic.ini", "upgrade", "head"]
-    environment:
-      DATABASE_URL: postgresql+asyncpg://backend:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/backend
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
-
   backend:
     build:
       context: .
@@ -67,8 +56,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/ready')"]
       interval: 30s
@@ -91,8 +78,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import os,redis;r=redis.Redis.from_url(os.environ['REDIS_URL']);assert r.ping()"]
       interval: 30s

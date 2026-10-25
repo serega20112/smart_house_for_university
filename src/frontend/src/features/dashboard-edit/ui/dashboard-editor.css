@@ -1,0 +1,125 @@
+/*
+ * Редактор раскладки главного экрана.
+ *
+ * Строки читаются как список: знак вида слева, поля по центру, действия справа.
+ * Само содержимое не переключается — панель живёт на главном экране и уходит, когда
+ * раскладка сохранена.
+ */
+
+.layout-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding: var(--gap);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--grad-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.layout-editor__head {
+  padding-bottom: var(--gap-sm);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.layout-editor__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.layout-editor__note {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.layout-editor__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+}
+
+.layout-editor__row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+  padding: var(--gap-xs) var(--gap-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--surface-2);
+}
+
+.layout-editor__kind {
+  width: 108px;
+  flex: none;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layout-editor__name,
+.layout-editor__device {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--line);
+  background: var(--bg-raise);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  outline: none;
+}
+
+.layout-editor__name:focus,
+.layout-editor__device:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.layout-editor__moves {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.layout-editor__empty {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  padding: var(--gap-sm);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.layout-editor__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-xs);
+  padding-top: var(--gap-xs);
+  border-top: 1px solid var(--line-soft);
+}
+
+.layout-editor__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-xs);
+}
+
+/* На узком окне знак вида уходит над строкой, поля остаются в ряд. */
+@media (max-width: 720px) {
+  .layout-editor__row {
+    flex-wrap: wrap;
+  }
+
+  .layout-editor__kind {
+    width: 100%;
+  }
+}

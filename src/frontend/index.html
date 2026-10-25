@@ -1,10 +1,33 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0b0f14" />
+    <meta name="theme-color" content="#0a0613" />
     <title>Умный дом</title>
+    <!--
+      Тема ставится до первого кадра: страница, открытая в светлой теме, иначе успела
+      бы мигнуть тёмной, пока модуль интерфейса не доехал. Ключ хранилища совпадает с
+      `shared/lib/theme`, потому что читается один и тот же файл.
+    -->
+    <script>
+      (function () {
+        var light = localStorage.getItem("smart-home.theme") === "light";
+        document.documentElement.dataset.theme = light ? "light" : "dark";
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute("content", light ? "#f3f1fc" : "#0a0613");
+      })();
+    </script>
+    <style>
+      html {
+        background: #0a0613;
+      }
+
+      html[data-theme="light"] {
+        background: #f3f1fc;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

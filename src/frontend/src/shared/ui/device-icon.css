@@ -1,0 +1,31 @@
+/*
+ * Значок назначения устройства.
+ *
+ * Подложка у значка своя, а цвет — общий с остальными поверхностями: в светлой теме
+ * прежняя полупрозрачная плашка уходила в грязь, поэтому здесь только переменные.
+ */
+
+.device-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--surface-2);
+  color: var(--muted);
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.device-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.device-icon--active {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: 0 0 18px -8px var(--accent);
+}

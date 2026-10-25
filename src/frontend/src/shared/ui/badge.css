@@ -1,0 +1,57 @@
+/*
+ * Пилюля статуса.
+ *
+ * Оттенки заданы один раз и берутся из семантики: `--ok`, `--warn`, `--bad`. Роль
+ * `idle` — спокойное состояние, которому не о чем сообщить цветом.
+ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.badge--ok {
+  border-color: color-mix(in srgb, var(--ok) 40%, var(--line));
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.badge--ok .badge__dot {
+  box-shadow: 0 0 8px -1px var(--ok);
+}
+
+.badge--warn {
+  border-color: color-mix(in srgb, var(--warn) 40%, var(--line));
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.badge--warn .badge__dot {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.badge--bad {
+  border-color: color-mix(in srgb, var(--bad) 40%, var(--line));
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.badge--idle .badge__dot {
+  opacity: 0.6;
+}

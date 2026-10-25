@@ -1,0 +1,92 @@
+/*
+ * Форма настройки автоматизации.
+ *
+ * Диапазоны идут рядом: человек сравнивает температуру и влажность глазами, и два
+ * блока в одну строку читаются быстрее, чем две колонки на весь экран.
+ */
+
+.aform {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--gap);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--grad-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.aform__mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding-bottom: var(--gap);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.aform__ranges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--gap-sm);
+}
+
+/* Блок «цель + допуск». */
+.band {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--surface-2);
+}
+
+.band__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+}
+
+.band__label {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.band__value {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.band__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--gap-xs);
+}
+
+.aform__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding-top: var(--gap-sm);
+  border-top: 1px solid var(--line-soft);
+}
+
+.aform__note {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  max-width: 58ch;
+}
+
+@media (max-width: 640px) {
+  .aform__foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

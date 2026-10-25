@@ -1,0 +1,129 @@
+/*
+ * Панель климата.
+ *
+ * Это единственный блок на экране, который читают мельком: значение должно читаться с
+ * расстояния, поэтому цифра крупная, а всё остальное — вокруг неё. Свечение по кромке
+ * выдаёт «живой» блок среди статичных карточек.
+ */
+
+.climate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--gap-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  background:
+    radial-gradient(520px 220px at 0% 0%, var(--accent-soft) 0%, transparent 70%),
+    var(--grad-panel);
+  box-shadow: var(--shadow);
+}
+
+.climate__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+}
+
+.climate__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.climate__note {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  text-align: right;
+}
+
+.climate__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--gap-lg);
+}
+
+.climate__metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+  min-width: 0;
+}
+
+.climate__metric-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-xs);
+}
+
+.climate__label {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Отклонение от цели: норма зелёная, выход за допуск — требовательная. */
+.climate__tag {
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.climate__tag--ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.climate__tag--warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.climate__tag--idle {
+  background: var(--surface-3);
+  color: var(--muted);
+}
+
+.climate__value {
+  font-size: var(--fs-hero);
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--text);
+}
+
+.climate__unit {
+  margin-left: 4px;
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* Пока датчик молчит, крупный прочерк читается как битый блок: тут слова поменьше. */
+.climate__value--void {
+  font-size: var(--fs-md);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+/* --- Адаптив: цифры уменьшаются раньше, чем начинают резаться -------------- */
+
+@media (max-width: 900px) {
+  .climate {
+    padding: var(--gap);
+    gap: var(--gap-sm);
+  }
+
+  .climate__grid {
+    gap: var(--gap);
+  }
+
+  .climate__value {
+    font-size: 40px;
+  }
+}

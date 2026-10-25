@@ -1,0 +1,133 @@
+/*
+ * Экран плат.
+ *
+ * Три секции одной логики: мастер сопряжения, очередь объявлений и свои платы. Код
+ * объявления набран моноширинным — его сверяют символ за символом с тем, что плата
+ * печатает в порт последовательной связи.
+ */
+
+.boards__pair,
+.boards__offers,
+.boards__own {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding: var(--gap);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--grad-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.boards__section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  padding-bottom: var(--gap-xs);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.boards__section-title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.boards__section-note {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+/* --- Шаги мастера --------------------------------------------------------- */
+
+.boards__step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  animation: rise var(--dur-slow) var(--ease) both;
+}
+
+.boards__note {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  max-width: 60ch;
+}
+
+/* Ключ: его переписывают руками, поэтому он крупный и в отдельной строке. */
+.boards__keyline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-xs);
+  padding: var(--gap-sm);
+  border-radius: var(--radius-sm);
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, var(--line));
+  background: var(--surface-2);
+}
+
+.boards__keyline code {
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+/* --- Объявления ----------------------------------------------------------- */
+
+.boards__offer {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  min-width: 0;
+}
+
+.boards__code {
+  display: grid;
+  place-items: center;
+  min-width: 74px;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--line);
+  background: var(--surface-3);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  letter-spacing: 0.12em;
+}
+
+/* --- Свои платы ----------------------------------------------------------- */
+
+.boards__board {
+  min-width: 0;
+}
+
+.boards__title {
+  display: block;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.boards__network {
+  padding-top: var(--gap-sm);
+  border-top: 1px solid var(--line-soft);
+}
+
+@media (max-width: 720px) {
+  .boards__section-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--gap-xs);
+  }
+
+  .list__item {
+    flex-wrap: wrap;
+  }
+
+  .boards__offer {
+    flex-basis: 100%;
+  }
+}

@@ -1,0 +1,80 @@
+/*
+ * Движение: один набор кадров на весь интерфейс.
+ *
+ * Экран двигается редко и только по делу: что-то появилось, что-то обновилось, что-то
+ * ищется. Повторять один и тот же `@keyframes` в десятке файлов смысла нет — имена
+ * собраны здесь, а длительность и кривую берут переменные из дизайн-системы.
+ */
+
+/* Страница и карточка: приход без прыжка. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Появление снизу вверх: список, уведомление, плитка. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Пульс: сигнал о том, что процесс идёт, но числа ещё нет. */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.86);
+  }
+}
+
+/* Ожидание запроса: вращение знака вместо «бесконечной» полоски. */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Световой проход по скелетону: экран занят, но не сломан. */
+@keyframes shimmer {
+  from {
+    background-position: -220% 0;
+  }
+  to {
+    background-position: 220% 0;
+  }
+}
+
+/* Обновление значения: короткая подсветка, чтобы глаз успел увидеть, где изменилось. */
+@keyframes flash {
+  from {
+    box-shadow: 0 0 0 0 var(--accent-soft);
+  }
+  to {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+/* Человек просил не двигаться: оставляем только смену цвета. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

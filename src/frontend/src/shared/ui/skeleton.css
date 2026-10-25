@@ -1,0 +1,64 @@
+/*
+ * Заготовка содержимого.
+ *
+ * Световой проход медленный и низкий: задача — сказать «занято», а не привлечь внимание.
+ */
+
+.skeleton {
+  display: grid;
+  gap: var(--gap-sm);
+}
+
+.skeleton--tiles {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.skeleton--rows {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.skeleton--climate {
+  align-items: center;
+  gap: var(--gap);
+}
+
+.skeleton__block {
+  display: block;
+  min-height: 104px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: linear-gradient(
+    100deg,
+    var(--surface-2) 30%,
+    var(--surface-3) 48%,
+    var(--surface-2) 66%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+
+.skeleton__block--row {
+  min-height: 52px;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton__block--value {
+  width: 40%;
+  min-height: var(--fs-hero);
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton__block--bar {
+  width: 100%;
+  min-height: 10px;
+  border: none;
+  border-radius: var(--radius-pill);
+}
+
+.skeleton__block--line {
+  width: 60%;
+  min-height: 12px;
+  border: none;
+  border-radius: var(--radius-pill);
+}

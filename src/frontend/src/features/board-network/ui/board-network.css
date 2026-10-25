@@ -1,0 +1,60 @@
+/*
+ * Форма предписанной сети платы.
+ *
+ * Классы свои: раньше эта форма одалживала `.editor` у среза правки устройства, а по
+ * FSD срез не имеет права зависеть от чужого — даже на стили.
+ */
+
+.bnet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding: var(--gap);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--grad-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.bnet__head {
+  padding-bottom: var(--gap-sm);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.bnet__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.bnet__note {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+/* Строка объяснения: её читают, только если не уверены в адресе. */
+.bnet__hint {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.bnet__pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--gap-xs);
+}
+
+.bnet__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-xs);
+  padding-top: var(--gap-xs);
+  border-top: 1px solid var(--line-soft);
+}
+
+@media (max-width: 460px) {
+  .bnet__pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,98 @@
+/*
+ * Всплывающие подтверждения.
+ *
+ * Рисует их не компонент, а `shared/lib/notify`, поэтому владельца у этих классов нет
+ * и они живут в глобальной базе — единственное место, где это честно.
+ */
+
+#toasts {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--gap-xs);
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  max-width: min(360px, calc(100vw - 44px));
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: rise var(--dur-slow) var(--ease-pop) both;
+}
+
+/* Отметка результата: цвет читается раньше, чем прочитывается строка. */
+.toast::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--muted);
+}
+
+.toast--ok {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+  background: color-mix(in srgb, var(--ok-soft) 70%, var(--surface-2));
+}
+
+.toast--ok::before {
+  background: var(--ok);
+  box-shadow: 0 0 12px -2px var(--ok);
+}
+
+.toast--bad {
+  border-color: color-mix(in srgb, var(--bad) 45%, var(--line));
+  background: color-mix(in srgb, var(--bad-soft) 70%, var(--surface-2));
+}
+
+.toast--bad::before {
+  background: var(--bad);
+  box-shadow: 0 0 12px -2px var(--bad);
+}
+
+.toast--info::before {
+  background: var(--accent);
+  box-shadow: 0 0 12px -2px var(--accent);
+}
+
+.toast--leaving {
+  animation: toast-out 0.24s var(--ease) both;
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}
+
+@media (max-width: 640px) {
+  #toasts {
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+    align-items: stretch;
+  }
+
+  .toast {
+    max-width: none;
+  }
+}

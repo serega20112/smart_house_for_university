@@ -1,0 +1,87 @@
+/*
+ * Линейка климата.
+ *
+ * Полоса не рисует «прогресс»: у климата нет нуля и ста процентов, есть цель и допуск
+ * вокруг неё. Поэтому занятая область — это коридор нормы, а точка — где дом сейчас.
+ */
+
+.range-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.range-bar__track {
+  position: relative;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  border: 1px solid var(--line-soft);
+}
+
+/* Коридор нормы: зона, в которой значение уже нельзя назвать отклонением. */
+.range-bar__band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Засечка цели: тонкая линия выше полосы, чтобы её не перебивала точка. */
+.range-bar__target {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  transform: translateX(-1px);
+}
+
+.range-bar__marker {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid var(--surface);
+  background: var(--muted);
+  transform: translate(-50%, -50%);
+  transition: left var(--dur-slow) var(--ease), background var(--dur) var(--ease);
+}
+
+.range-bar__marker--ok {
+  background: var(--ok);
+  box-shadow: 0 0 14px -2px var(--ok);
+}
+
+.range-bar__marker--warm {
+  background: var(--warm);
+  box-shadow: 0 0 14px -2px var(--warm);
+}
+
+.range-bar__marker--cool {
+  background: var(--cool);
+  box-shadow: 0 0 14px -2px var(--cool);
+}
+
+.range-bar__marker--idle {
+  background: var(--muted);
+}
+
+.range-bar__scale {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap-xs);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.range-bar__scale-center {
+  text-align: center;
+  white-space: nowrap;
+}

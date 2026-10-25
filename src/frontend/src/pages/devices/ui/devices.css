@@ -1,0 +1,116 @@
+/*
+ * Список устройств.
+ *
+ * Строка собирает в одну линию всё, что нужно для правки: значок, имя с каналом, два
+ * признака участия, живое состояние и кнопку. На узком окне строка раскладывается
+ * на две, потому что признакам тесно рядом с кнопкой.
+ */
+
+/* Поиск слева, фильтры справа: вторая колонка обязана сжиматься до нуля, иначе
+ * длинный ряд чипов вылезает за край экрана. */
+.devices__toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.devices__search {
+  min-width: 0;
+}
+
+.devices__toolbar .chips {
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.devices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+}
+
+.device-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm) var(--gap);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--grad-card);
+  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.device-row:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+
+.device-row--bad {
+  border-color: color-mix(in srgb, var(--bad) 32%, var(--line));
+}
+
+.device-row__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.device-row__name {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-row__note {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-row__flags {
+  display: flex;
+  gap: var(--gap-2xs);
+  flex: none;
+}
+
+.device-row__status {
+  flex: none;
+}
+
+@media (max-width: 900px) {
+  .device-row {
+    flex-wrap: wrap;
+  }
+
+  .device-row__main {
+    flex-basis: calc(100% - 60px);
+  }
+
+  .device-row__flags {
+    order: 3;
+  }
+
+  .device-row__status {
+    order: 2;
+  }
+
+  .device-row .button {
+    margin-left: auto;
+    order: 4;
+  }
+}
+
+@media (max-width: 700px) {
+  .devices__toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .devices__toolbar .chips {
+    justify-content: flex-start;
+  }
+}

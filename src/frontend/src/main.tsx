@@ -1,36 +1,68 @@
-/** Точка входа приложения. */
+/**
+ * Точка входа приложения.
+ *
+ * Слой app только собирает всё вместе: порядок провайдеров, таблицу маршрутов и охрану
+ * входа. Маршруты рисуются лишь после того, как сессия разрешена, — иначе экраны ушли бы
+ * запросами без токена.
+ */
 
-import { StrictMode } from "react";
+import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
-import { Layout } from "./components/Layout";
-import { SessionProvider, useSession } from "./features/auth/SessionProvider";
-import { AuthPage } from "./pages/AuthPage";
-import { AutomationPage } from "./pages/AutomationPage";
-import { BoardsPage } from "./pages/BoardsPage";
-import { DevicesPage } from "./pages/DevicesPage";
-import { HomePage } from "./pages/HomePage";
-import { ScenariosPage } from "./pages/ScenariosPage";
-import "./styles/app.css";
+import { SessionProvider, useSession } from "@/entities/session";
+import { AppShell } from "@/widgets/layout";
+import { AuthPage } from "@/pages/auth";
+import { AutomationPage } from "@/pages/automation";
+import { BoardsPage } from "@/pages/boards";
+import { DevicesPage } from "@/pages/devices";
+import { HomePage } from "@/pages/home";
+import { ScenariosPage } from "@/pages/scenarios";
+import { applyTheme, rememberedTheme, rememberTheme } from "@/shared/lib/theme";
+
+// Порядок глобальных таблиц важен: константы → сброс → каркас → контролы → паттерны → движение.
+import "@/app/styles/tokens.css";
+import "@/app/styles/base.css";
+import "@/app/styles/layout.css";
+import "@/app/styles/controls.css";
+import "@/app/styles/patterns.css";
+import "@/app/styles/motion.css";
+// У всплывающих подтверждений нет компонента-владельца, поэтому база у них общая.
+import "@/app/styles/toasts.css";
 
 /**
- * Показывает экран входа, пока сессия неизвестна.
+ * Красит дом в тему аккаунта и решает, что показать: вход или маршруты.
  *
- * Отрисовать маршруты до того, как сессия разрешена, означало бы уйти запросами без
- * токена, поэтому вход нарочно стоит в самом дереве.
+ * Первый кадр не может ждать ответа `/preferences`: пока настройки в пути, берётся тема,
+ * которую помнит браузер.
  */
-function Gate() {
-  const { profile, ready } = useSession();
+function Gate(): JSX.Element {
+  const { profile, preferences, ready } = useSession();
+
+  useEffect(() => {
+    if (!preferences) {
+      applyTheme(rememberedTheme());
+      return;
+    }
+    applyTheme(preferences.theme);
+    rememberTheme(preferences.theme);
+  }, [preferences]);
+
   if (!ready) {
-    return <p className="empty">Проверяю сессию…</p>;
+    return (
+      <div className="boot">
+        <span className="boot__dot" />
+        <span>Проверяю сессию…</span>
+      </div>
+    );
   }
+
   return profile ? <RouterProvider router={router} /> : <AuthPage />;
 }
 
 const router = createBrowserRouter([
   {
-    element: <Layout />,
+    element: <AppShell />,
     children: [
       { path: "/", element: <HomePage /> },
       { path: "/devices", element: <DevicesPage /> },
@@ -41,7 +73,7 @@ const router = createBrowserRouter([
   },
 ]);
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>
     <SessionProvider>
       <Gate />

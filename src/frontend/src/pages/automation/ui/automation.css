@@ -1,0 +1,17 @@
+/*
+ * Экран автоматизации.
+ *
+ * Отметку о сохранении прячут под формой: она подтверждение, а не содержимое.
+ */
+
+.automation__head {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+}
+
+.automation__saved {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  animation: fade-in var(--dur-slow) var(--ease) both;
+}

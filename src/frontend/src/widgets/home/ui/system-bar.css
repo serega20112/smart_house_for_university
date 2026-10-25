@@ -1,0 +1,67 @@
+/*
+ * Полоска состояния дома.
+ *
+ * Стоит в шапке экрана и обязана оставаться одной строкой на широком окне и распадаться
+ * на две на узком: поэтому flex-wrap, а не сетка с фиксированными колонками.
+ */
+
+.sysbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--gap-xs);
+}
+
+.sysbar__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line-soft);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.sysbar__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sysbar__link--open {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 35%, var(--line));
+}
+
+.sysbar__link--connecting {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 35%, var(--line));
+}
+
+.sysbar__link--connecting .sysbar__dot {
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.sysbar__link--closed {
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 35%, var(--line));
+}
+
+/* Отметка времени чтения: она мелкая и справа, чтобы не спорить с состоянием связи. */
+.sysbar__sync {
+  color: var(--muted);
+  border-left: 1px solid var(--line-soft);
+  padding-left: 7px;
+  margin-left: 1px;
+}
+
+@media (max-width: 640px) {
+  .sysbar {
+    justify-content: flex-start;
+  }
+}

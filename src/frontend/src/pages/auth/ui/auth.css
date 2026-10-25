@@ -1,0 +1,160 @@
+/*
+ * Экран входа: слева — что аккаунт хранит, справа — форма.
+ *
+ * Гость ещё не выбрал, оставаться ли, поэтому левая панель говорит фактами, а правая
+ * ничего не объясняет и только собирает учётные данные. На узком окне левая панель
+ * сжимается до марки и перечня: форма важнее.
+ */
+
+.auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* --- Левая панель --------------------------------------------------------- */
+
+.auth__aside {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--gap-lg);
+  padding: clamp(32px, 6vw, 76px);
+  border-right: 1px solid var(--line-soft);
+  background:
+    radial-gradient(620px 420px at 18% 8%, var(--bg-glow-a) 0%, transparent 62%),
+    radial-gradient(420px 320px at 84% 92%, var(--bg-glow-b) 0%, transparent 60%),
+    linear-gradient(160deg, var(--surface) 0%, var(--bg) 78%);
+}
+
+.auth__brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.auth__mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--grad-mark);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-accent);
+}
+
+.auth__mark svg {
+  width: 22px;
+  height: 22px;
+}
+
+.auth__brand-name {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.auth__lead {
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+  max-width: 44ch;
+}
+
+.auth__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+  max-width: 46ch;
+}
+
+/* Отметка строки: свой знак вместо галочки из библиотеки иконок. */
+.auth__line {
+  position: relative;
+  padding-left: 22px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.auth__line::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.auth__foot {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  max-width: 46ch;
+  padding-top: var(--gap-sm);
+  border-top: 1px dashed var(--line-soft);
+}
+
+/* --- Правая панель -------------------------------------------------------- */
+
+.auth__panel {
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  justify-content: center;
+  gap: var(--gap);
+  padding: clamp(32px, 6vw, 76px);
+}
+
+.auth__panel > * {
+  width: min(360px, 100%);
+}
+
+.auth__title {
+  font-size: var(--fs-xl);
+}
+
+/* Переключение вход/регистрация — не кнопка: это переход по смыслу. */
+.auth__switch {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+}
+
+.auth__switch:hover {
+  color: var(--accent-hi);
+  text-decoration: underline;
+}
+
+/* --- Адаптив -------------------------------------------------------------- */
+
+@media (max-width: 880px) {
+  .auth {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .auth__aside {
+    gap: var(--gap-sm);
+    padding: var(--gap-lg) var(--gap);
+    border-right: none;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .auth__lead {
+    font-size: var(--fs-sm);
+  }
+
+  .auth__foot {
+    display: none;
+  }
+
+  .auth__panel {
+    padding: var(--gap-lg) var(--gap) 56px;
+  }
+}

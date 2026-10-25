@@ -1,0 +1,48 @@
+/*
+ * Подвал главного экрана и его действия.
+ *
+ * Сводка автоматики и активные сценарии — это то, что человек сверяет, проходя мимо
+ * экрана: две карточки в ряд, на узком окне одна под другой.
+ */
+
+.home__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--gap-xs);
+}
+
+.rail-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--gap);
+}
+
+.facts-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding: var(--gap);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--grad-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.facts-card__title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding-bottom: var(--gap-xs);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+@media (max-width: 640px) {
+  .home__actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
