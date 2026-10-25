@@ -7,21 +7,20 @@ import "./devices.css";
  * Живым состоянием дом занимается на главном экране.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { DeviceEditor } from "@/features/device-edit";
 import { useHomeState } from "@/entities/home";
 import * as api from "@/shared/api/client";
 import { KIND_LABELS, STATUS_LABELS, isDeviceActive, statusTone } from "@/shared/lib/labels";
 import { notify } from "@/shared/lib/notify";
-import type { Board, Device, DeviceKind } from "@/shared/api/types";
+import type { Board, Device } from "@/shared/api/types";
 import { Badge, DeviceIcon } from "@/shared/ui";
 
 export function DevicesPage() {
   const { state, error, refresh } = useHomeState();
   const [boards, setBoards] = useState<Board[]>([]);
   const [query, setQuery] = useState("");
-  const [kind, setKind] = useState<DeviceKind | "ALL">("ALL");
   const [editing, setEditing] = useState<Device | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -42,20 +41,15 @@ export function DevicesPage() {
 
   const devices = state?.devices ?? [];
 
-  // Виды, которые действительно встречаются: чипов «на всякий случай» не показываем.
-  const kinds = useMemo(
-    () => Array.from(new Set(devices.map((device) => device.kind))),
-    [devices],
-  );
-
+  // Список отсекается только поиском: устройств в доме столько, что фильтр по
+  // назначению был бы второй прокруткой страницы.
   const visible = devices.filter((device) => {
-    const byKind = kind === "ALL" || device.kind === kind;
     const text = query.trim().toLowerCase();
-    const byQuery =
+    return (
       text.length === 0 ||
       device.name.toLowerCase().includes(text) ||
-      KIND_LABELS[device.kind].toLowerCase().includes(text);
-    return byKind && byQuery;
+      KIND_LABELS[device.kind].toLowerCase().includes(text)
+    );
   });
 
   /**
@@ -119,37 +113,17 @@ export function DevicesPage() {
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
-
-        <div className="chips">
-          <button
-            type="button"
-            className={`chip ${kind === "ALL" ? "chip--active" : ""}`.trim()}
-            onClick={() => setKind("ALL")}
-          >
-            Все
-          </button>
-          {kinds.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={`chip ${kind === item ? "chip--active" : ""}`.trim()}
-              onClick={() => setKind(item)}
-            >
-              {KIND_LABELS[item]}
-            </button>
-          ))}
-        </div>
       </div>
 
       {visible.length === 0 ? (
         <div className="empty">
           <p className="empty__title">
-            {devices.length === 0 ? "Устройств пока нет" : "Под фильтр ничего не попало"}
+            {devices.length === 0 ? "Устройств пока нет" : "Под поиск ничего не попало"}
           </p>
           <p>
             {devices.length === 0
               ? "Заведите устройство: канал реле, назначение и способности."
-              : "Смените слово или снимите фильтр по назначению."}
+              : "Смените слово в поле поиска."}
           </p>
         </div>
       ) : (

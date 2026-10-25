@@ -87,22 +87,6 @@ class SqlClaimRepository(ClaimRepository):
         )
         return None if row is None else claim_from_row(row)
 
-    async def all_open(self) -> list[EspClaim]:
-        """Возвращает всякое предложение, которое ещё никто не забрал.
-
-        Это простое чтение: оно ничего не удаляет, даже уже просроченное. Чисткой
-        устаревших заведует отдельная команда.
-
-        Returns:
-            list[EspClaim]: Открытые предложения.
-        """
-        result = await self._session.execute(
-            select(EspClaimModel)
-            .where(EspClaimModel.claimed_by.is_(None))
-            .order_by(EspClaimModel.announced_at.desc(), EspClaimModel.id)
-        )
-        return [claim_from_row(row) for row in result.scalars().all()]
-
     async def take(self, claim_id: EspClaimId, user_id: UserId) -> bool:
         """Выборочно записывает, что аккаунт забрал предложение.
 

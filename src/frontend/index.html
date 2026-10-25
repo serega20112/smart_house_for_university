@@ -5,11 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0613" />
     <title>Умный дом</title>
-    <!--
-      Тема ставится до первого кадра: страница, открытая в светлой теме, иначе успела
-      бы мигнуть тёмной, пока модуль интерфейса не доехал. Ключ хранилища совпадает с
-      `shared/lib/theme`, потому что читается один и тот же файл.
-    -->
     <script>
       (function () {
         var light = localStorage.getItem("smart-home.theme") === "light";

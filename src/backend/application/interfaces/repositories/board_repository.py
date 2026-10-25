@@ -58,10 +58,6 @@ class ClaimRepository(Creator[EspClaim]):
         """Возвращает предложение по токену, который видит человек."""
 
     @abstractmethod
-    async def all_open(self) -> list[EspClaim]:
-        """Возвращает все предложения, которые ещё никто не взял."""
-
-    @abstractmethod
     async def take(self, claim_id: EspClaimId, user_id: UserId) -> bool:
         """Условно записывает взятие предложения.
 

@@ -111,13 +111,6 @@ export interface Board {
   current_ssid: string | null;
 }
 
-/** Плата, только что сопряжённая: ключ показан ровно один раз. */
-export interface PairedBoard {
-  id: string;
-  name: string;
-  pairing_key: string;
-}
-
 /** Предложение платы, которая ждёт хозяина. */
 export interface BoardClaim {
   id: string;

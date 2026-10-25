@@ -2,12 +2,13 @@ import "./boards.css";
 /**
  * Экран плат.
  *
- * Здесь железо становится домом: плата объявляется, её забирают за собой, задают ей сеть
- * и убирают, если она больше не нужна. Экран показывает ровно то, что знает сервер, и
- * ничего не додумывает про прошивку.
+ * Плата появляется в доме одним способом: дозванивается серверу без хозяина, сервер
+ * публикует объявление, и его забирают кнопкой. Ручного сопряжения «введи ключ, который
+ * я сам придумал» здесь нет: прошивка генерирует ключ сама и держит его в своей памяти,
+ * а значит, человеку этот ключ вводить негде и незачем.
  *
- * Объявления плат приходят сами: список предложений перечитывается по событию потока и
- * раз в пять секунд — на случай, если событие ушло, пока браузер молчал.
+ * Объявления перечитываются по событию потока и раз в пять секунд — на случай, если
+ * событие ушло, пока браузер молчал.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -18,14 +19,8 @@ import { countNoun, formatAgo, formatIn, formatMoment } from "@/shared/lib/forma
 import { boardStatusLabel } from "@/shared/lib/labels";
 import { notify } from "@/shared/lib/notify";
 import { CONNECTION_LABELS, useRealtime } from "@/shared/realtime/use-realtime";
-import type { Board, BoardClaim, BoardNetwork, PairedBoard } from "@/shared/api/types";
-import { Badge, Toggle } from "@/shared/ui";
-
-/** Формы слова «плата» для подписи списка. */
-const BOARD_FORMS: [string, string, string] = ["плата", "платы", "плат"];
-
-/** Формы слова «объявление» для очереди предложений. */
-const OFFER_FORMS: [string, string, string] = ["объявление", "объявления", "объявлений"];
+import type { Board, BoardClaim, BoardNetwork } from "@/shared/api/types";
+import { Badge } from "@/shared/ui";
 
 /** Как часто перечитывать предложения платы, если событий потока не дождались. */
 const CLAIMS_POLL_MS = 5_000;
@@ -33,8 +28,11 @@ const CLAIMS_POLL_MS = 5_000;
 /** Имя платы: столько же, сколько принимает домен. */
 const BOARD_NAME_MAX = 60;
 
-/** Шаг мастера сопряжения: имя, ключ, показ ключа. */
-type Step = "name" | "key" | "shown";
+/** Формы слова «плата» для подписи списка. */
+const BOARD_FORMS: [string, string, string] = ["плата", "платы", "плат"];
+
+/** Формы слова «объявление» для очереди предложений. */
+const OFFER_FORMS: [string, string, string] = ["объявление", "объявления", "объявлений"];
 
 interface OfferRowProps {
   offer: BoardClaim;
@@ -92,11 +90,6 @@ export function BoardsPage() {
   const [networkFor, setNetworkFor] = useState<{ board: Board; network: BoardNetwork | null } | null>(
     null,
   );
-  const [step, setStep] = useState<Step>("name");
-  const [pairName, setPairName] = useState("");
-  const [pairKey, setPairKey] = useState("");
-  const [ownKey, setOwnKey] = useState(false);
-  const [paired, setPaired] = useState<PairedBoard | null>(null);
   const [busy, setBusy] = useState(false);
 
   /**
@@ -145,26 +138,6 @@ export function BoardsPage() {
   }
 
   /**
-   * Сопрягает плату: по своему ключу или по выработанному сервером.
-   */
-  async function pair(): Promise<void> {
-    setBusy(true);
-    try {
-      const result = await api.pairBoard({
-        name: pairName.trim(),
-        pairing_key: ownKey ? pairKey.trim() : undefined,
-      });
-      setPaired(result);
-      setStep("shown");
-      await load();
-    } catch (exc) {
-      notify(exc instanceof Error ? exc.message : "Плата не сопряжена", "bad");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  /**
    * Открывает редактор сети платы, предварительно прочитав её текущую сеть.
    *
    * @param board Плата, которой задают сеть.
@@ -202,17 +175,6 @@ export function BoardsPage() {
     }
   }
 
-  /**
-   * Возвращает мастера сопряжения в начало.
-   */
-  function resetWizard(): void {
-    setStep("name");
-    setPaired(null);
-    setPairName("");
-    setPairKey("");
-    setOwnKey(false);
-  }
-
   const online = boards.filter((board) => board.online).length;
 
   return (
@@ -227,121 +189,9 @@ export function BoardsPage() {
               : `${countNoun(boards.length, BOARD_FORMS)}, ${countNoun(online, BOARD_FORMS)} на связи`}
           </p>
         </div>
-        <button type="button" className="button" onClick={resetWizard}>
-          Новый мастер
-        </button>
       </header>
 
       {error ? <p className="notice notice--bad">{error}</p> : null}
-
-      <section className="boards__pair" aria-label="Сопряжение платы">
-        <header className="boards__section-head">
-          <h2 className="boards__section-title">Новая плата</h2>
-          <ol className="steps" aria-label="Шаги сопряжения">
-            <li className={`steps__item ${step === "name" ? "steps__item--current" : "steps__item--done"}`}>
-              имя
-            </li>
-            <li
-              className={`steps__item ${
-                step === "key" ? "steps__item--current" : step === "shown" ? "steps__item--done" : ""
-              }`}
-            >
-              ключ
-            </li>
-            <li className={`steps__item ${step === "shown" ? "steps__item--current" : ""}`}>настройка</li>
-          </ol>
-        </header>
-
-        {step === "name" ? (
-          <div className="boards__step">
-            <label className="field">
-              <span className="field__label">Имя платы</span>
-              <input
-                className="field__input"
-                value={pairName}
-                maxLength={BOARD_NAME_MAX}
-                placeholder="Кухня, мастерская"
-                onChange={(event) => setPairName(event.target.value)}
-              />
-            </label>
-            <button
-              type="button"
-              className="button button--primary"
-              disabled={pairName.trim().length === 0}
-              onClick={() => setStep("key")}
-            >
-              Дальше
-            </button>
-          </div>
-        ) : null}
-
-        {step === "key" ? (
-          <div className="boards__step">
-            <div className="switch-row">
-              <div>
-                <p className="switch-row__title">Ключ свой</p>
-                <p className="switch-row__note">Снимите, чтобы ключ выработал сервер</p>
-              </div>
-              <Toggle checked={ownKey} label="Ключ свой" onChange={setOwnKey} />
-            </div>
-
-            {ownKey ? (
-              <label className="field">
-                <span className="field__label">Ключ сопряжения</span>
-                <input
-                  className="field__input"
-                  value={pairKey}
-                  placeholder="Как его показала плата"
-                  onChange={(event) => setPairKey(event.target.value)}
-                />
-              </label>
-            ) : (
-              <p className="boards__note">Сервер выработает ключ и покажет его один раз.</p>
-            )}
-
-            <div className="inline-row">
-              <button type="button" className="button button--ghost" disabled={busy} onClick={() => setStep("name")}>
-                Назад
-              </button>
-              <button
-                type="button"
-                className="button button--primary"
-                disabled={busy || (ownKey && pairKey.trim().length === 0)}
-                onClick={() => void pair()}
-              >
-                {busy ? "Сопрягаю…" : "Сопрячь плату"}
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {step === "shown" && paired ? (
-          <div className="boards__step">
-            <p className="boards__note">
-              Ключ показывается один раз. Впишите его на странице настройки самой платы:
-              после первого звонка сервер не откроет его снова.
-            </p>
-            <div className="boards__keyline">
-              <code>{paired.pairing_key}</code>
-              <button
-                type="button"
-                className="button"
-                onClick={() => {
-                  void navigator.clipboard
-                    .writeText(paired.pairing_key)
-                    .then(() => notify("Ключ скопирован", "ok"))
-                    .catch(() => notify("Браузер не отдал буфер обмена", "bad"));
-                }}
-              >
-                Скопировать
-              </button>
-            </div>
-            <button type="button" className="button button--ghost" onClick={resetWizard}>
-              Готово
-            </button>
-          </div>
-        ) : null}
-      </section>
 
       <section className="boards__offers" aria-label="Платы без хозяина">
         <header className="boards__section-head">
@@ -354,12 +204,20 @@ export function BoardsPage() {
         {claims.length === 0 ? (
           <div className="empty">
             <p className="empty__title">Плата ещё не объявилась</p>
-            <p>Как только она позвонит серверу без хозяина, предложение появится здесь.</p>
+            <p>
+              Плата, у которой нет хозяина, звонит серверу сама — как только она
+              появится здесь, её можно забрать, назвав своим именем.
+            </p>
           </div>
         ) : (
           <ul className="list">
             {claims.map((offer) => (
-              <OfferRow key={offer.id} offer={offer} busy={busy} onClaim={(item, name) => void claim(item, name)} />
+              <OfferRow
+                key={offer.id}
+                offer={offer}
+                busy={busy}
+                onClaim={(item, name) => void claim(item, name)}
+              />
             ))}
           </ul>
         )}
@@ -374,7 +232,7 @@ export function BoardsPage() {
         {boards.length === 0 ? (
           <div className="empty">
             <p className="empty__title">Сопряжённых плат нет</p>
-            <p>Заберите объявленную плату выше или сопряжите по ключу.</p>
+            <p>Забери объявленную плату выше — она встанет сюда.</p>
           </div>
         ) : (
           <ul className="list">

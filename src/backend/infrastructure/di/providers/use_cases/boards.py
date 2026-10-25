@@ -34,9 +34,9 @@ class BoardsUseCaseProvider(Provider):
         return ListBoardsUseCase(queries, gateway)
 
     @provide(scope=REQUEST)
-    def list_board_claims(self, queries: BoardQueries) -> ListBoardClaimsUseCase:
+    def list_board_claims(self, queries: BoardQueries, clock: Clock) -> ListBoardClaimsUseCase:
         """Собирает список открытых предложений плат."""
-        return ListBoardClaimsUseCase(queries)
+        return ListBoardClaimsUseCase(queries, clock)
 
     @provide(scope=REQUEST)
     def configure_board_network(

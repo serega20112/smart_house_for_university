@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -58,11 +60,15 @@ class SqlBoardQueries:
             )
             return [board_view_of(row) for row in result.scalars().all()]
 
-    async def list_open_claims(self) -> list[BoardClaimView]:
-        """Возвращает всякое предложение, которое ещё никто не забрал.
+    async def list_open_claims(self, now: datetime) -> list[BoardClaimView]:
+        """Возвращает предложения, которые ещё не взяты и ещё действительны.
 
-        Чтение списка ничего не удаляет: уже просроченное предложение всё равно
-        показывается, а убирает его отдельная команда.
+        Просроченное объявление в список не попадает: с этого момента плату нельзя
+        забрать, и показывать её человеку незачем. Саму строку убирает отдельная
+        команда чистки — чтение базу не меняет.
+
+        Args:
+            now: Момент, относительно которого проверяют срок предложения.
 
         Returns:
             list[BoardClaimView]: Открытые предложения.
@@ -70,7 +76,10 @@ class SqlBoardQueries:
         async with self._session_factory() as session:
             result = await session.execute(
                 select(EspClaimModel)
-                .where(EspClaimModel.claimed_by.is_(None))
+                .where(
+                    EspClaimModel.claimed_by.is_(None),
+                    EspClaimModel.expires_at > now,
+                )
                 .order_by(EspClaimModel.announced_at.desc(), EspClaimModel.id)
             )
             return [claim_view_of(row) for row in result.scalars().all()]

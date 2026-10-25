@@ -1,12 +1,11 @@
 /*
  * Экран плат.
  *
- * Три секции одной логики: мастер сопряжения, очередь объявлений и свои платы. Код
- * объявления набран моноширинным — его сверяют символ за символом с тем, что плата
- * печатает в порт последовательной связи.
+ * Две секции одной логики: очередь объявлений и свои платы. Код объявления набран
+ * моноширинным — его сверяют символ за символом с тем, что плата печатает в порт
+ * последовательной связи.
  */
 
-.boards__pair,
 .boards__offers,
 .boards__own {
   display: flex;
@@ -36,41 +35,6 @@
 .boards__section-note {
   color: var(--muted);
   font-size: var(--fs-xs);
-}
-
-/* --- Шаги мастера --------------------------------------------------------- */
-
-.boards__step {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-sm);
-  animation: rise var(--dur-slow) var(--ease) both;
-}
-
-.boards__note {
-  color: var(--muted);
-  font-size: var(--fs-xs);
-  max-width: 60ch;
-}
-
-/* Ключ: его переписывают руками, поэтому он крупный и в отдельной строке. */
-.boards__keyline {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap-xs);
-  padding: var(--gap-sm);
-  border-radius: var(--radius-sm);
-  border: 1px dashed color-mix(in srgb, var(--accent) 40%, var(--line));
-  background: var(--surface-2);
-}
-
-.boards__keyline code {
-  font-size: var(--fs-md);
-  letter-spacing: 0.06em;
-  color: var(--accent);
-  overflow-wrap: anywhere;
 }
 
 /* --- Объявления ----------------------------------------------------------- */

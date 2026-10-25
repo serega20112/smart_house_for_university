@@ -4,14 +4,15 @@ import "./home.css";
  *
  * Сама страница о конкретном доме не знает ничего: какие карточки показать, в каком
  * порядке и под каким личным заголовком — всё это приходит из раскладки, сохранённой за
- * вошедшим аккаунтом. Здесь только рамка, полоса состояния и два куска подвала: сводка
- * автоматики и активные сценарии.
+ * вошедшим аккаунтом. Править раскладку отсюда нельзя: на каждое заведённое устройство
+ * сервер сам дописывает плитку, поэтому экран не умеет отстать от состава дома. Здесь
+ * только рамка, полоса состояния и два куска подвала: сводка автоматики и активные
+ * сценарии.
  */
 
 import { useCallback, useEffect, useState } from "react";
 
 import { Dashboard, SystemBar } from "@/widgets/home";
-import { DashboardEditor } from "@/features/dashboard-edit";
 import { useHomeState } from "@/entities/home";
 import { useSession } from "@/entities/session";
 import * as api from "@/shared/api/client";
@@ -27,7 +28,6 @@ export function HomePage() {
   const { state, loading, error, connection, syncedAt, refresh } = useHomeState();
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
-  const [editing, setEditing] = useState(false);
 
   /**
    * Читает раскладку экрана и платы: без них плитка не знает, чей канал показать.
@@ -47,14 +47,6 @@ export function HomePage() {
 
   useEffect(() => {
     void loadSide();
-  }, [loadSide]);
-
-  /**
-   * Закрывает настройку и перечитывает раскладку: экран показывает то, что сервер принял.
-   */
-  const finishEditing = useCallback(async () => {
-    setEditing(false);
-    await loadSide();
   }, [loadSide]);
 
   const automation = state?.automation;
@@ -80,27 +72,10 @@ export function HomePage() {
           >
             Обновить
           </button>
-          <button
-            type="button"
-            className={editing ? "button button--primary" : "button"}
-            aria-pressed={editing}
-            onClick={() => setEditing((current) => !current)}
-          >
-            {editing ? "Закрыть настройку" : "Настроить экран"}
-          </button>
         </div>
       </header>
 
       {error ? <p className="notice notice--bad">{error}</p> : null}
-
-      {editing ? (
-        <DashboardEditor
-          widgets={widgets}
-          devices={state?.devices ?? []}
-          onSaved={() => void finishEditing()}
-          onCancel={() => setEditing(false)}
-        />
-      ) : null}
 
       <Dashboard
         widgets={widgets}

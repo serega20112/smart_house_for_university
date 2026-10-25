@@ -22,13 +22,11 @@ import type {
   DeviceKind,
   HomeState,
   OperationResult,
-  PairedBoard,
   Preferences,
   RealtimeTicket,
   Scenario,
   Session,
   UserProfile,
-  Widget,
 } from "@/shared/api/types";
 import { getToken, unauthorized } from "@/shared/lib/token";
 
@@ -344,23 +342,13 @@ export function updatePreferences(payload: Partial<Preferences>): Promise<Prefer
 /**
  * Возвращает раскладку главного экрана вошедшего аккаунта.
  *
+ * Раскладка только читается: на каждое устройство сервер сам дописывает плитку, поэтому
+ * менять её руками из интерфейса нечего.
+ *
  * @returns Виджеты в порядке показа.
  */
 export function fetchDashboard(): Promise<Dashboard> {
   return request<Dashboard>("/dashboard");
-}
-
-/**
- * Заменяет раскладку главного экрана целиком.
- *
- * @param widgets Виджеты в новом порядке.
- * @returns Сохранённая раскладка.
- */
-export function updateDashboard(widgets: Widget[]): Promise<Dashboard> {
-  return request<Dashboard>("/dashboard", {
-    method: "PATCH",
-    body: JSON.stringify({ widgets }),
-  });
 }
 
 /* --- Платы ---------------------------------------------------------------- */
@@ -372,22 +360,6 @@ export function updateDashboard(widgets: Widget[]): Promise<Dashboard> {
  */
 export function fetchBoards(): Promise<Board[]> {
   return request<Board[]>("/esp-devices");
-}
-
-/**
- * Сопрягает плату и один раз показывает её ключ.
- *
- * @param payload Название платы и, возможно, ключ, который выбрал человек.
- * @returns Сопряжённая плата вместе с ключом.
- */
-export function pairBoard(payload: {
-  name: string;
-  pairing_key?: string;
-}): Promise<PairedBoard> {
-  return request<PairedBoard>("/esp-devices", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
 }
 
 /**

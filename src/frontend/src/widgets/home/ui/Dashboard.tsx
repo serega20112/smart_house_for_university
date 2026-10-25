@@ -117,7 +117,7 @@ export function Dashboard({ widgets, state, preferences, boards, loading, onChan
         ) : (
           <div className="empty">
             <p className="empty__title">На главном экране нет плиток</p>
-            <p>Добавьте устройства и соберите раскладку экрана.</p>
+            <p>Заведите устройство на экране «Устройства» — плитка появится здесь сама.</p>
           </div>
         )}
       </div>

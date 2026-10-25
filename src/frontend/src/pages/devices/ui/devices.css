@@ -6,21 +6,16 @@
  * на две, потому что признакам тесно рядом с кнопкой.
  */
 
-/* Поиск слева, фильтры справа: вторая колонка обязана сжиматься до нуля, иначе
- * длинный ряд чипов вылезает за край экрана. */
+/* Поиск — единственный элемент панели; поле берёт ровно столько, сколько нужно,
+ * а не растягивается на всю ширину списка. */
 .devices__toolbar {
-  display: grid;
-  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  display: flex;
   align-items: center;
   gap: var(--gap-sm);
 }
 
 .devices__search {
-  min-width: 0;
-}
-
-.devices__toolbar .chips {
-  justify-content: flex-start;
+  width: min(320px, 100%);
   min-width: 0;
 }
 
@@ -102,15 +97,5 @@
   .device-row .button {
     margin-left: auto;
     order: 4;
-  }
-}
-
-@media (max-width: 700px) {
-  .devices__toolbar {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .devices__toolbar .chips {
-    justify-content: flex-start;
   }
 }
