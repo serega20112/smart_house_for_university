@@ -1,4 +1,5 @@
 """Проверка настроек автоматизации: значения по умолчанию, валидация допусков, события."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -157,7 +158,6 @@ def test_automation_settings_device_participates_only_from_the_list() -> None:
     """Что тестируем: участие устройств в автоматизации с заданным списком участников.
     Что передаём: список из одного устройства и два устройства на проверку.
     Что ожидаем: устройство из списка допущено, устройство вне списка — нет."""
-
 
     # Arrange
     settings = make_settings()
