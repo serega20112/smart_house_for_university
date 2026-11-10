@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from backend.domain.exceptions.devices import InvalidCapabilityError
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.control_source import ControlSource

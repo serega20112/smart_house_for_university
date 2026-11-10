@@ -18,7 +18,7 @@ from fakeredis import FakeServer, aioredis
 from backend.domain.identifiers import UserId
 from backend.infrastructure.brokers import keys
 from backend.infrastructure.brokers.event_broker import RedisEventBroker, RedisSubscriber
-from tests.conftest import OWNER_UUID
+from tests.support.devices import OWNER_UUID
 
 PREFIX = "tests"
 

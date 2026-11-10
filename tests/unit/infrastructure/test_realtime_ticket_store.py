@@ -8,7 +8,11 @@
 
 from __future__ import annotations
 
+import pytest
+
 from fakeredis import FakeServer, aioredis
+
+pytestmark = pytest.mark.unit
 
 from backend.domain.identifiers import UserId
 from backend.infrastructure.brokers.realtime_tickets import RedisRealtimeTicketStore

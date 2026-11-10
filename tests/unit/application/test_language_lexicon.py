@@ -15,6 +15,8 @@ from backend.application.services.language.lexicon_understanding import (
 from backend.application.services.language.parser import SentenceParser
 from backend.domain.value_objects.devices.capability import Capability
 
+pytestmark = pytest.mark.unit
+
 PARSER = SentenceParser()
 
 

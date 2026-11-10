@@ -20,7 +20,7 @@ from backend.infrastructure.database.repositories.account_repository import SqlA
 from backend.infrastructure.database.repositories.automation_repository import (
     SqlAutomationRepository,
 )
-from tests.conftest import OWNER_UUID
+from tests.support.devices import OWNER_UUID
 
 CREATED_AT = datetime(2027, 1, 1, 12, 0, tzinfo=UTC)
 

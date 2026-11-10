@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from typing import Never, Self
 
 import pytest
-from tests.conftest import OWNER_UUID, make_device
+from tests.support.devices import OWNER_UUID, make_device
 
 from backend.application.dto.boards.board_command_result import BoardCommandResult
 from backend.application.errors import (
@@ -38,6 +38,8 @@ from backend.domain.value_objects.boards.pairing_key import PairingKey
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_status import DeviceStatus
+
+pytestmark = pytest.mark.unit
 
 NOW = datetime(2026, 5, 1, 12, 0, tzinfo=UTC)
 

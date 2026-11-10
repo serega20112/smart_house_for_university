@@ -10,7 +10,7 @@ board.
 from __future__ import annotations
 
 import pytest
-from tests.conftest import make_device
+from tests.support.devices import make_device
 
 from backend.application.dto.boards.detach_policy import DetachPolicy
 from backend.application.errors import BoardHasDevicesError, BoardNotFoundError
@@ -20,6 +20,8 @@ from backend.application.interfaces.unit_of_work.board_onboarding import (
 from backend.application.services.board_onboarding import BoardOnboardingService
 from backend.domain.aggregates.device.device import Device
 from backend.domain.identifiers import EspDeviceId, UserId
+
+pytestmark = pytest.mark.unit
 
 
 class StubBoards:

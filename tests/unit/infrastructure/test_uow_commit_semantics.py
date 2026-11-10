@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from backend.application.interfaces.unit_of_work.transaction import TransactionalUnitOfWork
 from backend.infrastructure.database.unit_of_work import SqlUnitOfWork
 

@@ -27,7 +27,7 @@ from backend.domain.value_objects.devices.relay_channel import RelayChannel
 from backend.infrastructure.database.repositories.account_repository import SqlAccountRepository
 from backend.infrastructure.database.repositories.board_repository import SqlBoardRepository
 from backend.infrastructure.database.repositories.device_repository import SqlDeviceRepository
-from tests.conftest import OWNER_UUID, make_device
+from tests.support.devices import OWNER_UUID, make_device
 
 CREATED_AT = datetime(2027, 1, 1, 12, 0, tzinfo=UTC)
 

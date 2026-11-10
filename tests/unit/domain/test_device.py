@@ -12,7 +12,9 @@ from backend.domain.value_objects.devices.device_kind import DeviceKind
 from backend.domain.value_objects.devices.device_name import DeviceName
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.devices.relay_channel import RelayChannel
-from tests.conftest import OWNER_UUID, make_device
+from tests.support.devices import OWNER_UUID, make_device
+
+pytestmark = pytest.mark.unit
 
 ALL_CAPABILITIES = frozenset(Capability)
 

@@ -8,10 +8,11 @@ claiming to act. Only the devices the scenario switched are captured, so
 finishing it does not undo a decision a person made in the meantime.
 """
 
+import pytest
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from tests.conftest import OWNER_UUID, make_device
+from tests.support.devices import OWNER_UUID, make_device
 
 from backend.application.dto.boards.board_command_result import BoardCommandResult
 from backend.application.interfaces.services.boards.board_gateway import (
@@ -49,6 +50,8 @@ from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.devices.relay_channel import RelayChannel
 from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
 from backend.domain.value_objects.scenario.scenario_status import ScenarioStatus
+
+pytestmark = pytest.mark.unit
 
 NOW = datetime(2027, 6, 1, 12, 0, tzinfo=UTC)
 

@@ -11,6 +11,9 @@ import ast
 from pathlib import Path
 
 import pytest
+
+pytestmark = pytest.mark.unit
+
 from fastapi import status
 
 from backend.application import errors

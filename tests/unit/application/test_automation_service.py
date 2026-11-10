@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import pytest
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Never, Self
 
-from tests.conftest import OWNER_UUID, make_device
+from tests.support.devices import OWNER_UUID, make_device
 
 from backend.application.errors import BoardUnreachableError
 from backend.application.interfaces.services.messaging.domain_event_dispatcher import (
@@ -33,6 +34,8 @@ from backend.domain.value_objects.climate.skip_reason import SkipReason
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_kind import DeviceKind
 from backend.domain.value_objects.devices.relay_channel import RelayChannel
+
+pytestmark = pytest.mark.unit
 
 NOW = datetime(2026, 5, 1, 12, 0, tzinfo=UTC)
 BOARD = EspDeviceId.generate()

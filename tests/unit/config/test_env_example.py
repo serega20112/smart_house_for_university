@@ -9,7 +9,10 @@
 from __future__ import annotations
 
 import ast
+import pytest
 from pathlib import Path
+
+pytestmark = pytest.mark.unit
 
 ROOT = Path(__file__).resolve().parents[3]
 SECTIONS = ROOT / "src" / "backend" / "config" / "sections"

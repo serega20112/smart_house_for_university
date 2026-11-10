@@ -21,7 +21,7 @@ from backend.domain.value_objects.account.email import Email
 from backend.domain.value_objects.scenario.scenario_status import ScenarioStatus
 from backend.infrastructure.database.repositories.account_repository import SqlAccountRepository
 from backend.infrastructure.database.repositories.scenario_repository import SqlScenarioRepository
-from tests.conftest import OWNER_UUID
+from tests.support.devices import OWNER_UUID
 
 NOW = datetime(2027, 5, 1, 12, 0, tzinfo=UTC)
 

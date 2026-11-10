@@ -22,7 +22,7 @@ from backend.infrastructure.brokers.command_bus import (
     BoardCommand,
     RedisBoardCommandBus,
 )
-from tests.conftest import OWNER_UUID
+from tests.support.devices import OWNER_UUID
 
 PREFIX = "test-live"
 

@@ -2,6 +2,8 @@ from uuid import UUID
 
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from backend.domain.exceptions import MalformedIdentifierError
 from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
-from tests.conftest import OWNER_UUID
+from tests.support.devices import OWNER_UUID
 
 from backend.application.dto.account.authenticate_command import AuthenticateCommand
 from backend.application.dto.account.issued_session import IssuedSession
@@ -27,6 +27,8 @@ from backend.application.use_cases.accounts.authenticate_account import (
 )
 from backend.domain.identifiers import UserId
 from backend.infrastructure.security.password_hasher import Pbkdf2PasswordHasher
+
+pytestmark = pytest.mark.unit
 
 NOW = datetime(2026, 5, 1, 12, 0, tzinfo=UTC)
 EMAIL = "owner@example.com"

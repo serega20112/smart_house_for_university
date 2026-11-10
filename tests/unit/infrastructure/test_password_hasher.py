@@ -20,6 +20,8 @@ import time
 
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from backend.infrastructure.security import password_hasher as module
 from backend.infrastructure.security.password_hasher import (
     ALGORITHM_PREFIX,

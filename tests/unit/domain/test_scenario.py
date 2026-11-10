@@ -6,16 +6,19 @@ person turned on while the scenario ran, while the explicitly named behaviour
 "switch everything off" keeps meaning the whole home.
 """
 
+import pytest
 from datetime import UTC, datetime
 
 from backend.domain.aggregates.scenario.scenario import Scenario
+
+pytestmark = pytest.mark.unit
 from backend.domain.entities.scenario.scenario_action import ScenarioAction
 from backend.domain.identifiers import DeviceId, UserId
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.devices.relay_channel import RelayChannel
 from backend.domain.value_objects.scenario.completion_behavior import CompletionBehavior
-from tests.conftest import OWNER_UUID, make_device
+from tests.support.devices import OWNER_UUID, make_device
 
 NOW = datetime(2027, 6, 1, 12, 0, tzinfo=UTC)
 

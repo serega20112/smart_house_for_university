@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from backend.domain.exceptions import InvalidTemperatureError
 from backend.domain.value_objects.climate.temperature import MAX_CELSIUS, MIN_CELSIUS, Temperature
 

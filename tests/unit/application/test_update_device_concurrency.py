@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 import pytest
-from tests.conftest import make_device
+from tests.support.devices import make_device
 
 from backend.application.dto.devices.update_device_command import UpdateDeviceCommand
 from backend.application.errors import ConcurrentModificationError
@@ -23,6 +23,8 @@ from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.devices.relay_state import RelayState
+
+pytestmark = pytest.mark.unit
 
 BOARD = EspDeviceId.generate()
 

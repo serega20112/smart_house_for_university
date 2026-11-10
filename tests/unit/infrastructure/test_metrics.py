@@ -7,7 +7,11 @@
 
 from __future__ import annotations
 
+import pytest
+
 from backend.infrastructure.system import metrics
+
+pytestmark = pytest.mark.unit
 
 
 def test_rendered_metrics_expose_command_and_cycle_families() -> None:

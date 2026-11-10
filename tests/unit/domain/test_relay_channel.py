@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from backend.domain.exceptions import InvalidRelayChannelError
 from backend.domain.value_objects.devices.relay_channel import (
     FIRST_CHANNEL,

@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from backend.domain.exceptions import InvalidToleranceError
 from backend.domain.value_objects.climate.tolerance import MAX_TOLERANCE, Tolerance
 

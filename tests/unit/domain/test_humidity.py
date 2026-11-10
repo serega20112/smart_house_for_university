@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from backend.domain.exceptions import InvalidHumidityError
 from backend.domain.value_objects.climate.humidity import MAX_PERCENT, MIN_PERCENT, Humidity
 

@@ -20,7 +20,7 @@ from backend.domain.value_objects.devices.relay_state import RelayState
 from backend.infrastructure.brokers import keys
 from backend.infrastructure.brokers.state_schema import STATE_VERSION
 from backend.infrastructure.brokers.state_store import RedisHomeStateStore
-from tests.conftest import OWNER_UUID, make_device
+from tests.support.devices import OWNER_UUID, make_device
 
 NOW = datetime(2027, 5, 1, 12, 0, tzinfo=UTC)
 
