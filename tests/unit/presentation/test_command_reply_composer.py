@@ -11,12 +11,12 @@ from __future__ import annotations
 
 import pytest
 
-pytestmark = pytest.mark.unit
-
 from backend.application.dto.language.intent import Intent
 from backend.application.use_cases.commands.result import CommandReply
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.presentation.messages import CommandReplyComposer
+
+pytestmark = pytest.mark.unit
 
 
 def reply_of(status: DeviceStatus) -> CommandReply:

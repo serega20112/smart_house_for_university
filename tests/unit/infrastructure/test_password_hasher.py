@@ -20,14 +20,14 @@ import time
 
 import pytest
 
-pytestmark = pytest.mark.unit
-
 from backend.infrastructure.security import password_hasher as module
 from backend.infrastructure.security.password_hasher import (
     ALGORITHM_PREFIX,
     DEFAULT_DIGEST,
     Pbkdf2PasswordHasher,
 )
+
+pytestmark = pytest.mark.unit
 
 
 async def test_hash_is_self_describing_and_verifies():

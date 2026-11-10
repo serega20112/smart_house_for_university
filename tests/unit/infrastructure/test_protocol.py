@@ -1,8 +1,8 @@
 import pytest
 
-pytestmark = pytest.mark.unit
-
 from backend.infrastructure.esp import protocol
+
+pytestmark = pytest.mark.unit
 
 
 def test_protocol_version_is_the_firmware_and_docs_version() -> None:

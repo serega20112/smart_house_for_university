@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Never, Self
 
+import pytest
 from tests.support.devices import OWNER_UUID, make_device
 
 from backend.application.errors import BoardUnreachableError

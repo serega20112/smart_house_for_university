@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import pytest
 
-pytestmark = pytest.mark.unit
-
 from backend.domain.identifiers import EspDeviceId, UserId
 from backend.infrastructure.brokers import keys
 from tests.support.devices import OWNER_UUID
+
+pytestmark = pytest.mark.unit
 
 PREFIX = "tests"
 

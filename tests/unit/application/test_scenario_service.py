@@ -8,10 +8,10 @@ claiming to act. Only the devices the scenario switched are captured, so
 finishing it does not undo a decision a person made in the meantime.
 """
 
-import pytest
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
+import pytest
 from tests.support.devices import OWNER_UUID, make_device
 
 from backend.application.dto.boards.board_command_result import BoardCommandResult

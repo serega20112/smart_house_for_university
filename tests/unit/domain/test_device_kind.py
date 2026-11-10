@@ -1,9 +1,9 @@
 import pytest
 
-pytestmark = pytest.mark.unit
-
 from backend.domain.exceptions.devices import InvalidDeviceKindError
 from backend.domain.value_objects.devices.device_kind import DeviceKind
+
+pytestmark = pytest.mark.unit
 
 
 @pytest.mark.parametrize("kind", list(DeviceKind))

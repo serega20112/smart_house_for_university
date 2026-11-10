@@ -6,17 +6,18 @@ The rules under test are the ones a home of two boards needs to make correct
 decisions instead of announcing somebody else's device.
 """
 
-import pytest
 from datetime import UTC, datetime
 
-from backend.domain.entities.home_state.home_state import HomeState
+import pytest
 
-pytestmark = pytest.mark.unit
+from backend.domain.entities.home_state.home_state import HomeState
 from backend.domain.identifiers import EspDeviceId, UserId
 from backend.domain.value_objects.climate.climate_reading import ClimateReading
 from backend.domain.value_objects.devices.device_status import DeviceStatus
 from backend.domain.value_objects.devices.relay_state import RelayState
 from tests.support.devices import OWNER_UUID, make_device
+
+pytestmark = pytest.mark.unit
 
 REPORTED_AT = datetime(2026, 5, 1, 12, 0, tzinfo=UTC)
 TEN_MINUTES_LATER = datetime(2026, 5, 1, 12, 10, tzinfo=UTC)

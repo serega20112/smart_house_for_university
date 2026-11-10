@@ -1,9 +1,9 @@
 import pytest
 
-pytestmark = pytest.mark.unit
-
 from backend.domain.exceptions import InvalidToleranceError
 from backend.domain.value_objects.climate.tolerance import MAX_TOLERANCE, Tolerance
+
+pytestmark = pytest.mark.unit
 
 
 @pytest.mark.parametrize("value", [0.0, MAX_TOLERANCE, 1.0, 4.5])

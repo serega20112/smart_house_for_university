@@ -3,11 +3,11 @@ from __future__ import annotations
 import pytest
 
 from backend.domain.aggregates.dashboard.dashboard_state import MAX_WIDGETS, DashboardState
-
-pytestmark = pytest.mark.unit
 from backend.domain.entities.personalization.dashboard_widget import DashboardWidget
 from backend.domain.identifiers import DeviceId, UserId
 from backend.domain.value_objects.personalization.widget_kind import WidgetKind
+
+pytestmark = pytest.mark.unit
 
 OWNER_UUID = "550e8400-e29b-41d4-a716-446655440000"
 

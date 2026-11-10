@@ -11,9 +11,6 @@ import ast
 from pathlib import Path
 
 import pytest
-
-pytestmark = pytest.mark.unit
-
 from fastapi import status
 
 from backend.application import errors
@@ -25,6 +22,8 @@ from backend.presentation.errors import (
     describe,
 )
 from backend.presentation.messages import STATE_CHANGED
+
+pytestmark = pytest.mark.unit
 
 DOMAIN_PACKAGE = Path(__file__).resolve().parents[3] / "src" / "backend" / "domain"
 FORBIDDEN_BUILTIN_RAISES = frozenset({"ValueError", "KeyError", "TypeError", "RuntimeError"})

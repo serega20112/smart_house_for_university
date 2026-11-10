@@ -1,9 +1,9 @@
 import pytest
 
-pytestmark = pytest.mark.unit
-
 from backend.domain.exceptions import InvalidHumidityError
 from backend.domain.value_objects.climate.humidity import MAX_PERCENT, MIN_PERCENT, Humidity
+
+pytestmark = pytest.mark.unit
 
 
 @pytest.mark.parametrize("percent", [MIN_PERCENT, MAX_PERCENT, 45.0, 63.5])

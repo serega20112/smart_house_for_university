@@ -9,8 +9,9 @@
 from __future__ import annotations
 
 import ast
-import pytest
 from pathlib import Path
+
+import pytest
 
 pytestmark = pytest.mark.unit
 

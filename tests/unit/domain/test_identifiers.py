@@ -2,10 +2,10 @@ from uuid import UUID
 
 import pytest
 
-pytestmark = pytest.mark.unit
-
 from backend.domain.exceptions import MalformedIdentifierError
 from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
+
+pytestmark = pytest.mark.unit
 
 
 def test_identifiers_parse_accepted_uuid_text() -> None:

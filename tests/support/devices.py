@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from backend.domain.aggregates.device.device import Device
-from backend.domain.identifiers import DeviceId, EspDeviceId, UserId
+from backend.domain.identifiers import EspDeviceId, UserId
 from backend.domain.value_objects.devices.capability import Capability
 from backend.domain.value_objects.devices.device_kind import DeviceKind
 from backend.domain.value_objects.devices.relay_channel import RelayChannel
