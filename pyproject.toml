@@ -147,9 +147,8 @@ forbidden_modules = [
     "backend.application",
     "backend.infrastructure",
     "backend.presentation",
-    "backend.composition",
-]
-include_external_packages = true
+     "backend.composition",
+ ]
 
 [[tool.importlinter.contracts]]
 name = "Application does not reach into infrastructure"
